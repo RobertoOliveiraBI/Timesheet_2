@@ -33,8 +33,9 @@ export function AdminSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users = [] } = useQuery<any[]>({
+  const { data: users = [], error: usersError } = useQuery<any[]>({
     queryKey: ["/api/usuarios"],
+    retry: false,
   });
 
   const { data: economicGroups = [] } = useQuery<any[]>({
@@ -202,7 +203,7 @@ export function AdminSection() {
                 </tr>
               </thead>
               <tbody>
-                {Array.isArray(users) && users.map((user: any) => (
+                {users && users.length > 0 ? users.map((user: any) => (
                   <tr key={user.id} className="border-b hover:bg-slate-50">
                     <td className="p-3">
                       <div>
@@ -241,7 +242,13 @@ export function AdminSection() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-slate-500">
+                      {usersError ? 'Erro ao carregar usuários' : 'Nenhum usuário encontrado'}
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

@@ -8,7 +8,8 @@ import {
   insertCampaignSchema,
   insertTaskTypeSchema,
   insertTimeEntrySchema,
-  insertCampaignUserSchema
+  insertCampaignUserSchema,
+  insertUserSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -335,8 +336,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const stats = user.isManager 
-        ? await storage.getTeamTimeStats(userId, fromDate, toDate)
-        : await storage.getTeamTimeStats('', fromDate, toDate); // All team stats for admins
+        ? await storage.getTeamTimeStats(parseInt(userId), fromDate as string, toDate as string)
+        : await storage.getTeamTimeStats(0, fromDate as string, toDate as string); // All team stats for admins
       
       res.json(stats);
     } catch (error) {

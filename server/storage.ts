@@ -7,6 +7,7 @@ import {
   taskTypes,
   timeEntries,
   type User,
+  type InsertUser,
   type UpsertUser,
   type InsertEconomicGroup,
   type EconomicGroup,
@@ -33,6 +34,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   // Economic Groups
   createEconomicGroup(group: InsertEconomicGroup): Promise<EconomicGroup>;
@@ -48,10 +50,10 @@ export interface IStorage {
   // Campaigns
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   getCampaigns(): Promise<CampaignWithRelations[]>;
-  getCampaignsByUser(userId: string): Promise<CampaignWithRelations[]>;
+  getCampaignsByUser(userId: number): Promise<CampaignWithRelations[]>;
   updateCampaign(id: number, campaign: Partial<InsertCampaign>): Promise<Campaign>;
-  addUserToCampaign(campaignId: number, userId: string): Promise<void>;
-  removeUserFromCampaign(campaignId: number, userId: string): Promise<void>;
+  addUserToCampaign(campaignId: number, userId: number): Promise<void>;
+  removeUserFromCampaign(campaignId: number, userId: number): Promise<void>;
   
   // Task Types
   createTaskType(taskType: InsertTaskType): Promise<TaskType>;
@@ -60,23 +62,23 @@ export interface IStorage {
   
   // Time Entries
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
-  getTimeEntries(userId?: string, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
-  getTimeEntriesByUser(userId: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
-  getPendingTimeEntries(managerId?: string): Promise<TimeEntryWithRelations[]>;
+  getTimeEntries(userId?: number, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
+  getTimeEntriesByUser(userId: number, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
+  getPendingTimeEntries(managerId?: number): Promise<TimeEntryWithRelations[]>;
   updateTimeEntry(id: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry>;
-  submitTimeEntry(id: number, userId: string): Promise<TimeEntry>;
-  approveTimeEntry(id: number, reviewerId: string, comment?: string): Promise<TimeEntry>;
-  rejectTimeEntry(id: number, reviewerId: string, comment?: string): Promise<TimeEntry>;
+  submitTimeEntry(id: number, userId: number): Promise<TimeEntry>;
+  approveTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry>;
+  rejectTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry>;
   
   // Reports
-  getUserTimeStats(userId: string, fromDate?: string, toDate?: string): Promise<{
+  getUserTimeStats(userId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
     nonBillableHours: number;
     approvedHours: number;
     pendingHours: number;
   }>;
-  getTeamTimeStats(managerId: string, fromDate?: string, toDate?: string): Promise<{
+  getTeamTimeStats(managerId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
     utilization: number;
@@ -113,6 +115,21 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .insert(users)
       .values(userData)
+      .returning();
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
@@ -188,7 +205,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getCampaignsByUser(userId: string): Promise<CampaignWithRelations[]> {
+  async getCampaignsByUser(userId: number): Promise<CampaignWithRelations[]> {
     const userCampaigns = await db.query.campaignUsers.findMany({
       where: eq(campaignUsers.userId, userId),
       with: {
@@ -223,14 +240,14 @@ export class DatabaseStorage implements IStorage {
     return updatedCampaign;
   }
 
-  async addUserToCampaign(campaignId: number, userId: string): Promise<void> {
+  async addUserToCampaign(campaignId: number, userId: number): Promise<void> {
     await db.insert(campaignUsers).values({
       campaignId,
       userId,
     });
   }
 
-  async removeUserFromCampaign(campaignId: number, userId: string): Promise<void> {
+  async removeUserFromCampaign(campaignId: number, userId: number): Promise<void> {
     await db
       .delete(campaignUsers)
       .where(and(eq(campaignUsers.campaignId, campaignId), eq(campaignUsers.userId, userId)));
@@ -265,7 +282,7 @@ export class DatabaseStorage implements IStorage {
     return newTimeEntry;
   }
 
-  async getTimeEntries(userId?: string, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]> {
+  async getTimeEntries(userId?: number, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]> {
     const conditions = [];
     
     if (userId) {
@@ -304,12 +321,12 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getTimeEntriesByUser(userId: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]> {
+  async getTimeEntriesByUser(userId: number, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]> {
     return this.getTimeEntries(userId, undefined, fromDate, toDate);
   }
 
-  async getPendingTimeEntries(managerId?: string): Promise<TimeEntryWithRelations[]> {
-    let userIds: string[] | undefined;
+  async getPendingTimeEntries(managerId?: number): Promise<TimeEntryWithRelations[]> {
+    let userIds: number[] | undefined;
     
     if (managerId) {
       // Get subordinates of the manager
@@ -359,7 +376,7 @@ export class DatabaseStorage implements IStorage {
     return updatedTimeEntry;
   }
 
-  async submitTimeEntry(id: number, userId: string): Promise<TimeEntry> {
+  async submitTimeEntry(id: number, userId: number): Promise<TimeEntry> {
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
@@ -372,7 +389,7 @@ export class DatabaseStorage implements IStorage {
     return timeEntry;
   }
 
-  async approveTimeEntry(id: number, reviewerId: string, comment?: string): Promise<TimeEntry> {
+  async approveTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry> {
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
@@ -387,7 +404,7 @@ export class DatabaseStorage implements IStorage {
     return timeEntry;
   }
 
-  async rejectTimeEntry(id: number, reviewerId: string, comment?: string): Promise<TimeEntry> {
+  async rejectTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry> {
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
@@ -403,7 +420,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Reports
-  async getUserTimeStats(userId: string, fromDate?: string, toDate?: string): Promise<{
+  async getUserTimeStats(userId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
     nonBillableHours: number;
@@ -455,7 +472,7 @@ export class DatabaseStorage implements IStorage {
     return stats;
   }
 
-  async getTeamTimeStats(managerId: string, fromDate?: string, toDate?: string): Promise<{
+  async getTeamTimeStats(managerId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
     utilization: number;
