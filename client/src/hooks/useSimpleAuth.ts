@@ -16,6 +16,19 @@ export function useAuth() {
     queryKey: ["/api/user"],
     retry: false,
     retryOnMount: false,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const res = await fetch("/api/user", {
+        credentials: "include",
+      });
+      if (res.status === 401) {
+        return null;
+      }
+      if (!res.ok) {
+        throw new Error(`${res.status}: ${res.statusText}`);
+      }
+      return await res.json();
+    },
   });
 
   const loginMutation = useMutation({
