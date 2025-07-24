@@ -131,6 +131,21 @@ export function AdminSection() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: campaignTasks = [], isLoading: campaignTasksLoading } = useQuery<any[]>({
+    queryKey: ["/api/campaign-tasks"],
+    queryFn: async () => {
+      const response = await fetch("/api/campaign-tasks", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
   const updateConfigMutation = useMutation({
     mutationFn: async (config: Record<string, any>) => {
       await apiRequest("PATCH", "/api/config", config);
@@ -149,6 +164,7 @@ export function AdminSection() {
         client: `/api/clientes/${id}`,
         campaign: `/api/campanhas/${id}`,
         taskType: `/api/tipos-tarefa/${id}`,
+        campaignTask: `/api/campaign-tasks/${id}`,
       };
       await apiRequest("DELETE", endpoints[type as keyof typeof endpoints]);
     },
@@ -596,6 +612,91 @@ export function AdminSection() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Tarefas de Campanha */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Tarefas de Campanha
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-slate-600">
+                Gerencie tarefas específicas de cada campanha
+              </p>
+              <Button
+                onClick={() => {
+                  setSelectedItem(null);
+                  setSelectedModal("campaignTask");
+                }}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Nova Tarefa
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {campaignTasksLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-sm text-slate-500">Carregando tarefas...</div>
+                </div>
+              ) : Array.isArray(campaignTasks) && campaignTasks.length > 0 ? (
+                <div className="space-y-3">
+                  {campaignTasks.map((task: any) => (
+                    <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{task.description}</p>
+                        <p className="text-sm text-slate-500">
+                          {task.campaign?.name} • {task.taskType?.name}
+                        </p>
+                        {task.taskType?.color && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div 
+                              className="w-3 h-3 rounded-full" 
+                              style={{ backgroundColor: task.taskType.color }}
+                            />
+                            <span className="text-xs text-slate-400">
+                              {task.taskType.isBillable ? "Faturável" : "Não faturável"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedItem(task);
+                            setSelectedModal("campaignTask");
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate({ type: "campaignTask", id: task.id })}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-500">
+                  <Briefcase className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                  <p>Nenhuma tarefa de campanha cadastrada</p>
+                  <p className="text-sm">Clique em "Nova Tarefa" para começar</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modals */}
@@ -614,6 +715,14 @@ export function AdminSection() {
         )}
         {selectedModal === "campaign" && (
           <CampaignModal campaign={selectedItem} onClose={closeModal} />
+        )}
+        {selectedModal === "campaignTask" && (
+          <CampaignTaskModal 
+            campaignTask={selectedItem} 
+            campaigns={campaigns}
+            taskTypes={taskTypes}
+            onClose={closeModal} 
+          />
         )}
       </Dialog>
     </div>
