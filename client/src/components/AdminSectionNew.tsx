@@ -25,7 +25,7 @@ import {
   Briefcase,
   Tags
 } from "lucide-react";
-import { UserModal, EconomicGroupModal, ClientModal, TaskTypeModal, CampaignModal } from "./AdminModals";
+import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal } from "./AdminModals";
 
 export function AdminSection() {
   const [selectedModal, setSelectedModal] = useState<string | null>(null);

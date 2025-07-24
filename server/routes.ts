@@ -7,6 +7,7 @@ import {
   insertClientSchema,
   insertCampaignSchema,
   insertTaskTypeSchema,
+  insertCampaignTaskSchema,
   insertTimeEntrySchema,
   insertCampaignUserSchema,
   insertUserSchema
@@ -831,6 +832,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating system config:", error);
       res.status(400).json({ message: "Erro ao atualizar configurações" });
+    }
+  });
+
+  // Campaign Tasks Routes
+  app.post("/api/campaign-tasks", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const data = insertCampaignTaskSchema.parse(req.body);
+      const newCampaignTask = await storage.createCampaignTask(data);
+      res.status(201).json(newCampaignTask);
+    } catch (error) {
+      console.error("Error creating campaign task:", error);
+      res.status(400).json({ message: "Failed to create campaign task" });
+    }
+  });
+
+  app.get("/api/campaign-tasks", requireAuth, async (req, res) => {
+    try {
+      const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
+      const campaignTasks = await storage.getCampaignTasks(campaignId);
+      res.json(campaignTasks);
+    } catch (error) {
+      console.error("Error fetching campaign tasks:", error);
+      res.status(500).json({ message: "Failed to fetch campaign tasks" });
+    }
+  });
+
+  app.patch("/api/campaign-tasks/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const id = parseInt(req.params.id);
+      const data = insertCampaignTaskSchema.partial().parse(req.body);
+      const updatedCampaignTask = await storage.updateCampaignTask(id, data);
+      res.json(updatedCampaignTask);
+    } catch (error) {
+      console.error("Error updating campaign task:", error);
+      res.status(400).json({ message: "Failed to update campaign task" });
+    }
+  });
+
+  app.delete("/api/campaign-tasks/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteCampaignTask(id);
+      res.json({ message: "Campaign task deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting campaign task:", error);
+      res.status(500).json({ message: "Failed to delete campaign task" });
     }
   });
 

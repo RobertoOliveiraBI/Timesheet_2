@@ -5,10 +5,10 @@ import {
   campaigns,
   campaignUsers,
   taskTypes,
+  campaignTasks,
   timeEntries,
   type User,
   type InsertUser,
-
   type InsertEconomicGroup,
   type EconomicGroup,
   type InsertClient,
@@ -17,6 +17,9 @@ import {
   type Campaign,
   type InsertTaskType,
   type TaskType,
+  type InsertCampaignTask,
+  type CampaignTask,
+  type CampaignTaskWithRelations,
   type InsertTimeEntry,
   type TimeEntry,
   type InsertCampaignUser,
@@ -60,6 +63,12 @@ export interface IStorage {
   createTaskType(taskType: InsertTaskType): Promise<TaskType>;
   getTaskTypes(): Promise<TaskType[]>;
   updateTaskType(id: number, taskType: Partial<InsertTaskType>): Promise<TaskType>;
+  
+  // Campaign Tasks
+  createCampaignTask(campaignTask: InsertCampaignTask): Promise<CampaignTask>;
+  getCampaignTasks(campaignId?: number): Promise<CampaignTaskWithRelations[]>;
+  updateCampaignTask(id: number, campaignTask: Partial<InsertCampaignTask>): Promise<CampaignTask>;
+  deleteCampaignTask(id: number): Promise<void>;
   
   // Time Entries
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
@@ -284,6 +293,47 @@ export class DatabaseStorage implements IStorage {
       .where(eq(taskTypes.id, id))
       .returning();
     return updatedTaskType;
+  }
+
+  // Campaign Tasks
+  async createCampaignTask(campaignTask: InsertCampaignTask): Promise<CampaignTask> {
+    const [newCampaignTask] = await db.insert(campaignTasks).values(campaignTask).returning();
+    return newCampaignTask;
+  }
+
+  async getCampaignTasks(campaignId?: number): Promise<CampaignTaskWithRelations[]> {
+    const conditions = [];
+    
+    if (campaignId) {
+      conditions.push(eq(campaignTasks.campaignId, campaignId));
+    }
+    
+    conditions.push(eq(campaignTasks.isActive, true));
+
+    return await db.query.campaignTasks.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      with: {
+        campaign: true,
+        taskType: true,
+      },
+      orderBy: [asc(campaignTasks.description)],
+    });
+  }
+
+  async updateCampaignTask(id: number, campaignTask: Partial<InsertCampaignTask>): Promise<CampaignTask> {
+    const [updatedCampaignTask] = await db
+      .update(campaignTasks)
+      .set(campaignTask)
+      .where(eq(campaignTasks.id, id))
+      .returning();
+    return updatedCampaignTask;
+  }
+
+  async deleteCampaignTask(id: number): Promise<void> {
+    await db
+      .update(campaignTasks)
+      .set({ isActive: false })
+      .where(eq(campaignTasks.id, id));
   }
 
   // Time Entries

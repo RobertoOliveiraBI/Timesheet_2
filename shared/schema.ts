@@ -104,6 +104,16 @@ export const taskTypes = pgTable("task_types", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Campaign tasks (tarefas específicas de cada campanha)
+export const campaignTasks = pgTable("campaign_tasks", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").references(() => campaigns.id).notNull(),
+  taskTypeId: integer("task_type_id").references(() => taskTypes.id).notNull(),
+  description: text("description").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Time entries
 export const timeEntries = pgTable("time_entries", {
   id: serial("id").primaryKey(),
@@ -153,6 +163,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   }),
   timeEntries: many(timeEntries),
   userAccess: many(campaignUsers),
+  tasks: many(campaignTasks),
 }));
 
 export const campaignUsersRelations = relations(campaignUsers, ({ one }) => ({
@@ -168,6 +179,18 @@ export const campaignUsersRelations = relations(campaignUsers, ({ one }) => ({
 
 export const taskTypesRelations = relations(taskTypes, ({ many }) => ({
   timeEntries: many(timeEntries),
+  campaignTasks: many(campaignTasks),
+}));
+
+export const campaignTasksRelations = relations(campaignTasks, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [campaignTasks.campaignId],
+    references: [campaigns.id],
+  }),
+  taskType: one(taskTypes, {
+    fields: [campaignTasks.taskTypeId],
+    references: [taskTypes.id],
+  }),
 }));
 
 export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
@@ -218,6 +241,11 @@ export const insertTaskTypeSchema = createInsertSchema(taskTypes).omit({
   createdAt: true,
 });
 
+export const insertCampaignTaskSchema = createInsertSchema(campaignTasks).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertTimeEntrySchema = createInsertSchema(timeEntries).omit({
   id: true,
   createdAt: true,
@@ -242,6 +270,8 @@ export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type Campaign = typeof campaigns.$inferSelect;
 export type InsertTaskType = z.infer<typeof insertTaskTypeSchema>;
 export type TaskType = typeof taskTypes.$inferSelect;
+export type InsertCampaignTask = z.infer<typeof insertCampaignTaskSchema>;
+export type CampaignTask = typeof campaignTasks.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertCampaignUser = z.infer<typeof insertCampaignUserSchema>;
@@ -276,6 +306,12 @@ export type TimeEntryWithRelations = TimeEntry & {
 export type CampaignWithRelations = Campaign & {
   client: Client & { economicGroup: EconomicGroup | null };
   userAccess: (CampaignUser & { user: User })[];
+  tasks?: (CampaignTask & { taskType: TaskType })[];
+};
+
+export type CampaignTaskWithRelations = CampaignTask & {
+  campaign: Campaign;
+  taskType: TaskType;
 };
 
 export type UserWithRelations = User & {

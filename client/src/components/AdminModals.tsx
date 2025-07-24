@@ -492,6 +492,145 @@ export function ClientModal({ client, onClose }: { client?: any; onClose: () => 
 }
 
 // Modal para Tipos de Tarefa  
+// Modal para Tarefas de Campanha
+export function CampaignTaskModal({ 
+  campaignTask, 
+  campaigns, 
+  taskTypes, 
+  onClose 
+}: { 
+  campaignTask?: any; 
+  campaigns: any[]; 
+  taskTypes: any[]; 
+  onClose: () => void 
+}) {
+  const [formData, setFormData] = useState({
+    campaignId: campaignTask?.campaignId || "",
+    taskTypeId: campaignTask?.taskTypeId || "",
+    description: campaignTask?.description || "",
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      if (!formData.campaignId || !formData.taskTypeId || !formData.description.trim()) {
+        throw new Error("Todos os campos são obrigatórios");
+      }
+
+      const cleanData = {
+        campaignId: parseInt(formData.campaignId),
+        taskTypeId: parseInt(formData.taskTypeId),
+        description: formData.description.trim(),
+      };
+
+      const response = campaignTask 
+        ? await apiRequest("PATCH", `/api/campaign-tasks/${campaignTask.id}`, cleanData)
+        : await apiRequest("POST", "/api/campaign-tasks", cleanData);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao salvar tarefa");
+      }
+
+      toast({
+        title: campaignTask ? "Tarefa atualizada!" : "Tarefa criada!",
+        description: campaignTask ? "A tarefa foi atualizada com sucesso." : "A nova tarefa foi criada com sucesso.",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/campaign-tasks"] });
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar tarefa",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {campaignTask ? "Editar Tarefa" : "Nova Tarefa"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="campaignId">Campanha *</Label>
+            <Select 
+              value={formData.campaignId} 
+              onValueChange={(value) => setFormData({ ...formData, campaignId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma campanha" />
+              </SelectTrigger>
+              <SelectContent>
+                {campaigns.map((campaign) => (
+                  <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                    {campaign.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="taskTypeId">Tipo de Tarefa *</Label>
+            <Select 
+              value={formData.taskTypeId} 
+              onValueChange={(value) => setFormData({ ...formData, taskTypeId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {taskTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: type.color }}
+                      />
+                      {type.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="description">Descrição da Tarefa *</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Descreva a tarefa específica..."
+              rows={3}
+            />
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+              Cancelar
+            </Button>
+            <Button type="submit" className="flex-1">
+              {campaignTask ? "Atualizar" : "Criar"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function TaskTypeModal({ taskType, onClose }: { taskType?: any; onClose: () => void }) {
   const [formData, setFormData] = useState({
     name: taskType?.name || "",
