@@ -21,6 +21,7 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
     role: user?.role || "COLABORADOR",
     position: user?.position || "",
     isManager: user?.isManager || false,
+    managerId: user?.managerId || null,
     contractType: user?.contractType || "CLT",
     costCenter: user?.costCenter || "GBrasil",
     department: user?.department || "Criação",
@@ -33,6 +34,23 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Buscar lista de gestores
+  const { data: allUsers = [] } = useQuery<any[]>({
+    queryKey: ["/api/usuarios"],
+    queryFn: async () => {
+      const response = await fetch("/api/usuarios", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error('Erro ao buscar usuários');
+      return response.json();
+    },
+  });
+
+  // Filtrar apenas gestores (isManager = true ou role = MASTER/ADMIN)
+  const managers = allUsers.filter(u => 
+    u.isManager || ['MASTER', 'ADMIN'].includes(u.role)
+  );
 
   const saveMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -68,6 +86,8 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
       contractStartDate: formData.contractStartDate || null,
       contractEndDate: formData.contractEndDate || null,
       contractValue: formData.contractValue || null,
+      // Se é gestor, não deve ter um gestor (managerId = null)
+      managerId: formData.isManager ? null : formData.managerId,
     };
     
     // Remove password if empty (for updates)
@@ -226,6 +246,31 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
           />
           <Label htmlFor="isManager">É gestor</Label>
         </div>
+
+        {!formData.isManager && (
+          <div>
+            <Label htmlFor="managerId">Gestor Responsável</Label>
+            <Select 
+              value={formData.managerId?.toString() || ""} 
+              onValueChange={(value) => setFormData({ ...formData, managerId: value ? parseInt(value) : null })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um gestor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Sem gestor</SelectItem>
+                {managers.map((manager) => (
+                  <SelectItem key={manager.id} value={manager.id.toString()}>
+                    {manager.firstName} {manager.lastName} ({manager.role})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-slate-500 mt-1">
+              Este gestor receberá as horas para aprovação
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={onClose}>
