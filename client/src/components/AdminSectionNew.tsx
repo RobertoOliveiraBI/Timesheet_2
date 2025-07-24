@@ -474,6 +474,11 @@ export function AdminSection() {
                     <div>
                       <p className="font-medium">{campaign.name}</p>
                       <p className="text-sm text-slate-500">{campaign.client?.companyName}</p>
+                      {campaign.contractValue && (
+                        <p className="text-xs text-green-600 font-medium">
+                          R$ {parseFloat(campaign.contractValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      )}
                     </div>
                     <div className="flex space-x-1">
                       <Button variant="ghost" size="sm" onClick={() => openModal("campaign", campaign)}>

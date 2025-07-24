@@ -642,7 +642,7 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
         description: data.description?.trim() || null,
         contractStartDate: data.contractStartDate || null,
         contractEndDate: data.contractEndDate || null,
-        contractValue: data.contractValue ? parseFloat(data.contractValue) : null,
+        contractValue: data.contractValue ? data.contractValue.toString() : null,
         clientId: parseInt(data.clientId),
       };
       
@@ -738,15 +738,31 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
         </div>
 
         <div>
-          <Label htmlFor="contractValue">Valor do Contrato</Label>
+          <Label htmlFor="contractValue">Valor do Contrato (R$)</Label>
           <Input
             id="contractValue"
-            type="number"
-            step="0.01"
+            type="text"
             value={formData.contractValue}
-            onChange={(e) => setFormData({ ...formData, contractValue: e.target.value })}
-            placeholder="0.00"
+            onChange={(e) => {
+              // Remove tudo que não for número ou vírgula/ponto
+              let value = e.target.value.replace(/[^\d.,]/g, '');
+              // Substitui vírgula por ponto para cálculos
+              value = value.replace(',', '.');
+              // Limita a 2 casas decimais
+              const parts = value.split('.');
+              if (parts.length > 2) {
+                value = parts[0] + '.' + parts[1];
+              }
+              if (parts[1] && parts[1].length > 2) {
+                value = parts[0] + '.' + parts[1].substring(0, 2);
+              }
+              setFormData({ ...formData, contractValue: value });
+            }}
+            placeholder="0,00"
           />
+          <p className="text-xs text-slate-500 mt-1">
+            Ex: 15000,00 ou 15000.50
+          </p>
         </div>
 
         <div className="flex justify-end space-x-2">

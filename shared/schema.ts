@@ -209,6 +209,8 @@ export const insertClientSchema = createInsertSchema(clients).omit({
 export const insertCampaignSchema = createInsertSchema(campaigns).omit({
   id: true,
   createdAt: true,
+}).extend({
+  contractValue: z.union([z.string(), z.number()]).optional().nullable(),
 });
 
 export const insertTaskTypeSchema = createInsertSchema(taskTypes).omit({
