@@ -116,6 +116,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/campaigns/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const campaign = await storage.updateCampaign(id, updates);
+      res.json(campaign);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      res.status(400).json({ message: "Failed to update campaign" });
+    }
+  });
+
   app.post('/api/campaigns/:id/users', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
@@ -142,6 +160,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching task types:", error);
       res.status(500).json({ message: "Failed to fetch task types" });
+    }
+  });
+
+  app.patch('/api/task-types/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const taskType = await storage.updateTaskType(id, updates);
+      res.json(taskType);
+    } catch (error) {
+      console.error("Error updating task type:", error);
+      res.status(400).json({ message: "Failed to update task type" });
     }
   });
 
@@ -413,6 +449,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/users/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const updatedUser = await storage.updateUser(id, updates);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(400).json({ message: "Failed to update user" });
+    }
+  });
+
   app.patch('/api/usuarios/:id', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
@@ -484,6 +538,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch('/api/economic-groups/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const group = await storage.updateEconomicGroup(id, updates);
+      res.json(group);
+    } catch (error) {
+      console.error("Error updating economic group:", error);
+      res.status(400).json({ message: "Failed to update economic group" });
+    }
+  });
+
   app.patch('/api/grupos/:id', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
@@ -546,6 +618,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating client:", error);
       res.status(400).json({ message: "Erro ao criar cliente" });
+    }
+  });
+
+  app.patch('/api/clients/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      
+      const client = await storage.updateClient(id, updates);
+      res.json(client);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      res.status(400).json({ message: "Failed to update client" });
     }
   });
 

@@ -8,7 +8,7 @@ import {
   timeEntries,
   type User,
   type InsertUser,
-  type UpsertUser,
+
   type InsertEconomicGroup,
   type EconomicGroup,
   type InsertClient,
@@ -34,7 +34,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  upsertUser(user: UpsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User>;
+  upsertUser(user: any): Promise<User>;
   
   // Economic Groups
   createEconomicGroup(group: InsertEconomicGroup): Promise<EconomicGroup>;
@@ -119,7 +120,16 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async upsertUser(userData: any): Promise<User> {
     const [user] = await db
       .insert(users)
       .values(userData)

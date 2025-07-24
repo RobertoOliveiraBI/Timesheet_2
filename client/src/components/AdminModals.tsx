@@ -607,3 +607,157 @@ export function TaskTypeModal({ taskType, onClose }: { taskType?: any; onClose: 
     </DialogContent>
   );
 }
+
+
+// Modal para Campanhas
+export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: () => void }) {
+  const [formData, setFormData] = useState({
+    name: campaign?.name || "",
+    description: campaign?.description || "",
+    contractStartDate: campaign?.contractStartDate || "",
+    contractEndDate: campaign?.contractEndDate || "",
+    contractValue: campaign?.contractValue || "",
+    clientId: campaign?.clientId || null,
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Buscar clientes para o select
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ["/api/clientes"],
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!data.name?.trim()) {
+        throw new Error("Nome da campanha é obrigatório");
+      }
+      if (!data.clientId) {
+        throw new Error("Cliente é obrigatório");
+      }
+      
+      const cleanData = {
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        contractStartDate: data.contractStartDate || null,
+        contractEndDate: data.contractEndDate || null,
+        contractValue: data.contractValue ? parseFloat(data.contractValue) : null,
+        clientId: parseInt(data.clientId),
+      };
+      
+      const url = campaign ? `/api/campaigns/${campaign.id}` : "/api/campaigns";
+      const method = campaign ? "PATCH" : "POST";
+      return await apiRequest(method, url, cleanData);
+    },
+    onSuccess: () => {
+      toast({ 
+        title: campaign ? "Campanha atualizada!" : "Campanha criada!",
+        description: "Operação realizada com sucesso."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao processar operação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
+  };
+
+  return (
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>{campaign ? "Editar Campanha" : "Nova Campanha"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="campaignName">Nome da Campanha</Label>
+          <Input
+            id="campaignName"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="campaignDescription">Descrição</Label>
+          <Textarea
+            id="campaignDescription"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="clientId">Cliente</Label>
+          <Select 
+            value={formData.clientId?.toString() || ""} 
+            onValueChange={(value) => setFormData({ ...formData, clientId: value ? parseInt(value) : null })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id.toString()}>
+                  {client.companyName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="contractStartDate">Data de Início</Label>
+            <Input
+              id="contractStartDate"
+              type="date"
+              value={formData.contractStartDate}
+              onChange={(e) => setFormData({ ...formData, contractStartDate: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label htmlFor="contractEndDate">Data de Fim</Label>
+            <Input
+              id="contractEndDate"
+              type="date"
+              value={formData.contractEndDate}
+              onChange={(e) => setFormData({ ...formData, contractEndDate: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="contractValue">Valor do Contrato</Label>
+          <Input
+            id="contractValue"
+            type="number"
+            step="0.01"
+            value={formData.contractValue}
+            onChange={(e) => setFormData({ ...formData, contractValue: e.target.value })}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
+  );
+}

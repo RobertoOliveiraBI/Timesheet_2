@@ -25,7 +25,7 @@ import {
   Briefcase,
   Tags
 } from "lucide-react";
-import { UserModal, EconomicGroupModal, ClientModal, TaskTypeModal } from "./AdminModals";
+import { UserModal, EconomicGroupModal, ClientModal, TaskTypeModal, CampaignModal } from "./AdminModals";
 
 export function AdminSection() {
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
@@ -447,6 +447,53 @@ export function AdminSection() {
           </CardContent>
         </Card>
 
+        {/* Campaigns */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Campanhas</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => openModal("campaign")}>
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {campaignsLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : campaignsError ? (
+              <div className="text-center py-4 text-red-600">
+                Erro ao carregar campanhas: {campaignsError.message}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.isArray(campaigns) && campaigns.length > 0 ? campaigns.map((campaign: any) => (
+                  <div key={campaign.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{campaign.name}</p>
+                      <p className="text-sm text-slate-500">{campaign.client?.companyName}</p>
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openModal("campaign", campaign)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "campaign", id: campaign.id })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-4 text-slate-500">
+                    Nenhuma campanha cadastrada
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Task Types */}
         <Card>
           <CardHeader>
@@ -559,6 +606,9 @@ export function AdminSection() {
         )}
         {selectedModal === "taskType" && (
           <TaskTypeModal taskType={selectedItem} onClose={closeModal} />
+        )}
+        {selectedModal === "campaign" && (
+          <CampaignModal campaign={selectedItem} onClose={closeModal} />
         )}
       </Dialog>
     </div>
