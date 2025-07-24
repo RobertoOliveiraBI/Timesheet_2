@@ -389,6 +389,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userId = parseInt(req.params.id);
       const userData = req.body;
+      
+      // Clean up data - convert empty strings to null for date fields
+      if (userData.contractStartDate === '') userData.contractStartDate = null;
+      if (userData.contractEndDate === '') userData.contractEndDate = null;
+      if (userData.contractValue === '') userData.contractValue = null;
+      
       const updatedUser = await storage.updateUser(userId, userData);
       res.json(updatedUser);
     } catch (error) {

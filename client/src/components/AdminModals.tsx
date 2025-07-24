@@ -61,7 +61,21 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveMutation.mutate(formData);
+    
+    // Prepare data, converting empty strings to null for date fields
+    const dataToSend = {
+      ...formData,
+      contractStartDate: formData.contractStartDate || null,
+      contractEndDate: formData.contractEndDate || null,
+      contractValue: formData.contractValue || null,
+    };
+    
+    // Remove password if empty (for updates)
+    if (user && !dataToSend.password) {
+      delete dataToSend.password;
+    }
+    
+    saveMutation.mutate(dataToSend);
   };
 
   return (
