@@ -275,6 +275,13 @@ export function AdminSection() {
       color: "bg-orange-500",
       action: () => openModal("campaign"),
     },
+    {
+      title: "Nova Tarefa",
+      description: "Tarefa específica de campanha",
+      icon: Briefcase,
+      color: "bg-teal-500",
+      action: () => openModal("campaignTask"),
+    },
   ];
 
   return (
@@ -288,7 +295,7 @@ export function AdminSection() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {quickActions.map((action, index) => (
               <Button
                 key={index}
