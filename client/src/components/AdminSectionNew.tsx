@@ -56,24 +56,79 @@ export function AdminSection() {
 
 
 
-  const { data: economicGroups = [] } = useQuery<any[]>({
+  const { data: economicGroups = [], error: groupsError, isLoading: groupsLoading } = useQuery<any[]>({
     queryKey: ["/api/grupos"],
+    queryFn: async () => {
+      const response = await fetch("/api/grupos", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: clients = [] } = useQuery<any[]>({
+  const { data: clients = [], error: clientsError, isLoading: clientsLoading } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
+    queryFn: async () => {
+      const response = await fetch("/api/clientes", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: campaigns = [] } = useQuery<any[]>({
+  const { data: campaigns = [], error: campaignsError, isLoading: campaignsLoading } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
+    queryFn: async () => {
+      const response = await fetch("/api/campaigns", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: taskTypes = [] } = useQuery<any[]>({
+  const { data: taskTypes = [], error: taskTypesError, isLoading: taskTypesLoading } = useQuery<any[]>({
     queryKey: ["/api/task-types"],
+    queryFn: async () => {
+      const response = await fetch("/api/task-types", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  const { data: systemConfig = {} } = useQuery<any>({
+  const { data: systemConfig = {}, error: configError, isLoading: configLoading } = useQuery<any>({
     queryKey: ["/api/config"],
+    queryFn: async () => {
+      const response = await fetch("/api/config", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const updateConfigMutation = useMutation({
@@ -310,24 +365,38 @@ export function AdminSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {Array.isArray(economicGroups) && economicGroups.map((group: any) => (
-                <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{group.name}</p>
-                    <p className="text-sm text-slate-500">{group.description}</p>
+            {groupsLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : groupsError ? (
+              <div className="text-center py-4 text-red-600">
+                Erro ao carregar grupos: {groupsError.message}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.isArray(economicGroups) && economicGroups.length > 0 ? economicGroups.map((group: any) => (
+                  <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{group.name}</p>
+                      <p className="text-sm text-slate-500">{group.description}</p>
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openModal("economicGroup", group)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "group", id: group.id })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <Button variant="ghost" size="sm" onClick={() => openModal("economicGroup", group)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "group", id: group.id })}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                )) : (
+                  <div className="text-center py-4 text-slate-500">
+                    Nenhum grupo econômico cadastrado
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -343,24 +412,38 @@ export function AdminSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {Array.isArray(clients) && clients.map((client: any) => (
-                <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{client.companyName}</p>
-                    <p className="text-sm text-slate-500">{client.tradeName}</p>
+            {clientsLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : clientsError ? (
+              <div className="text-center py-4 text-red-600">
+                Erro ao carregar clientes: {clientsError.message}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.isArray(clients) && clients.length > 0 ? clients.map((client: any) => (
+                  <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{client.companyName}</p>
+                      <p className="text-sm text-slate-500">{client.tradeName}</p>
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openModal("client", client)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "client", id: client.id })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <Button variant="ghost" size="sm" onClick={() => openModal("client", client)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "client", id: client.id })}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                )) : (
+                  <div className="text-center py-4 text-slate-500">
+                    Nenhum cliente cadastrado
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -376,32 +459,46 @@ export function AdminSection() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {Array.isArray(taskTypes) && taskTypes.map((taskType: any) => (
-                <div key={taskType.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center">
-                    <div 
-                      className="w-4 h-4 rounded-full mr-3"
-                      style={{ backgroundColor: taskType.color }}
-                    />
-                    <div>
-                      <p className="font-medium">{taskType.name}</p>
-                      <p className="text-sm text-slate-500">
-                        {taskType.isBillable ? 'Faturável' : 'Não faturável'}
-                      </p>
+            {taskTypesLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : taskTypesError ? (
+              <div className="text-center py-4 text-red-600">
+                Erro ao carregar tipos de tarefa: {taskTypesError.message}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {Array.isArray(taskTypes) && taskTypes.length > 0 ? taskTypes.map((taskType: any) => (
+                  <div key={taskType.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-4 h-4 rounded-full mr-3"
+                        style={{ backgroundColor: taskType.color }}
+                      />
+                      <div>
+                        <p className="font-medium">{taskType.name}</p>
+                        <p className="text-sm text-slate-500">
+                          {taskType.isBillable ? 'Faturável' : 'Não faturável'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "taskType", id: taskType.id })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex space-x-1">
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "taskType", id: taskType.id })}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                )) : (
+                  <div className="text-center py-4 text-slate-500">
+                    Nenhum tipo de tarefa cadastrado
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

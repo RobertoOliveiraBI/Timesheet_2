@@ -550,6 +550,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Campanhas 
+  app.get('/api/campaigns', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaigns = await storage.getCampaigns();
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      res.status(500).json({ message: "Erro ao buscar campanhas" });
+    }
+  });
+
   app.post('/api/campanhas', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
@@ -600,6 +615,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Tipos de Tarefa
+  app.get('/api/task-types', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const taskTypes = await storage.getTaskTypes();
+      res.json(taskTypes);
+    } catch (error) {
+      console.error("Error fetching task types:", error);
+      res.status(500).json({ message: "Erro ao buscar tipos de tarefa" });
+    }
+  });
+
   app.post('/api/tipos-tarefa', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);

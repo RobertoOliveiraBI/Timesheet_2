@@ -91,11 +91,13 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
     };
     
     // Remove password if empty (for updates)
+    let finalData = dataToSend;
     if (user && !dataToSend.password) {
-      delete dataToSend.password;
+      const { password, ...dataWithoutPassword } = dataToSend;
+      finalData = dataWithoutPassword;
     }
     
-    saveMutation.mutate(dataToSend);
+    saveMutation.mutate(finalData);
   };
 
   return (
