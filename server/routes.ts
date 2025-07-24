@@ -161,6 +161,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/tipos-tarefa', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const data = insertTaskTypeSchema.parse(req.body);
+      const taskType = await storage.createTaskType(data);
+      res.status(201).json(taskType);
+    } catch (error) {
+      console.error("Error creating task type:", error);
+      res.status(400).json({ message: "Failed to create task type" });
+    }
+  });
+
+  app.patch('/api/tipos-tarefa/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const taskTypeId = parseInt(req.params.id);
+      const data = req.body;
+      const taskType = await storage.updateTaskType(taskTypeId, data);
+      res.json(taskType);
+    } catch (error) {
+      console.error("Error updating task type:", error);
+      res.status(400).json({ message: "Failed to update task type" });
+    }
+  });
+
   // Time Entries routes
   app.get('/api/time-entries', requireAuth, async (req: any, res) => {
     try {

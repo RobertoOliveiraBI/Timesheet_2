@@ -25,7 +25,7 @@ import {
   Briefcase,
   Tags
 } from "lucide-react";
-import { UserModal, EconomicGroupModal, ClientModal } from "./AdminModals";
+import { UserModal, EconomicGroupModal, ClientModal, TaskTypeModal } from "./AdminModals";
 
 export function AdminSection() {
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
@@ -452,7 +452,7 @@ export function AdminSection() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">Tipos de Tarefa</CardTitle>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => openModal("taskType")}>
                 <Plus className="w-4 h-4 mr-1" />
                 Novo
               </Button>
@@ -484,7 +484,7 @@ export function AdminSection() {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => openModal("taskType", taskType)}>
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "taskType", id: taskType.id })}>
@@ -556,6 +556,9 @@ export function AdminSection() {
         )}
         {selectedModal === "client" && (
           <ClientModal client={selectedItem} onClose={closeModal} />
+        )}
+        {selectedModal === "taskType" && (
+          <TaskTypeModal taskType={selectedItem} onClose={closeModal} />
         )}
       </Dialog>
     </div>

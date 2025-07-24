@@ -490,3 +490,120 @@ export function ClientModal({ client, onClose }: { client?: any; onClose: () => 
     </DialogContent>
   );
 }
+
+// Modal para Tipos de Tarefa  
+export function TaskTypeModal({ taskType, onClose }: { taskType?: any; onClose: () => void }) {
+  const [formData, setFormData] = useState({
+    name: taskType?.name || "",
+    description: taskType?.description || "",
+    color: taskType?.color || "#3b82f6",
+    isBillable: taskType?.isBillable ?? true,
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!data.name?.trim()) {
+        throw new Error("Nome é obrigatório");
+      }
+      
+      const cleanData = {
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        color: data.color,
+        isBillable: Boolean(data.isBillable),
+      };
+      
+      const url = taskType ? `/api/tipos-tarefa/${taskType.id}` : "/api/tipos-tarefa";
+      const method = taskType ? "PATCH" : "POST";
+      return await apiRequest(method, url, cleanData);
+    },
+    onSuccess: () => {
+      toast({ 
+        title: taskType ? "Tipo de tarefa atualizado!" : "Tipo de tarefa criado!",
+        description: "Operação realizada com sucesso."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/task-types"] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao processar operação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
+  };
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{taskType ? "Editar Tipo de Tarefa" : "Novo Tipo de Tarefa"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="taskTypeName">Nome</Label>
+          <Input
+            id="taskTypeName"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="taskTypeDescription">Descrição</Label>
+          <Textarea
+            id="taskTypeDescription"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="taskTypeColor">Cor</Label>
+          <div className="flex items-center space-x-2">
+            <Input
+              id="taskTypeColor"
+              type="color"
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              className="w-16 h-10"
+            />
+            <Input
+              type="text"
+              value={formData.color}
+              onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+              placeholder="#3b82f6"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="taskTypeIsBillable"
+            checked={formData.isBillable}
+            onCheckedChange={(checked) => setFormData({ ...formData, isBillable: checked })}
+          />
+          <Label htmlFor="taskTypeIsBillable">Tarefa faturável</Label>
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
+  );
+}
