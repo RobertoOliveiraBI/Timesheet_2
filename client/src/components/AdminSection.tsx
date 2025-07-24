@@ -22,7 +22,7 @@ export function AdminSection() {
     }
   });
 
-  const { data: taskTypes = [] } = useQuery({
+  const { data: taskTypes = [] } = useQuery<any[]>({
     queryKey: ["/api/task-types"],
   });
 

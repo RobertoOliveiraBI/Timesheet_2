@@ -22,7 +22,7 @@ const taskTypeColors: Record<string, string> = {
 };
 
 export function RecentEntries() {
-  const { data: timeEntries = [], isLoading } = useQuery({
+  const { data: timeEntries = [], isLoading } = useQuery<any[]>({
     queryKey: ["/api/time-entries"],
   });
 

@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+
 
 interface HeaderProps {
   title?: string;
@@ -24,15 +23,9 @@ export function Header({ title = "Lançar Horas", subtitle = "Registre suas hora
           <h1 className="text-2xl font-bold text-slate-900">{title}</h1>
           <p className="text-slate-600 mt-1">{subtitle}</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-sm font-medium text-slate-900">Semana atual</p>
-            <p className="text-xs text-slate-500">{getCurrentWeek()}</p>
-          </div>
-          <Button className="bg-primary hover:bg-primary/90">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
+        <div className="text-right">
+          <p className="text-sm font-medium text-slate-900">Semana atual</p>
+          <p className="text-xs text-slate-500">{getCurrentWeek()}</p>
         </div>
       </div>
     </header>

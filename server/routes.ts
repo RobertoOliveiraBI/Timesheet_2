@@ -125,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaignId = parseInt(req.params.id);
       const { userId } = insertCampaignUserSchema.parse(req.body);
       
-      await storage.addUserToCampaign(campaignId, userId);
+      await storage.addUserToCampaign(campaignId, parseInt(userId.toString()));
       res.status(201).json({ message: "User added to campaign" });
     } catch (error) {
       console.error("Error adding user to campaign:", error);
