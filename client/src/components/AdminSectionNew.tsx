@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -23,13 +24,22 @@ import {
   UserCog,
   Building2,
   Briefcase,
-  Tags
+  Tags,
+  Search
 } from "lucide-react";
 import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal } from "./AdminModals";
 
 export function AdminSection() {
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [searchTerms, setSearchTerms] = useState({
+    users: "",
+    groups: "",
+    clients: "",
+    campaigns: "",
+    taskTypes: "",
+    campaignTasks: ""
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -197,6 +207,41 @@ export function AdminSection() {
     setSelectedItem(null);
   };
 
+  // Funções de filtro para busca
+  const filteredUsers = users.filter(user => 
+    user.firstName?.toLowerCase().includes(searchTerms.users.toLowerCase()) ||
+    user.lastName?.toLowerCase().includes(searchTerms.users.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerms.users.toLowerCase()) ||
+    user.position?.toLowerCase().includes(searchTerms.users.toLowerCase())
+  );
+
+  const filteredGroups = economicGroups.filter(group =>
+    group.name?.toLowerCase().includes(searchTerms.groups.toLowerCase()) ||
+    group.description?.toLowerCase().includes(searchTerms.groups.toLowerCase())
+  );
+
+  const filteredClients = clients.filter(client =>
+    client.companyName?.toLowerCase().includes(searchTerms.clients.toLowerCase()) ||
+    client.tradeName?.toLowerCase().includes(searchTerms.clients.toLowerCase()) ||
+    client.cnpj?.toLowerCase().includes(searchTerms.clients.toLowerCase())
+  );
+
+  const filteredCampaigns = campaigns.filter(campaign =>
+    campaign.name?.toLowerCase().includes(searchTerms.campaigns.toLowerCase()) ||
+    campaign.description?.toLowerCase().includes(searchTerms.campaigns.toLowerCase())
+  );
+
+  const filteredTaskTypes = taskTypes.filter(taskType =>
+    taskType.name?.toLowerCase().includes(searchTerms.taskTypes.toLowerCase()) ||
+    taskType.description?.toLowerCase().includes(searchTerms.taskTypes.toLowerCase())
+  );
+
+  const filteredCampaignTasks = campaignTasks.filter(task =>
+    task.description?.toLowerCase().includes(searchTerms.campaignTasks.toLowerCase()) ||
+    task.campaign?.name?.toLowerCase().includes(searchTerms.campaignTasks.toLowerCase()) ||
+    task.taskType?.name?.toLowerCase().includes(searchTerms.campaignTasks.toLowerCase())
+  );
+
   const handleConfigChange = (key: string, value: boolean) => {
     updateConfigMutation.mutate({ [key]: value });
   };
@@ -270,16 +315,25 @@ export function AdminSection() {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center">
               <Users className="w-5 h-5 mr-2" />
-              Usuários do Sistema ({users.length})
+              Usuários ({filteredUsers.length} de {users.length})
             </CardTitle>
             <Button onClick={() => openModal("user")}>
               <UserPlus className="w-4 h-4 mr-2" />
               Novo Usuário
             </Button>
           </div>
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Buscar usuários por nome, email ou cargo..."
+              value={searchTerms.users}
+              onChange={(e) => setSearchTerms({...searchTerms, users: e.target.value})}
+              className="pl-10"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-96 overflow-y-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b">
@@ -305,7 +359,7 @@ export function AdminSection() {
                       Erro ao carregar usuários: {usersError.message || 'Erro desconhecido'}
                     </td>
                   </tr>
-                ) : users && users.length > 0 ? users.map((user: any) => (
+                ) : filteredUsers && filteredUsers.length > 0 ? filteredUsers.map((user: any) => (
                   <tr key={user.id} className="border-b hover:bg-slate-50">
                     <td className="p-3">
                       <div>
@@ -373,11 +427,20 @@ export function AdminSection() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Grupos Econômicos</CardTitle>
+              <CardTitle className="text-lg">Grupos Econômicos ({filteredGroups.length} de {economicGroups.length})</CardTitle>
               <Button variant="outline" size="sm" onClick={() => openModal("economicGroup")}>
                 <Plus className="w-4 h-4 mr-1" />
                 Novo
               </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar grupos por nome..."
+                value={searchTerms.groups}
+                onChange={(e) => setSearchTerms({...searchTerms, groups: e.target.value})}
+                className="pl-10"
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -390,8 +453,8 @@ export function AdminSection() {
                 Erro ao carregar grupos: {groupsError.message}
               </div>
             ) : (
-              <div className="space-y-3">
-                {Array.isArray(economicGroups) && economicGroups.length > 0 ? economicGroups.map((group: any) => (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Array.isArray(filteredGroups) && filteredGroups.length > 0 ? filteredGroups.map((group: any) => (
                   <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">{group.name}</p>
@@ -408,7 +471,7 @@ export function AdminSection() {
                   </div>
                 )) : (
                   <div className="text-center py-4 text-slate-500">
-                    Nenhum grupo econômico cadastrado
+                    {searchTerms.groups ? 'Nenhum grupo encontrado para esta busca' : 'Nenhum grupo econômico cadastrado'}
                   </div>
                 )}
               </div>
@@ -420,11 +483,20 @@ export function AdminSection() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Clientes</CardTitle>
+              <CardTitle className="text-lg">Clientes ({filteredClients.length} de {clients.length})</CardTitle>
               <Button variant="outline" size="sm" onClick={() => openModal("client")}>
                 <Plus className="w-4 h-4 mr-1" />
                 Novo
               </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar clientes por nome ou CNPJ..."
+                value={searchTerms.clients}
+                onChange={(e) => setSearchTerms({...searchTerms, clients: e.target.value})}
+                className="pl-10"
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -437,8 +509,8 @@ export function AdminSection() {
                 Erro ao carregar clientes: {clientsError.message}
               </div>
             ) : (
-              <div className="space-y-3">
-                {Array.isArray(clients) && clients.length > 0 ? clients.map((client: any) => (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Array.isArray(filteredClients) && filteredClients.length > 0 ? filteredClients.map((client: any) => (
                   <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">{client.companyName}</p>
@@ -455,7 +527,7 @@ export function AdminSection() {
                   </div>
                 )) : (
                   <div className="text-center py-4 text-slate-500">
-                    Nenhum cliente cadastrado
+                    {searchTerms.clients ? 'Nenhum cliente encontrado para esta busca' : 'Nenhum cliente cadastrado'}
                   </div>
                 )}
               </div>
@@ -484,8 +556,8 @@ export function AdminSection() {
                 Erro ao carregar campanhas: {campaignsError.message}
               </div>
             ) : (
-              <div className="space-y-3">
-                {Array.isArray(campaigns) && campaigns.length > 0 ? campaigns.map((campaign: any) => (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Array.isArray(filteredCampaigns) && filteredCampaigns.length > 0 ? filteredCampaigns.map((campaign: any) => (
                   <div key={campaign.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">{campaign.name}</p>
@@ -507,7 +579,7 @@ export function AdminSection() {
                   </div>
                 )) : (
                   <div className="text-center py-4 text-slate-500">
-                    Nenhuma campanha cadastrada
+                    {searchTerms.campaigns ? 'Nenhuma campanha encontrada para esta busca' : 'Nenhuma campanha cadastrada'}
                   </div>
                 )}
               </div>
@@ -519,11 +591,20 @@ export function AdminSection() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Tipos de Tarefa</CardTitle>
+              <CardTitle className="text-lg">Tipos de Tarefa ({filteredTaskTypes.length} de {taskTypes.length})</CardTitle>
               <Button variant="outline" size="sm" onClick={() => openModal("taskType")}>
                 <Plus className="w-4 h-4 mr-1" />
                 Novo
               </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar tipos de tarefa..."
+                value={searchTerms.taskTypes}
+                onChange={(e) => setSearchTerms({...searchTerms, taskTypes: e.target.value})}
+                className="pl-10"
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -536,8 +617,8 @@ export function AdminSection() {
                 Erro ao carregar tipos de tarefa: {taskTypesError.message}
               </div>
             ) : (
-              <div className="space-y-3">
-                {Array.isArray(taskTypes) && taskTypes.length > 0 ? taskTypes.map((taskType: any) => (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Array.isArray(filteredTaskTypes) && filteredTaskTypes.length > 0 ? filteredTaskTypes.map((taskType: any) => (
                   <div key={taskType.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex items-center">
                       <div 
@@ -562,7 +643,7 @@ export function AdminSection() {
                   </div>
                 )) : (
                   <div className="text-center py-4 text-slate-500">
-                    Nenhum tipo de tarefa cadastrado
+                    {searchTerms.taskTypes ? 'Nenhum tipo de tarefa encontrado para esta busca' : 'Nenhum tipo de tarefa cadastrado'}
                   </div>
                 )}
               </div>
@@ -622,21 +703,32 @@ export function AdminSection() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-slate-600">
-                Gerencie tarefas específicas de cada campanha
-              </p>
-              <Button
-                onClick={() => {
-                  setSelectedItem(null);
-                  setSelectedModal("campaignTask");
-                }}
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Nova Tarefa
-              </Button>
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-600">
+                  Tarefas Específicas ({filteredCampaignTasks.length} de {campaignTasks.length})
+                </p>
+                <Button
+                  onClick={() => {
+                    setSelectedItem(null);
+                    setSelectedModal("campaignTask");
+                  }}
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nova Tarefa
+                </Button>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar tarefas por descrição ou campanha..."
+                  value={searchTerms.campaignTasks}
+                  onChange={(e) => setSearchTerms({...searchTerms, campaignTasks: e.target.value})}
+                  className="pl-10"
+                />
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -644,9 +736,9 @@ export function AdminSection() {
                 <div className="flex items-center justify-center py-8">
                   <div className="text-sm text-slate-500">Carregando tarefas...</div>
                 </div>
-              ) : Array.isArray(campaignTasks) && campaignTasks.length > 0 ? (
-                <div className="space-y-3">
-                  {campaignTasks.map((task: any) => (
+              ) : Array.isArray(filteredCampaignTasks) && filteredCampaignTasks.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {filteredCampaignTasks.map((task: any) => (
                     <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{task.description}</p>
@@ -690,8 +782,8 @@ export function AdminSection() {
               ) : (
                 <div className="text-center py-8 text-slate-500">
                   <Briefcase className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                  <p>Nenhuma tarefa de campanha cadastrada</p>
-                  <p className="text-sm">Clique em "Nova Tarefa" para começar</p>
+                  <p>{searchTerms.campaignTasks ? 'Nenhuma tarefa encontrada para esta busca' : 'Nenhuma tarefa de campanha cadastrada'}</p>
+                  <p className="text-sm">{!searchTerms.campaignTasks && 'Clique em "Nova Tarefa" para começar'}</p>
                 </div>
               )}
             </div>
