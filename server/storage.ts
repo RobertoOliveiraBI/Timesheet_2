@@ -21,6 +21,9 @@ import {
   type InsertCampaignUser,
   type TimeEntryWithRelations,
   type CampaignWithRelations,
+  systemConfig,
+  type SystemConfig,
+  type InsertSystemConfig,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, inArray } from "drizzle-orm";
@@ -79,6 +82,19 @@ export interface IStorage {
     utilization: number;
     activeUsers: number;
   }>;
+
+  // System configuration operations
+  getSystemConfig(): Promise<Record<string, any>>;
+  updateSystemConfig(config: Record<string, any>): Promise<void>;
+
+  // Admin operations
+  getAllUsers(): Promise<User[]>;
+  updateUser(id: number, userData: Partial<InsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
+  deleteEconomicGroup(id: number): Promise<void>;
+  deleteClient(id: number): Promise<void>;
+  deleteCampaign(id: number): Promise<void>;
+  deleteTaskType(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -498,6 +514,91 @@ export class DatabaseStorage implements IStorage {
       utilization: Math.round(utilization),
       activeUsers,
     };
+  }
+
+  // System configuration operations
+  async getSystemConfig(): Promise<Record<string, any>> {
+    const configs = await db.select().from(systemConfig);
+    const result: Record<string, any> = {};
+    
+    for (const config of configs) {
+      result[config.key] = config.value;
+    }
+    
+    // Set defaults if not configured
+    return {
+      fechamento_automatico: false,
+      notificacao_email: true,
+      backup_automatico: true,
+      ...result,
+    };
+  }
+
+  async updateSystemConfig(config: Record<string, any>): Promise<void> {
+    for (const [key, value] of Object.entries(config)) {
+      await db
+        .insert(systemConfig)
+        .values({ key, value })
+        .onConflictDoUpdate({
+          target: systemConfig.key,
+          set: { value, updatedAt: new Date() },
+        });
+    }
+  }
+
+  // Admin operations
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.firstName), asc(users.lastName));
+  }
+
+  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        ...userData,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    // Check if user has time entries
+    const timeEntryCount = await db
+      .select({ count: sql`count(*)` })
+      .from(timeEntries)
+      .where(eq(timeEntries.userId, id));
+    
+    if (Number(timeEntryCount[0].count) > 0) {
+      // Soft delete by setting isActive to false
+      await db
+        .update(users)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(users.id, id));
+    } else {
+      // Hard delete if no time entries
+      await db.delete(users).where(eq(users.id, id));
+    }
+  }
+
+  async deleteEconomicGroup(id: number): Promise<void> {
+    await db.delete(economicGroups).where(eq(economicGroups.id, id));
+  }
+
+  async deleteClient(id: number): Promise<void> {
+    await db.delete(clients).where(eq(clients.id, id));
+  }
+
+  async deleteCampaign(id: number): Promise<void> {
+    // Delete campaign users first
+    await db.delete(campaignUsers).where(eq(campaignUsers.campaignId, id));
+    // Delete campaign
+    await db.delete(campaigns).where(eq(campaigns.id, id));
+  }
+
+  async deleteTaskType(id: number): Promise<void> {
+    await db.delete(taskTypes).where(eq(taskTypes.id, id));
   }
 }
 

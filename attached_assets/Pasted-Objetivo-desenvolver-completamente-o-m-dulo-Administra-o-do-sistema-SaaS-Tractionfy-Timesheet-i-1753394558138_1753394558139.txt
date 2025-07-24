@@ -1,0 +1,164 @@
+Objetivo: desenvolver completamente o módulo “Administração” do sistema SaaS Tractionfy Timesheet, iniciando pela interface e funcionalidades da tela exibida na imagem e implementando todas as tabelas e rotas necessárias para funcionamento real do sistema
+
+🧩 Submódulos a implementar:
+1. Cadastro de Usuários
+Campos:
+
+nome, email, papel (MASTER, ADMIN, GESTOR, COLABORADOR), cargo
+
+gestor (booleano), gestor_responsavel (usuário), regime_contratacao (CLT, PJ)
+
+centro_resultado (GBrasil, GTodos, PPR)
+
+departamento (Criação, Conteúdo, Design, Mídia)
+
+data_inicio_contrato, data_fim_contrato, valor_contrato
+
+razão_social (se PJ), CNPJ (se PJ), data_criacao, senha
+
+Rotas:
+
+POST /api/usuarios – cadastrar novo
+
+GET /api/usuarios – listar todos
+
+PATCH /api/usuarios/:id – editar
+
+DELETE /api/usuarios/:id – excluir
+
+Banco:
+
+Tabela: usuarios:{uuid} com os campos acima
+
+2. Cadastro de Grupos Econômicos
+Campos:
+
+nome, descrição, data_criacao
+
+Rotas:
+
+POST /api/grupos – criar grupo econômico
+
+GET /api/grupos – listar grupos
+
+PATCH /api/grupos/:id – editar
+
+DELETE /api/grupos/:id – excluir
+
+Banco:
+
+Tabela: grupo:{uuid}
+
+3. Cadastro de Clientes
+Campos:
+
+razao_social, nome_fantasia, cnpj, email, grupo_economico (id)
+
+Relacionamento:
+
+Cada cliente pertence a 1 grupo econômico
+
+Rotas:
+
+POST /api/clientes
+
+GET /api/clientes
+
+PATCH /api/clientes/:id
+
+DELETE /api/clientes/:id
+
+Banco:
+
+Tabela: cliente:{uuid}
+
+4. Cadastro de Campanhas
+Campos:
+
+nome_campanha, descricao_campanha
+
+inicio_contrato, fim_contrato, valor, cliente (id)
+
+lista_de_usuarios (array de user ids com acesso à campanha)
+
+Rotas:
+
+POST /api/campanhas
+
+GET /api/campanhas
+
+PATCH /api/campanhas/:id
+
+DELETE /api/campanhas/:id
+
+Banco:
+
+Tabela: campanha:{uuid}
+
+5. Cadastro de Tipos de Tarefa
+Campos:
+
+nome (Planejamento, Criação, etc), descrição, cor (hex), faturavel (booleano)
+
+Rotas:
+
+POST /api/tipos-tarefa
+
+GET /api/tipos-tarefa
+
+PATCH /api/tipos-tarefa/:id
+
+DELETE /api/tipos-tarefa/:id
+
+Banco:
+
+Tabela: tipo_tarefa:{uuid}
+
+🖥️ Frontend – Tela de Administração
+Dividir tela em 4 blocos:
+
+Ações rápidas (atalhos para abrir os formulários de criação de cada entidade)
+
+Usuários do sistema (lista paginada + botão “Novo Usuário”)
+
+Tipos de Tarefa (lista atual)
+
+Configurações do Sistema:
+
+Fechamento automático mensal (on/off)
+
+Notificações por email (on/off)
+
+Backup automático semanal (on/off)
+
+Criar formulários modais com validação para cada entidade
+
+💾 Configurações do Sistema (Simples)
+Chave: config:sistema
+
+Campos:
+
+fechamento_automatico: boolean
+
+notificacao_email: boolean
+
+backup_automatico: boolean
+
+Rota:
+
+GET /api/config
+
+PATCH /api/config
+
+🚀 Instruções para Execução
+Comece criando os arquivos .html, .js e rotas .js no backend
+
+Use Bootstrap para layout responsivo e campos bem organizados
+
+A cada criação de entidade, salve com um uuidv4() como chave no Replit DB
+
+Armazene as senhas com hash (use bcrypt)
+
+Valide dados obrigatórios no frontend e backend
+
+Permissões: só ADMIN ou MASTER acessam essa tela

@@ -245,6 +245,24 @@ export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertCampaignUser = z.infer<typeof insertCampaignUserSchema>;
 export type CampaignUser = typeof campaignUsers.$inferSelect;
 
+// System configuration
+export const systemConfig = pgTable("system_config", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 255 }).unique().notNull(),
+  value: jsonb("value"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schema for system config
+export const insertSystemConfigSchema = createInsertSchema(systemConfig).omit({
+  id: true,
+  updatedAt: true,
+});
+
+// Type for system config
+export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
+export type SystemConfig = typeof systemConfig.$inferSelect;
+
 // Extended types with relations
 export type TimeEntryWithRelations = TimeEntry & {
   user: User;

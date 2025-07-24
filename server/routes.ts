@@ -345,6 +345,335 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes - Sistema de administração completo
+  
+  // Usuários
+  app.get('/api/usuarios', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários" });
+    }
+  });
+
+  app.post('/api/usuarios', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const userData = insertUserSchema.parse(req.body);
+      const newUser = await storage.createUser(userData);
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(400).json({ message: "Erro ao criar usuário" });
+    }
+  });
+
+  app.patch('/api/usuarios/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const userId = parseInt(req.params.id);
+      const userData = req.body;
+      const updatedUser = await storage.updateUser(userId, userData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(400).json({ message: "Erro ao atualizar usuário" });
+    }
+  });
+
+  app.delete('/api/usuarios/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'MASTER') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const userId = parseInt(req.params.id);
+      await storage.deleteUser(userId);
+      res.json({ message: "Usuário removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(400).json({ message: "Erro ao remover usuário" });
+    }
+  });
+
+  // Grupos Econômicos
+  app.get('/api/grupos', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const groups = await storage.getEconomicGroups();
+      res.json(groups);
+    } catch (error) {
+      console.error("Error fetching economic groups:", error);
+      res.status(500).json({ message: "Erro ao buscar grupos econômicos" });
+    }
+  });
+
+  app.post('/api/grupos', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const groupData = insertEconomicGroupSchema.parse(req.body);
+      const newGroup = await storage.createEconomicGroup(groupData);
+      res.status(201).json(newGroup);
+    } catch (error) {
+      console.error("Error creating economic group:", error);
+      res.status(400).json({ message: "Erro ao criar grupo econômico" });
+    }
+  });
+
+  app.patch('/api/grupos/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const groupId = parseInt(req.params.id);
+      const groupData = req.body;
+      const updatedGroup = await storage.updateEconomicGroup(groupId, groupData);
+      res.json(updatedGroup);
+    } catch (error) {
+      console.error("Error updating economic group:", error);
+      res.status(400).json({ message: "Erro ao atualizar grupo econômico" });
+    }
+  });
+
+  app.delete('/api/grupos/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'MASTER') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const groupId = parseInt(req.params.id);
+      await storage.deleteEconomicGroup(groupId);
+      res.json({ message: "Grupo econômico removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting economic group:", error);
+      res.status(400).json({ message: "Erro ao remover grupo econômico" });
+    }
+  });
+
+  // Clientes
+  app.get('/api/clientes', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const clients = await storage.getClients();
+      res.json(clients);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      res.status(500).json({ message: "Erro ao buscar clientes" });
+    }
+  });
+
+  app.post('/api/clientes', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const clientData = insertClientSchema.parse(req.body);
+      const newClient = await storage.createClient(clientData);
+      res.status(201).json(newClient);
+    } catch (error) {
+      console.error("Error creating client:", error);
+      res.status(400).json({ message: "Erro ao criar cliente" });
+    }
+  });
+
+  app.patch('/api/clientes/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const clientId = parseInt(req.params.id);
+      const clientData = req.body;
+      const updatedClient = await storage.updateClient(clientId, clientData);
+      res.json(updatedClient);
+    } catch (error) {
+      console.error("Error updating client:", error);
+      res.status(400).json({ message: "Erro ao atualizar cliente" });
+    }
+  });
+
+  app.delete('/api/clientes/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'MASTER') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const clientId = parseInt(req.params.id);
+      await storage.deleteClient(clientId);
+      res.json({ message: "Cliente removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      res.status(400).json({ message: "Erro ao remover cliente" });
+    }
+  });
+
+  // Campanhas 
+  app.post('/api/campanhas', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaignData = insertCampaignSchema.parse(req.body);
+      const newCampaign = await storage.createCampaign(campaignData);
+      res.status(201).json(newCampaign);
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      res.status(400).json({ message: "Erro ao criar campanha" });
+    }
+  });
+
+  app.patch('/api/campanhas/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaignId = parseInt(req.params.id);
+      const campaignData = req.body;
+      const updatedCampaign = await storage.updateCampaign(campaignId, campaignData);
+      res.json(updatedCampaign);
+    } catch (error) {
+      console.error("Error updating campaign:", error);
+      res.status(400).json({ message: "Erro ao atualizar campanha" });
+    }
+  });
+
+  app.delete('/api/campanhas/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'MASTER') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaignId = parseInt(req.params.id);
+      await storage.deleteCampaign(campaignId);
+      res.json({ message: "Campanha removida com sucesso" });
+    } catch (error) {
+      console.error("Error deleting campaign:", error);
+      res.status(400).json({ message: "Erro ao remover campanha" });
+    }
+  });
+
+  // Tipos de Tarefa
+  app.post('/api/tipos-tarefa', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const taskTypeData = insertTaskTypeSchema.parse(req.body);
+      const newTaskType = await storage.createTaskType(taskTypeData);
+      res.status(201).json(newTaskType);
+    } catch (error) {
+      console.error("Error creating task type:", error);
+      res.status(400).json({ message: "Erro ao criar tipo de tarefa" });
+    }
+  });
+
+  app.patch('/api/tipos-tarefa/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const taskTypeId = parseInt(req.params.id);
+      const taskTypeData = req.body;
+      const updatedTaskType = await storage.updateTaskType(taskTypeId, taskTypeData);
+      res.json(updatedTaskType);
+    } catch (error) {
+      console.error("Error updating task type:", error);
+      res.status(400).json({ message: "Erro ao atualizar tipo de tarefa" });
+    }
+  });
+
+  app.delete('/api/tipos-tarefa/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || user.role !== 'MASTER') {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const taskTypeId = parseInt(req.params.id);
+      await storage.deleteTaskType(taskTypeId);
+      res.json({ message: "Tipo de tarefa removido com sucesso" });
+    } catch (error) {
+      console.error("Error deleting task type:", error);
+      res.status(400).json({ message: "Erro ao remover tipo de tarefa" });
+    }
+  });
+
+  // Configurações do Sistema
+  app.get('/api/config', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const config = await storage.getSystemConfig();
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching system config:", error);
+      res.status(500).json({ message: "Erro ao buscar configurações" });
+    }
+  });
+
+  app.patch('/api/config', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const config = req.body;
+      await storage.updateSystemConfig(config);
+      res.json({ message: "Configurações atualizadas com sucesso" });
+    } catch (error) {
+      console.error("Error updating system config:", error);
+      res.status(400).json({ message: "Erro ao atualizar configurações" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

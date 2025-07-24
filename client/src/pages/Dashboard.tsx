@@ -7,7 +7,7 @@ import { StatsCard } from "@/components/StatsCard";
 import { WeeklyTimesheetForm } from "@/components/WeeklyTimesheetForm";
 import { RecentEntries } from "@/components/RecentEntries";
 import { ApprovalSection } from "@/components/ApprovalSection";
-import { AdminSection } from "@/components/AdminSection";
+import { AdminSection } from "@/components/AdminSectionNew";
 import { ReportsSection } from "@/components/ReportsSection";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";

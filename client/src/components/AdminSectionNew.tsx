@@ -1,0 +1,419 @@
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Dialog } from "@/components/ui/dialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { 
+  Users, 
+  Settings, 
+  UserPlus, 
+  Building, 
+  Target, 
+  Clock, 
+  ShieldCheck,
+  Edit,
+  Download,
+  BarChart3,
+  Plus,
+  Trash2,
+  UserCog,
+  Building2,
+  Briefcase,
+  Tags
+} from "lucide-react";
+import { UserModal, EconomicGroupModal, ClientModal } from "./AdminModals";
+
+export function AdminSection() {
+  const [selectedModal, setSelectedModal] = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ["/api/usuarios"],
+  });
+
+  const { data: economicGroups = [] } = useQuery<any[]>({
+    queryKey: ["/api/grupos"],
+  });
+
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ["/api/clientes"],
+  });
+
+  const { data: campaigns = [] } = useQuery<any[]>({
+    queryKey: ["/api/campaigns"],
+  });
+
+  const { data: taskTypes = [] } = useQuery<any[]>({
+    queryKey: ["/api/task-types"],
+  });
+
+  const { data: systemConfig = {} } = useQuery<any>({
+    queryKey: ["/api/config"],
+  });
+
+  const updateConfigMutation = useMutation({
+    mutationFn: async (config: Record<string, any>) => {
+      await apiRequest("PATCH", "/api/config", config);
+    },
+    onSuccess: () => {
+      toast({ title: "Configurações atualizadas!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/config"] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async ({ type, id }: { type: string; id: number }) => {
+      const endpoints = {
+        user: `/api/usuarios/${id}`,
+        group: `/api/grupos/${id}`,
+        client: `/api/clientes/${id}`,
+        campaign: `/api/campanhas/${id}`,
+        taskType: `/api/tipos-tarefa/${id}`,
+      };
+      await apiRequest("DELETE", endpoints[type as keyof typeof endpoints]);
+    },
+    onSuccess: (_, variables) => {
+      const queries = {
+        user: ["/api/usuarios"],
+        group: ["/api/grupos"],
+        client: ["/api/clientes"],
+        campaign: ["/api/campaigns"],
+        taskType: ["/api/task-types"],
+      };
+      queryClient.invalidateQueries({ queryKey: queries[variables.type as keyof typeof queries] });
+      toast({ title: "Item removido com sucesso!" });
+    },
+    onError: () => {
+      toast({
+        title: "Erro ao remover item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const openModal = (modalType: string, item?: any) => {
+    setSelectedModal(modalType);
+    setSelectedItem(item);
+  };
+
+  const closeModal = () => {
+    setSelectedModal(null);
+    setSelectedItem(null);
+  };
+
+  const handleConfigChange = (key: string, value: boolean) => {
+    updateConfigMutation.mutate({ [key]: value });
+  };
+
+  const quickActions = [
+    {
+      title: "Novo Usuário",
+      description: "Cadastrar novo colaborador",
+      icon: UserPlus,
+      color: "bg-blue-500",
+      action: () => openModal("user"),
+    },
+    {
+      title: "Grupo Econômico",
+      description: "Criar grupo de empresas",
+      icon: Building2,
+      color: "bg-green-500",
+      action: () => openModal("economicGroup"),
+    },
+    {
+      title: "Novo Cliente",
+      description: "Adicionar cliente",
+      icon: Building,
+      color: "bg-purple-500",
+      action: () => openModal("client"),
+    },
+    {
+      title: "Nova Campanha",
+      description: "Criar campanha/projeto",
+      icon: Target,
+      color: "bg-orange-500",
+      action: () => openModal("campaign"),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <ShieldCheck className="w-5 h-5 mr-2" />
+            Ações Rápidas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {quickActions.map((action, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                className="h-auto p-4 flex flex-col items-center space-y-2"
+                onClick={action.action}
+              >
+                <div className={`w-12 h-12 rounded-lg ${action.color} flex items-center justify-center text-white`}>
+                  <action.icon className="w-6 h-6" />
+                </div>
+                <div className="text-center">
+                  <p className="font-medium text-sm">{action.title}</p>
+                  <p className="text-xs text-slate-500">{action.description}</p>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Users className="w-5 h-5 mr-2" />
+              Usuários do Sistema ({users.length})
+            </CardTitle>
+            <Button onClick={() => openModal("user")}>
+              <UserPlus className="w-4 h-4 mr-2" />
+              Novo Usuário
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3">Nome</th>
+                  <th className="text-left p-3">Email</th>
+                  <th className="text-left p-3">Papel</th>
+                  <th className="text-left p-3">Departamento</th>
+                  <th className="text-left p-3">Status</th>
+                  <th className="text-left p-3">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Array.isArray(users) && users.map((user: any) => (
+                  <tr key={user.id} className="border-b hover:bg-slate-50">
+                    <td className="p-3">
+                      <div>
+                        <p className="font-medium">{user.firstName} {user.lastName}</p>
+                        <p className="text-sm text-slate-500">{user.position}</p>
+                      </div>
+                    </td>
+                    <td className="p-3">{user.email}</td>
+                    <td className="p-3">
+                      <Badge variant={user.role === 'MASTER' ? 'default' : 'secondary'}>
+                        {user.role}
+                      </Badge>
+                    </td>
+                    <td className="p-3">{user.department}</td>
+                    <td className="p-3">
+                      <Badge variant={user.isActive ? 'default' : 'destructive'}>
+                        {user.isActive ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openModal("user", user)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteMutation.mutate({ type: "user", id: user.id })}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Management Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Economic Groups */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Grupos Econômicos</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => openModal("economicGroup")}>
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.isArray(economicGroups) && economicGroups.map((group: any) => (
+                <div key={group.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{group.name}</p>
+                    <p className="text-sm text-slate-500">{group.description}</p>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button variant="ghost" size="sm" onClick={() => openModal("economicGroup", group)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "group", id: group.id })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Clients */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Clientes</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => openModal("client")}>
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.isArray(clients) && clients.map((client: any) => (
+                <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{client.companyName}</p>
+                    <p className="text-sm text-slate-500">{client.tradeName}</p>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button variant="ghost" size="sm" onClick={() => openModal("client", client)}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "client", id: client.id })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Task Types */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Tipos de Tarefa</CardTitle>
+              <Button variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.isArray(taskTypes) && taskTypes.map((taskType: any) => (
+                <div key={taskType.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center">
+                    <div 
+                      className="w-4 h-4 rounded-full mr-3"
+                      style={{ backgroundColor: taskType.color }}
+                    />
+                    <div>
+                      <p className="font-medium">{taskType.name}</p>
+                      <p className="text-sm text-slate-500">
+                        {taskType.isBillable ? 'Faturável' : 'Não faturável'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex space-x-1">
+                    <Button variant="ghost" size="sm">
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "taskType", id: taskType.id })}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Configuration */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Configurações do Sistema</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Fechamento Automático Mensal</p>
+                  <p className="text-sm text-slate-500">Fechar automaticamente os lançamentos mensais</p>
+                </div>
+                <Switch
+                  checked={systemConfig.fechamento_automatico || false}
+                  onCheckedChange={(checked) => handleConfigChange("fechamento_automatico", checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Notificações por Email</p>
+                  <p className="text-sm text-slate-500">Enviar notificações via email</p>
+                </div>
+                <Switch
+                  checked={systemConfig.notificacao_email || false}
+                  onCheckedChange={(checked) => handleConfigChange("notificacao_email", checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Backup Automático Semanal</p>
+                  <p className="text-sm text-slate-500">Realizar backup automático dos dados</p>
+                </div>
+                <Switch
+                  checked={systemConfig.backup_automatico || false}
+                  onCheckedChange={(checked) => handleConfigChange("backup_automatico", checked)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Modals */}
+      <Dialog open={!!selectedModal} onOpenChange={() => closeModal()}>
+        {selectedModal === "user" && (
+          <UserModal user={selectedItem} onClose={closeModal} />
+        )}
+        {selectedModal === "economicGroup" && (
+          <EconomicGroupModal group={selectedItem} onClose={closeModal} />
+        )}
+        {selectedModal === "client" && (
+          <ClientModal client={selectedItem} onClose={closeModal} />
+        )}
+      </Dialog>
+    </div>
+  );
+}
