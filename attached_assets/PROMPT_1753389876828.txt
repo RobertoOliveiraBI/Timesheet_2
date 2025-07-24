@@ -1,0 +1,129 @@
+Documento de Requisitos de Produto (PRD) – TimeSheet SaaS Tractionfy para Agências de Marketing
+
+Projeto de desenvolvimento de um sistema SaaS de Timesheet voltado para agências de marketing, que gerenciam múltiplos clientes, campanhas e equipes híbridas (presenciais e remotas), permitindo a apropriação precisa das horas trabalhadas, a categorização de atividades não debitáveis e o fornecimento de relatórios gerenciais para tomada de decisão estratégica. A plataforma será acessível via web com design responsivo para uso eficiente em dispositivos móveis, garantindo praticidade no dia a dia dos colaboradores.
+
+O sistema será desenvolvido utilizando a seguinte stack tecnológica:
+
+Backend: Node.js com Express para gerenciamento de rotas e APIs REST
+Frontend: HTML, CSS e JavaScript com suporte a bibliotecas como Bootstrap para UI responsiva
+Banco de Dados: Replit DB, com estrutura de chave-valor para armazenar usuários, projetos, horas lançadas, campanhas e permissões
+Autenticação: Sessões simples via middleware, podendo evoluir para JWT caso necessário
+
+se houver uma stack melhor sugira.
+
+O projeto será modular, com foco em clareza, escalabilidade e facilidade de manutenção, priorizando a experiência do usuário e a confiabilidade dos dados registrados.
+
+Objetivos Gerais
+– otimizar a apropriação precisa de horas em projetos, campanhas e clientes, oferecendo transparência e confiabilidade,
+– suportar equipes híbridas, com colaboradores remotos ou presenciais, garantindo flexibilidade no registro e rastreabilidade,
+– identificar e categorizar horas debitáveis e não debitáveis para análise de eficiência e gasto por cliente,
+– fornecer dados acionáveis para faturamento e análise de rentabilidade por cliente, campanha e colaborador
+– automatizar o fluxo de fechamento mensal e aprovações, reduzindo retrabalho e acelerando o ciclo de faturamento,
+– manter histórico auditável para conformidade interna e atendimento a normas de privacidade (LGPD/GDPR)
+
+Módulos e Funcionalidades Principais
+1 Gestão de Usuários e Equipes
+– perfis diferenciados (Master, Administrador, Gestor, Colaborador), com permissões granulares para definição de quem pode criar, editar, aprovar ou exportar dados.
+
+Master: é um superadmin , pode fazer tudo
+Administrador: é o que vai cadastrar os dados e ver os ralatorios de todos, pode bloquear um mes que já passou para evitar lançamentos retroativos
+Gestor: deve poder lançar horas para ele e para outros, deve ver somente a equipe dele, deve ver relatorios da equipe dele deve poder mudar o status das horas para aprovar, deve poder editar o status em massa 
+Colaborador: deve poder lançar horas somente para ele, pode lançar horas no mes vigente e nos meses a frente
+
+– hierarquia organizacional flexível, permitindo configurar times, departamentos e líderes,
+– cadastro de colaboradores com informações de contato, taxas horárias internas e custo real,
+
+2 Gestão de Clientes, Projetos e Campanhas
+– registro de clientes com dados completos, contratos e prazo de vigência,
+- cadastro de grupos economicos para inserir os clientes, cada grupo pode ter varios clientes (cnpjs)
+– criação de projetos associados a um cliente, com descrição e orçamento estimado,
+– dentro de cada projeto, múltiplas campanhas com objetivos
+– definição de tarefas e atividades detalhadas, marcadas como debitáveis ou não debitáveis,
+– templates de projetos e campanhas para acelerar configurações recorrentes,
+– alocação de equipes a projetos e campanhas específicas, permitindo visibilidade de carga de trabalho
+
+3 Entrada de Horas (Timesheet)
+– interface clean e responsiva, com grade diária para lançamentos manuais tipo planilha, dropbox com possibilidade de entrada de 15 em 15 minutos: exemplo: 1:00, 1:15, 1:30, 2:45, etc
+– associação obrigatória de cada entrada a colaborador, data, cliente, projeto, campanha e tarefa,
+– seleção do tipo de hora (faturável vs. interno/administrativo) e campo de descrição livre para contexto,
+– status de entrada (rascunho, pendente, aprovado, rejeitado) e validações para evitar lançamentos duplicados
+
+4 Fluxo de Aprovação
+– configurações de aprovação para  gerente responsavel pelo colaborador
+– notificações automáticas por e-mail para pendências ou alterações de status,
+– visão consolidada de timesheets pendentes para aprovação em massa,
+– possibilidade de comentários em aprovações ou rejeições para feedback contínuo,
+– histórico completo de quem aprovou, rejeitou e quando, garantindo auditabilidade e logs
+
+5 Relatórios
+– dashboard customizável com métricas chave (horas totais, debitáveis vs. não debitáveis, produtividade média) por equipe, cliente e colaborador,
+– relatórios detalhados por colaborador, equipe, projeto/campanha e cliente,
+– análise de horas não debitáveis por categoria (administrativo, reuniões, treinamento, prospecção),
+– indicadores de utilização (percentual de horas faturáveis vs. não faturáveis),
+– exportação em CSV, XLS e PDF com filtros avançados por período, usuário, cliente, projeto, status
+
+6 Configurações e Administração
+- cadastrar as tabelas de apoio ao sistema
+– personalização de categorias de horas não faturáveis para maior granularidade,
+– logs de auditoria para todas as ações críticas
+
+8 UX/UI e Performance
+– design responsivo para desktop, tablet e mobile,
+– navegação fluida com carregamento rápido e filtros dinâmicos,
+– notificações contextuais para manter usuários informados sem poluir a interface,
+– aplicação de padrões de acessibilidade
+
+9 Segurança e Conformidade
+– RBAC com controle fino de acessos,
+– criptografia TLS em trânsito e AES em repouso,
+– backups automáticos em csv de todas as tabelas 1 vez por semana
+– aderência a LGPD/GDPR e políticas internas de privacidade
+
+Histórias de Usuário
+– como colaborador, desejo preencher manualmente minhas horas para associar ao cliente e tarefa correta, mantendo registro confiável,
+– como gestor, desejo revisar lançamentos pendentes de minha equipe em uma única tela e aprovar ou rejeitar com comentários para alinhar expectativas, desejo ver relatórios da equipe
+– como administrador, desejo encerrar um mês que já passou com um clique, adicionando observações opcionais e liberando o próximo período automaticamente, desejo ver tudo consolidado porém ta,bém os detalhes de cada equipe e também cada colaborador
+– como master, desejo não ter nenhuma restrição nunca
+
+crie o sistema em modulos
+
+Módulo 1 – Autenticação e Usuários:
+arquivo server.js inicializa Express e express-session,
+em routes/auth.js criar rota POST /login que receba {email, senha} valide no Replit DB em users:{email} e crie sessão, rota GET /logout destrói sessão, middleware ensureAuth protege rotas, Replit DB guarda user:{email} com campos {senhaHash,role}, testes via curl para login bem-sucedido e falha
+
+Módulo 2 – Gestão de Clientes/Projetos/Campanhas:
+em routes/clientes.js implementar CRUD em /api/clientes, usando Replit DB keys cliente:{id} com {nome,contratoVigente},
+em routes/projetos.js CRUD em /api/projetos referenciando clienteId, em routes/campanhas.js CRUD em /api/campanhas referenciando projetoId,
+frontend em clientes.html, projetos.html, campanhas.html com tabelas Bootstrap e formulários, JS para fetch nas rotas e renderização dinâmica,
+
+Módulo 3 – Timesheet (Entrada de Horas):
+em routes/horas.js criar POST /api/horas que receba {colaboradorId,data,clienteId,projetoId,campanhaId,atividade,horas,descricao} armazene em key hora:{uuid} e adicione em índice por colaborador e data,
+frontend em timesheet.html componente de grade semanal com IDs week-grid e save-button, JS para montar dropdowns de tarefas via GET /api/campanhas, inputs de horas e descrição, botão chama POST, validar no cliente e no servidor ausência de duplicatas
+
+Módulo 4 – Aprovação de Timesheets:
+em routes/aprovacao.js criar GET /api/horas/pending que filtre status=pendente,
+PATCH /api/horas/:id/approve define status=aprovado, approverId e timestamp, PATCH /api/horas/:id/reject define status=rejeitado e comment,
+frontend em approvals.html lista pendências com botões <button id="approve-{{id}}"> e <button id="reject-{{id}}">, modal de comentário em rejeição, JS faz fetch nos endpoints,
+
+Módulo 5 – Relatórios e Dashboard:
+em routes/relatorios.js criar GET /api/report/colaborador/:id?from=&to= agregando horas por tipo, GET /api/report/cliente/:id e /api/report/projeto/:id retornando JSON com totais e percentuais,
+frontend em dashboard.html componente ReportTable que renderiza tabela com filtros de data e botão “Exportar CSV” que converte JSON em CSV e dispara download,
+
+Módulo 6 – Configurações e Administração:
+em routes/config.js CRUD em /api/config/feriados, /api/config/categorias e /api/config/taxas, armazenar em keys config:feriado:{id}, config:categoria:{id} e config:taxa:{id},
+frontend em config.html formulários Bootstrap para cada entidade, JS faz fetch nas rotas de configuração e renderiza listas editáveis,
+
+Módulo 7 – Integrações Futuras:
+criar arquivo integracoes/omie.js com função syncOmie() que faça fetch na API externa, mapeie clientes para Replit DB em cliente:{id},
+expor POST /api/integrations/omie/sync para gatilho manual ou agendado, prepare webhooks.js para notificações em Slack ou email
+
+Sistema SaaS de Timesheet para agências de marketing com gestão de projetos, campanhas e relatórios gerenciais
+Sistema de login com sessões simples
+Dashboard principal com resumo de horas com acesso restrito a gerentes e admin e master
+Entrada de horas em formato de tabela onde o colaborador escolhe o grupo economico, o cliente, o tipo de tarefa (campanha, job, administrativa) e a tarefa (Criação de sites, Criação de peça para instagram, etc)
+Gestão de grupos economicos, clientes, tipos de tarefa e tarefas
+Categorização de horas (faturáveis vs não-faturáveis)
+Visualização de timesheet em formato de grade
+Sistema básico de aprovação de horas na tela do gerente
+Relatórios simples por período, colaborador, cliente e tarefa
+Gestão de usuários com perfis diferenciados
