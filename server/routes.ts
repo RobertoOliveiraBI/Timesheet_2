@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth } from "./auth";
 import { 
   insertEconomicGroupSchema,
   insertClientSchema,
@@ -12,24 +12,20 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+// Middleware to check authentication
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Não autenticado" });
+  }
+  next();
+}
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  setupAuth(app);
 
   // Economic Groups routes
-  app.get('/api/economic-groups', isAuthenticated, async (req, res) => {
+  app.get('/api/economic-groups', requireAuth, async (req, res) => {
     try {
       const groups = await storage.getEconomicGroups();
       res.json(groups);
@@ -39,10 +35,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/economic-groups', isAuthenticated, async (req: any, res) => {
+  app.post('/api/economic-groups', requireAuth, async (req: any, res) => {
     try {
       // Check if user has admin permissions
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -57,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clients routes
-  app.get('/api/clients', isAuthenticated, async (req, res) => {
+  app.get('/api/clients', requireAuth, async (req, res) => {
     try {
       const clients = await storage.getClients();
       res.json(clients);
@@ -67,9 +63,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/clients', isAuthenticated, async (req: any, res) => {
+  app.post('/api/clients', requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -84,9 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Campaigns routes
-  app.get('/api/campaigns', isAuthenticated, async (req: any, res) => {
+  app.get('/api/campaigns', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       let campaigns;
@@ -103,9 +99,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/campaigns', isAuthenticated, async (req: any, res) => {
+  app.post('/api/campaigns', requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -119,9 +115,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/campaigns/:id/users', isAuthenticated, async (req: any, res) => {
+  app.post('/api/campaigns/:id/users', requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -138,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Task Types routes
-  app.get('/api/task-types', isAuthenticated, async (req, res) => {
+  app.get('/api/task-types', requireAuth, async (req, res) => {
     try {
       const taskTypes = await storage.getTaskTypes();
       res.json(taskTypes);
@@ -148,9 +144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/task-types', isAuthenticated, async (req: any, res) => {
+  app.post('/api/task-types', requireAuth, async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.claims.sub);
+      const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
@@ -165,9 +161,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Time Entries routes
-  app.get('/api/time-entries', isAuthenticated, async (req: any, res) => {
+  app.get('/api/time-entries', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       const { status, fromDate, toDate } = req.query;
 
@@ -194,9 +190,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/time-entries', isAuthenticated, async (req: any, res) => {
+  app.post('/api/time-entries', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const data = insertTimeEntrySchema.parse({
         ...req.body,
         userId,
@@ -210,9 +206,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/time-entries/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/time-entries/:id', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const entryId = parseInt(req.params.id);
       const data = req.body;
 
@@ -242,9 +238,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/time-entries/:id/submit', isAuthenticated, async (req: any, res) => {
+  app.post('/api/time-entries/:id/submit', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const entryId = parseInt(req.params.id);
 
       const timeEntry = await storage.submitTimeEntry(entryId, userId);
@@ -256,9 +252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Approval routes
-  app.get('/api/approvals/pending', isAuthenticated, async (req: any, res) => {
+  app.get('/api/approvals/pending', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       
       if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
@@ -276,9 +272,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/time-entries/:id/approve', isAuthenticated, async (req: any, res) => {
+  app.post('/api/time-entries/:id/approve', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const entryId = parseInt(req.params.id);
       const { comment } = req.body;
 
@@ -295,9 +291,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/time-entries/:id/reject', isAuthenticated, async (req: any, res) => {
+  app.post('/api/time-entries/:id/reject', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const entryId = parseInt(req.params.id);
       const { comment } = req.body;
 
@@ -315,9 +311,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reports routes
-  app.get('/api/reports/user-stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/reports/user-stats', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const { fromDate, toDate } = req.query;
       
       const stats = await storage.getUserTimeStats(userId, fromDate, toDate);
@@ -328,9 +324,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/reports/team-stats', isAuthenticated, async (req: any, res) => {
+  app.get('/api/reports/team-stats', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.user.id;
       const user = await storage.getUser(userId);
       const { fromDate, toDate } = req.query;
       

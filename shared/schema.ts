@@ -27,17 +27,18 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (mandatory for Replit Auth, extended for timesheet)
+// User storage table with password authentication
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().notNull(),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).unique().notNull(),
+  password: varchar("password", { length: 255 }).notNull(),
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
   profileImageUrl: varchar("profile_image_url"),
   role: varchar("role", { enum: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] }).notNull().default("COLABORADOR"),
   position: varchar("position"),
   isManager: boolean("is_manager").default(false),
-  managerId: varchar("manager_id"),
+  managerId: integer("manager_id"),
   contractType: varchar("contract_type", { enum: ["CLT", "PJ"] }),
   costCenter: varchar("cost_center", { enum: ["GBrasil", "GTodos", "PPR"] }),
   department: varchar("department", { enum: ["Criação", "Conteúdo", "Design", "Mídia"] }),
@@ -88,7 +89,7 @@ export const campaigns = pgTable("campaigns", {
 export const campaignUsers = pgTable("campaign_users", {
   id: serial("id").primaryKey(),
   campaignId: integer("campaign_id").references(() => campaigns.id).notNull(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -106,7 +107,7 @@ export const taskTypes = pgTable("task_types", {
 // Time entries
 export const timeEntries = pgTable("time_entries", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   date: date("date").notNull(),
   campaignId: integer("campaign_id").references(() => campaigns.id).notNull(),
   taskTypeId: integer("task_type_id").references(() => taskTypes.id).notNull(),
@@ -114,7 +115,7 @@ export const timeEntries = pgTable("time_entries", {
   description: text("description"),
   status: varchar("status", { enum: ["DRAFT", "PENDING", "APPROVED", "REJECTED"] }).default("DRAFT"),
   submittedAt: timestamp("submitted_at"),
-  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at"),
   reviewComment: text("review_comment"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -229,7 +230,7 @@ export const insertCampaignUserSchema = createInsertSchema(campaignUsers).omit({
 });
 
 // Types
-export type UpsertUser = typeof users.$inferInsert;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertEconomicGroup = z.infer<typeof insertEconomicGroupSchema>;
 export type EconomicGroup = typeof economicGroups.$inferSelect;

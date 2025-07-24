@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useSimpleAuth";
 import { cn } from "@/lib/utils";
 import { 
   Clock,
