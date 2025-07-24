@@ -251,14 +251,14 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
           <div>
             <Label htmlFor="managerId">Gestor Responsável</Label>
             <Select 
-              value={formData.managerId?.toString() || ""} 
-              onValueChange={(value) => setFormData({ ...formData, managerId: value ? parseInt(value) : null })}
+              value={formData.managerId?.toString() || "none"} 
+              onValueChange={(value) => setFormData({ ...formData, managerId: value === "none" ? null : parseInt(value) })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um gestor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sem gestor</SelectItem>
+                <SelectItem value="none">Sem gestor</SelectItem>
                 {managers.map((manager) => (
                   <SelectItem key={manager.id} value={manager.id.toString()}>
                     {manager.firstName} {manager.lastName} ({manager.role})
