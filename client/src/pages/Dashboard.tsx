@@ -139,9 +139,14 @@ export default function Dashboard() {
     }
   };
 
+  const headerProps = getHeaderProps();
+  
   return (
     <Layout>
-      <Header {...getHeaderProps()} />
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">{headerProps.title}</h1>
+        <p className="text-slate-600 mt-1">{headerProps.subtitle}</p>
+      </div>
       {renderContent()}
     </Layout>
   );

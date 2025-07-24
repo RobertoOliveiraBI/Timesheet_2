@@ -10,6 +10,7 @@ Preferred communication style: Simple, everyday language.
 Design library: Using shadcn/ui components for consistent, professional UI
 Authentication: Simple email/password system using PostgreSQL database
 Language: Interface completely in Portuguese
+UI/UX: Minimalist design, single header, weekly timesheet table format
 
 ## System Architecture
 
