@@ -35,13 +35,26 @@ export function AdminSection() {
 
   const { data: users = [], error: usersError, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/usuarios"],
+    queryFn: async () => {
+      const response = await fetch("/api/usuarios", {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    },
     retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  // Debug
-  console.log('Users data:', users);
-  console.log('Users error:', usersError);
-  console.log('Users loading:', usersLoading);
+
 
   const { data: economicGroups = [] } = useQuery<any[]>({
     queryKey: ["/api/grupos"],
@@ -209,7 +222,19 @@ export function AdminSection() {
                 </tr>
               </thead>
               <tbody>
-                {users && users.length > 0 ? users.map((user: any) => (
+                {usersLoading ? (
+                  <tr>
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
+                      Carregando usuários...
+                    </td>
+                  </tr>
+                ) : usersError ? (
+                  <tr>
+                    <td colSpan={7} className="p-6 text-center text-red-500">
+                      Erro ao carregar usuários: {usersError.message || 'Erro desconhecido'}
+                    </td>
+                  </tr>
+                ) : users && users.length > 0 ? users.map((user: any) => (
                   <tr key={user.id} className="border-b hover:bg-slate-50">
                     <td className="p-3">
                       <div>
@@ -227,7 +252,7 @@ export function AdminSection() {
                     <td className="p-3">
                       {user.managerId ? (
                         <span className="text-sm text-slate-600">
-                          {users.find((m: any) => m.id === user.managerId)?.firstName || 'N/A'}
+                          {users.find((m: any) => m.id === user.managerId)?.firstName} {users.find((m: any) => m.id === user.managerId)?.lastName}
                         </span>
                       ) : (
                         <span className="text-sm text-slate-400">-</span>
@@ -260,7 +285,7 @@ export function AdminSection() {
                 )) : (
                   <tr>
                     <td colSpan={7} className="p-6 text-center text-slate-500">
-                      {usersError ? 'Erro ao carregar usuários' : 'Nenhum usuário encontrado'}
+                      Nenhum usuário cadastrado
                     </td>
                   </tr>
                 )}
