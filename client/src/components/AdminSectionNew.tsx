@@ -33,10 +33,15 @@ export function AdminSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users = [], error: usersError } = useQuery<any[]>({
+  const { data: users = [], error: usersError, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/usuarios"],
     retry: false,
   });
+
+  // Debug
+  console.log('Users data:', users);
+  console.log('Users error:', usersError);
+  console.log('Users loading:', usersLoading);
 
   const { data: economicGroups = [] } = useQuery<any[]>({
     queryKey: ["/api/grupos"],
@@ -198,6 +203,7 @@ export function AdminSection() {
                   <th className="text-left p-3">Email</th>
                   <th className="text-left p-3">Papel</th>
                   <th className="text-left p-3">Departamento</th>
+                  <th className="text-left p-3">Gestor</th>
                   <th className="text-left p-3">Status</th>
                   <th className="text-left p-3">Ações</th>
                 </tr>
@@ -218,6 +224,15 @@ export function AdminSection() {
                       </Badge>
                     </td>
                     <td className="p-3">{user.department}</td>
+                    <td className="p-3">
+                      {user.managerId ? (
+                        <span className="text-sm text-slate-600">
+                          {users.find((m: any) => m.id === user.managerId)?.firstName || 'N/A'}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
+                    </td>
                     <td className="p-3">
                       <Badge variant={user.isActive ? 'default' : 'destructive'}>
                         {user.isActive ? 'Ativo' : 'Inativo'}
@@ -244,7 +259,7 @@ export function AdminSection() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
                       {usersError ? 'Erro ao carregar usuários' : 'Nenhum usuário encontrado'}
                     </td>
                   </tr>
