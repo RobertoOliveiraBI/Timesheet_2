@@ -7,6 +7,9 @@ This is a comprehensive timesheet management SaaS application designed specifica
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Design library: Using shadcn/ui components for consistent, professional UI
+Authentication: Simple email/password system using PostgreSQL database
+Language: Interface completely in Portuguese
 
 ## System Architecture
 
@@ -22,8 +25,8 @@ The application follows a modern full-stack architecture with clear separation b
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
 - **Database ORM**: Drizzle ORM with PostgreSQL
-- **Authentication**: OpenID Connect (OIDC) with Replit Auth
-- **Session Management**: PostgreSQL-backed sessions using connect-pg-simple
+- **Authentication**: Simple email/password authentication with hashed passwords
+- **Session Management**: PostgreSQL-backed sessions using connect-pg-simple and passport.js
 
 ### Database Architecture
 - **Primary Database**: PostgreSQL via Neon serverless
@@ -85,7 +88,8 @@ The application follows a modern full-stack architecture with clear separation b
 - **passport**: Authentication middleware and strategy management
 
 ### UI Framework
-- **@radix-ui/***: Accessible component primitives
+- **shadcn/ui**: Modern component library built on Radix UI and Tailwind CSS
+- **@radix-ui/***: Accessible component primitives (via shadcn/ui)
 - **tailwindcss**: Utility-first CSS framework
 - **@tanstack/react-query**: Server state management and caching
 
