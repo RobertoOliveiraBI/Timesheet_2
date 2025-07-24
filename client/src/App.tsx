@@ -38,6 +38,14 @@ function Router() {
   );
 }
 
+function getDefaultSection(user: any) {
+  // Redireciona baseado no papel do usuário
+  if (user.role === "MASTER") return "admin";
+  if (user.role === "ADMIN") return "admin";
+  if (user.role === "GESTOR") return "approvals";
+  return "timesheet";
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>

@@ -35,7 +35,7 @@ export default function Dashboard() {
     }
   }, [user, isLoading, toast]);
 
-  const { data: userStats } = useQuery({
+  const { data: userStats } = useQuery<any>({
     queryKey: ["/api/reports/user-stats"],
     retry: false,
   });
@@ -51,7 +51,7 @@ export default function Dashboard() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return null; // Will redirect in useEffect
   }
 
@@ -59,18 +59,25 @@ export default function Dashboard() {
     if (location === "/approvals") return "approvals";
     if (location === "/admin") return "admin";
     if (location === "/reports") return "reports";
+    if (location === "/timesheet") return "timesheet";
+    // Para a rota raiz, baseado no papel do usuário
+    if (location === "/") {
+      if (user?.role === "MASTER" || user?.role === "ADMIN") return "admin";
+      if (user?.role === "GESTOR") return "approvals";
+      return "timesheet";
+    }
     return "timesheet";
   };
 
   const getHeaderProps = () => {
     const section = getCurrentSection();
-    const titles = {
+    const titles: Record<string, { title: string; subtitle: string }> = {
       timesheet: { title: "Lançar Horas", subtitle: "Registre suas horas trabalhadas" },
       reports: { title: "Relatórios", subtitle: "Analise a produtividade e rentabilidade" },
       approvals: { title: "Área do Gestor", subtitle: "Aprove ou rejeite lançamentos de horas" },
       admin: { title: "Administração", subtitle: "Gerencie usuários e configurações do sistema" },
     };
-    return titles[section];
+    return titles[section] || titles.timesheet;
   };
 
   const renderContent = () => {
@@ -90,7 +97,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <StatsCard
                 title="Esta semana"
-                value={userStats ? `${Math.round(userStats.totalHours || 0)}:00` : "0:00"}
+                value={userStats?.totalHours ? `${Math.round(userStats.totalHours)}:00` : "0:00"}
                 subtitle="Horas esta semana"
                 icon={Clock}
                 iconColor="text-blue-600"
@@ -98,7 +105,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Aprovadas"
-                value={userStats ? `${Math.round(userStats.approvedHours || 0)}:00` : "0:00"}
+                value={userStats?.approvedHours ? `${Math.round(userStats.approvedHours)}:00` : "0:00"}
                 subtitle="Horas aprovadas"
                 icon={CheckCircle}
                 iconColor="text-green-600"
@@ -106,7 +113,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Pendentes"
-                value={userStats ? `${Math.round(userStats.pendingHours || 0)}:00` : "0:00"}
+                value={userStats?.pendingHours ? `${Math.round(userStats.pendingHours)}:00` : "0:00"}
                 subtitle="Pendente aprovação"
                 icon={HourglassIcon}
                 iconColor="text-amber-600"
@@ -114,7 +121,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Faturáveis"
-                value={userStats ? `${Math.round((userStats.billableHours / (userStats.totalHours || 1)) * 100)}%` : "0%"}
+                value={userStats?.billableHours && userStats?.totalHours ? `${Math.round((userStats.billableHours / userStats.totalHours) * 100)}%` : "0%"}
                 subtitle="Horas faturáveis"
                 icon={TrendingUp}
                 iconColor="text-primary"
