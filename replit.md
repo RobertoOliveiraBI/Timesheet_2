@@ -68,6 +68,8 @@ The application follows a modern full-stack architecture with clear separation b
 - **Approval Interface**: Complete management system for approving/rejecting timesheet entries
 - **UI Improvements**: Fixed SelectItem empty value errors, optimized loading states
 - **Workflow Actions**: Three distinct save actions (Save Draft, Save, Submit for Approval)
+- **Profile Page**: Complete user profile management with edit capabilities
+- **User Management**: Manual user creation for missing registrations (luciano@tractionfy.com added)
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions
