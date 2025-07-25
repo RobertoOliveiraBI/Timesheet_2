@@ -60,13 +60,7 @@ export default function Dashboard() {
     if (location === "/approvals") return "approvals";
     if (location === "/admin") return "admin";
     if (location === "/reports") return "reports";
-    if (location === "/timesheet") return "timesheet";
-    // Para a rota raiz, baseado no papel do usuário
-    if (location === "/") {
-      if (user?.role === "MASTER" || user?.role === "ADMIN") return "admin";
-      if (user?.role === "GESTOR") return "approvals";
-      return "timesheet";
-    }
+    if (location === "/timesheet" || location === "/") return "timesheet";
     return "timesheet";
   };
 

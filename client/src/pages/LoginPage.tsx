@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useSimpleAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,18 +6,46 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Clock, Users, BarChart3 } from "lucide-react";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 
 export default function LoginPage() {
   const { user, isLoading, loginMutation } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [, setLocation] = useLocation();
+
+  // Helper function to get default route based on user role
+  const getDefaultRoute = (user: any) => {
+    if (!user) return "/";
+    
+    switch (user.role) {
+      case "MASTER":
+      case "ADMIN":
+        return "/admin";
+      case "GESTOR":
+        return "/approvals";
+      case "COLABORADOR":
+      default:
+        return "/timesheet";
+    }
+  };
 
   // Redirect if already logged in
-  if (!isLoading && user) {
-    return <Redirect to="/" />;
-  }
+  useEffect(() => {
+    if (!isLoading && user) {
+      const defaultRoute = getDefaultRoute(user);
+      setLocation(defaultRoute);
+    }
+  }, [user, isLoading, setLocation]);
+
+  // Redirect after successful login
+  useEffect(() => {
+    if (loginMutation.isSuccess && loginMutation.data) {
+      const defaultRoute = getDefaultRoute(loginMutation.data);
+      setLocation(defaultRoute);
+    }
+  }, [loginMutation.isSuccess, loginMutation.data, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
