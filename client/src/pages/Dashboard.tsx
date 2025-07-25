@@ -27,18 +27,8 @@ export default function Dashboard() {
 
   // Helper function to get default route based on user role
   const getDefaultRoute = (user: any) => {
-    if (!user) return "/";
-    
-    switch (user.role) {
-      case "MASTER":
-      case "ADMIN":
-        return "/admin";
-      case "GESTOR":
-        return "/approvals";
-      case "COLABORADOR":
-      default:
-        return "/timesheet";
-    }
+    // Todos os usuários vão para timesheet
+    return "/timesheet";
   };
 
   // Redirect to login if not authenticated

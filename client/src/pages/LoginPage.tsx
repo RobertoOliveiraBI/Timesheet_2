@@ -17,18 +17,8 @@ export default function LoginPage() {
 
   // Helper function to get default route based on user role
   const getDefaultRoute = (user: any) => {
-    if (!user) return "/";
-    
-    switch (user.role) {
-      case "MASTER":
-      case "ADMIN":
-        return "/admin";
-      case "GESTOR":
-        return "/approvals";
-      case "COLABORADOR":
-      default:
-        return "/timesheet";
-    }
+    // Todos os usuários vão para timesheet após login
+    return "/timesheet";
   };
 
   // Redirect if already logged in
