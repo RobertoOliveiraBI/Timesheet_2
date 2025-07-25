@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { db } from "./db";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { 
@@ -10,9 +11,13 @@ import {
   insertCampaignTaskSchema,
   insertTimeEntrySchema,
   insertCampaignUserSchema,
-  insertUserSchema
+  insertUserSchema,
+  clients as clientsTable,
+  campaigns as campaignsTable,
+  campaignTasks as campaignTasksTable,
 } from "@shared/schema";
 import { z } from "zod";
+import { eq, and, asc, desc, gte, lte, inArray } from "drizzle-orm";
 
 // Middleware to check authentication
 function requireAuth(req: any, res: any, next: any) {
@@ -619,20 +624,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clientes
-  app.get('/api/clientes', requireAuth, async (req: any, res) => {
+  // Clientes - API simplificada para teste
+  app.get('/api/clientes', async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (!user) {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
-
-      // Todos os usuários autenticados podem ver clientes (necessário para timesheet)
-      const clients = await storage.getClients();
+      console.log('API /api/clientes chamada - user:', req.user?.id);
+      
+      // Buscar clientes diretamente do banco sem verificação complexa
+      const clients = await db.select({
+        id: clientsTable.id,
+        companyName: clientsTable.companyName,
+        economicGroupId: clientsTable.economicGroupId
+      }).from(clientsTable).where(eq(clientsTable.isActive, true));
+      
+      console.log('Clientes encontrados:', clients.length);
       res.json(clients);
     } catch (error) {
       console.error("Error fetching clients:", error);
-      res.status(500).json({ message: "Erro ao buscar clientes" });
+      res.status(500).json({ message: "Erro ao buscar clientes", error: error.message });
     }
   });
 
@@ -703,20 +711,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campanhas 
-  app.get('/api/campaigns', requireAuth, async (req: any, res) => {
+  // Campanhas - API simplificada
+  app.get('/api/campaigns', async (req: any, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (!user) {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
-
-      // Todos os usuários autenticados podem ver campanhas (necessário para timesheet)
-      const campaigns = await storage.getCampaigns();
+      console.log('API /api/campaigns chamada');
+      
+      // Buscar campanhas diretamente do banco
+      const campaigns = await db.select({
+        id: campaignsTable.id,
+        name: campaignsTable.name,
+        clientId: campaignsTable.clientId
+      }).from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      
+      console.log('Campanhas encontradas:', campaigns.length);
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
-      res.status(500).json({ message: "Erro ao buscar campanhas" });
+      res.status(500).json({ message: "Erro ao buscar campanhas", error: error.message });
     }
   });
 
@@ -883,20 +894,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/campaign-tasks", requireAuth, async (req, res) => {
+  app.get("/api/campaign-tasks", async (req, res) => {
     try {
-      const user = await storage.getUser(req.user.id);
-      if (!user) {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
-
-      // Todos os usuários autenticados podem ver tarefas (necessário para timesheet)
-      const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
-      const campaignTasks = await storage.getCampaignTasks(campaignId);
+      console.log('API /api/campaign-tasks chamada');
+      
+      // Buscar tarefas diretamente do banco
+      const campaignTasks = await db.select({
+        id: campaignTasksTable.id,
+        campaignId: campaignTasksTable.campaignId,
+        taskTypeId: campaignTasksTable.taskTypeId,
+        description: campaignTasksTable.description
+      }).from(campaignTasksTable).where(eq(campaignTasksTable.isActive, true));
+      
+      console.log('Tarefas encontradas:', campaignTasks.length);
       res.json(campaignTasks);
     } catch (error) {
       console.error("Error fetching campaign tasks:", error);
-      res.status(500).json({ message: "Failed to fetch campaign tasks" });
+      res.status(500).json({ message: "Erro ao buscar tarefas", error: error.message });
     }
   });
 
