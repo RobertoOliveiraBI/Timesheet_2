@@ -887,7 +887,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campaign Tasks Routes
+  // Endpoints específicos para Timesheet - hierarquia Cliente → Campanha → Tarefa
+  
+  // Buscar campanhas por cliente
+  app.get("/api/clientes/:clientId/campanhas", requireAuth, async (req: any, res) => {
+    try {
+      const clientId = parseInt(req.params.clientId);
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(403).json({ message: "Usuário não encontrado" });
+      }
+      
+      let campaigns;
+      if (['MASTER', 'ADMIN'].includes(user.role)) {
+        // Admins veem todas as campanhas do cliente
+        campaigns = await db.select({
+          id: campaignsTable.id,
+          name: campaignsTable.name,
+          description: campaignsTable.description,
+          clientId: campaignsTable.clientId,
+          isActive: campaignsTable.isActive
+        })
+        .from(campaignsTable)
+        .where(and(
+          eq(campaignsTable.clientId, clientId),
+          eq(campaignsTable.isActive, true)
+        ))
+        .orderBy(asc(campaignsTable.name));
+      } else {
+        // Colaboradores só veem campanhas às quais têm acesso
+        campaigns = await storage.getCampaignsByUser(userId);
+        campaigns = campaigns.filter(campaign => campaign.clientId === clientId);
+      }
+      
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching campaigns by client:", error);
+      res.status(500).json({ message: "Erro ao buscar campanhas do cliente" });
+    }
+  });
+
+  // Buscar tarefas por campanha
+  app.get("/api/campanhas/:campaignId/tarefas", requireAuth, async (req: any, res) => {
+    try {
+      const campaignId = parseInt(req.params.campaignId);
+      
+      const campaignTasks = await db.select({
+        id: campaignTasksTable.id,
+        campaignId: campaignTasksTable.campaignId,
+        taskTypeId: campaignTasksTable.taskTypeId,
+        description: campaignTasksTable.description,
+        isActive: campaignTasksTable.isActive
+      })
+      .from(campaignTasksTable)
+      .where(and(
+        eq(campaignTasksTable.campaignId, campaignId),
+        eq(campaignTasksTable.isActive, true)
+      ))
+      .orderBy(asc(campaignTasksTable.description));
+      
+      res.json(campaignTasks);
+    } catch (error) {
+      console.error("Error fetching tasks by campaign:", error);
+      res.status(500).json({ message: "Erro ao buscar tarefas da campanha" });
+    }
+  });
+
+  // Endpoint para submissão de entrada de horas individual
+  app.post("/api/timesheet/entrada-horas", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { clientId, campaignId, campaignTaskId, date, hours, description } = req.body;
+      
+      // Validações
+      if (!clientId || !campaignId || !campaignTaskId || !date || !hours) {
+        return res.status(400).json({ 
+          message: "Todos os campos obrigatórios devem ser preenchidos",
+          required: ["clientId", "campaignId", "campaignTaskId", "date", "hours"]
+        });
+      }
+      
+      // Validar se a tarefa pertence à campanha especificada
+      const taskExists = await db.select()
+        .from(campaignTasksTable)
+        .where(and(
+          eq(campaignTasksTable.id, parseInt(campaignTaskId)),
+          eq(campaignTasksTable.campaignId, parseInt(campaignId)),
+          eq(campaignTasksTable.isActive, true)
+        ))
+        .limit(1);
+        
+      if (taskExists.length === 0) {
+        return res.status(400).json({ message: "Tarefa não encontrada ou inválida para esta campanha" });
+      }
+      
+      // Validar se a campanha pertence ao cliente especificado
+      const campaignExists = await db.select()
+        .from(campaignsTable)
+        .where(and(
+          eq(campaignsTable.id, parseInt(campaignId)),
+          eq(campaignsTable.clientId, parseInt(clientId)),
+          eq(campaignsTable.isActive, true)
+        ))
+        .limit(1);
+        
+      if (campaignExists.length === 0) {
+        return res.status(400).json({ message: "Campanha não encontrada ou inválida para este cliente" });
+      }
+      
+      const data = insertTimeEntrySchema.parse({
+        userId,
+        date,
+        campaignId: parseInt(campaignId),
+        campaignTaskId: parseInt(campaignTaskId),
+        hours: hours.toString(),
+        description: description || null,
+        status: "RASCUNHO"
+      });
+
+      const timeEntry = await storage.createTimeEntry(data);
+      res.status(201).json(timeEntry);
+    } catch (error) {
+      console.error("Error creating time entry:", error);
+      res.status(400).json({ message: "Erro ao criar entrada de horas" });
+    }
+  });
+
+  // Campaign Tasks Routes (mantidos para admin)
   app.post("/api/campaign-tasks", requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
@@ -905,15 +1033,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/campaign-tasks", requireAuth, async (req: any, res) => {
-    try {
-      console.log('API /api/campaign-tasks chamada - user:', req.user?.id);
-      
+    try {      
       const user = await storage.getUser(req.user?.id);
       if (!user) {
         return res.status(403).json({ message: "Usuário não encontrado" });
       }
-      
-      console.log('User role:', user.role);
       
       // Todos os usuários autenticados podem ver tarefas (necessário para timesheet)
       const campaignTasks = await db.select({
@@ -923,7 +1047,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: campaignTasksTable.description
       }).from(campaignTasksTable).where(eq(campaignTasksTable.isActive, true));
       
-      console.log('Tarefas encontradas:', campaignTasks.length);
       res.json(campaignTasks);
     } catch (error) {
       console.error("Error fetching campaign tasks:", error);

@@ -128,7 +128,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserProfile(id: number, updates: Partial<InsertUser>): Promise<User> {
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
     const [updatedUser] = await db
       .update(users)
       .set(updates)
@@ -200,7 +200,7 @@ export class DatabaseStorage implements IStorage {
 
   // Campaigns
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const [newCampaign] = await db.insert(campaigns).values([campaign]).returning();
+    const [newCampaign] = await db.insert(campaigns).values(campaign).returning();
     return newCampaign;
   }
 

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/StatsCard";
-import { WeeklyTimesheetForm } from "@/components/WeeklyTimesheetForm";
+import { NovoTimesheet } from "@/pages/NovoTimesheet";
 import { RecentEntries } from "@/components/RecentEntries";
 import { ApprovalSection } from "@/components/ApprovalSection";
 import { AdminSection } from "@/components/AdminSectionNew";
@@ -165,11 +165,8 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Weekly timesheet form */}
-            <WeeklyTimesheetForm />
-
-            {/* Recent entries */}
-            <RecentEntries />
+            {/* Nova interface de timesheet */}
+            <NovoTimesheet />
           </div>
         );
     }
