@@ -4,6 +4,15 @@
 
 This is a comprehensive timesheet management SaaS application designed specifically for marketing agencies managing multiple clients, campaigns, and hybrid teams. The system allows precise tracking of billable and non-billable hours, team management with role-based permissions, and automated monthly closing workflows.
 
+### Current Status (January 2025)
+- ✅ Complete authentication system with email/password
+- ✅ Weekly timesheet form with hierarchical task selection (Client → Campaign → Specific Task)
+- ✅ Status workflow system: RASCUNHO → SALVO → VALIDACAO → APROVADO → REJEITADO
+- ✅ Approval management interface for managers and admins
+- ✅ Administrative panel for complete system management
+- ✅ Real-time data loading with optimized caching
+- ✅ Role-based access control (MASTER, ADMIN, GESTOR, COLABORADOR)
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -49,8 +58,16 @@ The application follows a modern full-stack architecture with clear separation b
 - **Economic Groups**: Client organization structure for grouping related companies
 - **Clients**: Individual client entities linked to economic groups
 - **Campaigns**: Project containers with user assignments and task categorization
-- **Time Entries**: Core timesheet data with approval workflows and audit trails
+- **Campaign Tasks**: Specific pre-configured tasks within campaigns combining task types with custom descriptions
+- **Time Entries**: Core timesheet data with approval workflows using campaign_task_id and status field
 - **Task Types**: Configurable activity categories for precise time classification
+
+### Recent Updates (January 25, 2025)
+- **Schema Migration**: Updated time_entries table to use campaign_task_id instead of task_type_id
+- **Status System**: Implemented 5-stage approval workflow (RASCUNHO, SALVO, VALIDACAO, APROVADO, REJEITADO)
+- **Approval Interface**: Complete management system for approving/rejecting timesheet entries
+- **UI Improvements**: Fixed SelectItem empty value errors, optimized loading states
+- **Workflow Actions**: Three distinct save actions (Save Draft, Save, Submit for Approval)
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions

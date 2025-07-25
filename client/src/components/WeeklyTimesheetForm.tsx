@@ -293,7 +293,7 @@ export function WeeklyTimesheetForm() {
                       </SelectTrigger>
                       <SelectContent>
                         {clientsLoading ? (
-                          <SelectItem value="" disabled>Carregando clientes...</SelectItem>
+                          <SelectItem value="loading" disabled>Carregando clientes...</SelectItem>
                         ) : Array.isArray(clients) && clients.length > 0 ? (
                           clients.map((client: any) => (
                             <SelectItem key={client.id} value={client.id.toString()}>
@@ -301,7 +301,7 @@ export function WeeklyTimesheetForm() {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="" disabled>Nenhum cliente disponível</SelectItem>
+                          <SelectItem value="empty" disabled>Nenhum cliente disponível</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -317,7 +317,7 @@ export function WeeklyTimesheetForm() {
                       </SelectTrigger>
                       <SelectContent>
                         {campaignsLoading ? (
-                          <SelectItem value="" disabled>Carregando campanhas...</SelectItem>
+                          <SelectItem value="loading" disabled>Carregando campanhas...</SelectItem>
                         ) : Array.isArray(campaigns) && campaigns.length > 0 ? (
                           campaigns
                             .filter((campaign: any) => campaign.clientId.toString() === entry.clientId)
@@ -327,7 +327,7 @@ export function WeeklyTimesheetForm() {
                               </SelectItem>
                             ))
                         ) : (
-                          <SelectItem value="" disabled>Nenhuma campanha disponível</SelectItem>
+                          <SelectItem value="empty" disabled>Nenhuma campanha disponível</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -343,7 +343,7 @@ export function WeeklyTimesheetForm() {
                       </SelectTrigger>
                       <SelectContent>
                         {campaignTasksLoading ? (
-                          <SelectItem value="" disabled>Carregando tarefas...</SelectItem>
+                          <SelectItem value="loading" disabled>Carregando tarefas...</SelectItem>
                         ) : Array.isArray(campaignTasks) && campaignTasks.length > 0 ? (
                           campaignTasks
                             .filter((task: any) => task.campaignId.toString() === entry.campaignId)
@@ -353,7 +353,7 @@ export function WeeklyTimesheetForm() {
                               </SelectItem>
                             ))
                         ) : (
-                          <SelectItem value="" disabled>Nenhuma tarefa disponível</SelectItem>
+                          <SelectItem value="empty" disabled>Nenhuma tarefa disponível</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
