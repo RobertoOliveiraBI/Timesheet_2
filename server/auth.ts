@@ -138,11 +138,38 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Logout endpoint
+  // Logout endpoint (POST)
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
-      if (err) return next(err);
-      res.json({ message: "Logout realizado com sucesso" });
+      if (err) {
+        console.error("Erro no logout:", err);
+        return next(err);
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Erro ao destruir sessão:", err);
+          return res.status(500).json({ message: "Erro ao fazer logout" });
+        }
+        res.clearCookie('connect.sid');
+        res.json({ message: "Logout realizado com sucesso" });
+      });
+    });
+  });
+
+  // Logout endpoint (GET) - for compatibility when accessing via browser
+  app.get("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Erro no logout:", err);
+        return next(err);
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Erro ao destruir sessão:", err);
+        }
+        res.clearCookie('connect.sid');
+        res.redirect('/');
+      });
     });
   });
 
