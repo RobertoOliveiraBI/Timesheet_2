@@ -86,6 +86,96 @@ export function TimesheetSemanal() {
     staleTime: 30 * 1000,
   });
 
+  // Carregar entradas existentes quando dados chegam
+  useEffect(() => {
+    carregarEntradasExistentes();
+  }, [entradasExistentes, clientes]);
+
+  // Converter entradas do servidor para formato de linhas
+  const carregarEntradasExistentes = async () => {
+    if (!clientes.length) {
+      // Aguardar clientes carregarem
+      return;
+    }
+
+    if (!entradasExistentes || !Array.isArray(entradasExistentes) || entradasExistentes.length === 0) {
+      // Se não há entradas salvas, limpar linhas da semana anterior
+      setLinhas([]);
+      return;
+    }
+
+    const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
+
+    // Agrupar entradas por tarefa
+    for (const entrada of entradasExistentes) {
+      if (!entrada || !entrada.campaignTaskId || !entrada.clientId || !entrada.campaignId) continue;
+      
+      const chave = `${entrada.campaignTaskId}-${entrada.clientId}-${entrada.campaignId}`;
+      
+      if (!linhasAgrupadas[chave]) {
+        // Buscar campanhas e tarefas se necessário
+        if (!campanhasPorCliente[entrada.clientId.toString()]) {
+          await buscarCampanhas(entrada.clientId.toString());
+        }
+        if (!tarefasPorCampanha[entrada.campaignId.toString()]) {
+          await buscarTarefas(entrada.campaignId.toString());
+        }
+
+        // Buscar nomes pelos IDs
+        const cliente = clientes.find(c => c.id === entrada.clientId);
+        const campanhas = campanhasPorCliente[entrada.clientId.toString()] || [];
+        const campanha = campanhas.find(c => c.id === entrada.campaignId);
+        const tarefas = tarefasPorCampanha[entrada.campaignId.toString()] || [];
+        const tarefa = tarefas.find(t => t.id === entrada.campaignTaskId);
+        
+        linhasAgrupadas[chave] = {
+          id: chave,
+          clienteId: entrada.clientId.toString(),
+          clienteNome: cliente ? (cliente.tradeName || cliente.companyName) : "",
+          campanhaId: entrada.campaignId.toString(),
+          campanhaNome: campanha?.name || "",
+          tarefaId: entrada.campaignTaskId.toString(),
+          tarefaNome: tarefa?.description || "",
+          horas: {
+            seg: "0",
+            ter: "0",
+            qua: "0", 
+            qui: "0",
+            sex: "0",
+            sab: "0"
+          },
+          totalHoras: 0
+        };
+      }
+
+      // Mapear dia da semana
+      const dataEntrada = new Date(entrada.date);
+      const diaSemana = dataEntrada.getDay();
+      const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+      const diaKey = mapaDias[diaSemana];
+      
+      if (diaKey && diaKey !== 'dom') {
+        linhasAgrupadas[chave].horas[diaKey] = entrada.hours.toString();
+      }
+    }
+
+    // Recalcular totais
+    Object.values(linhasAgrupadas).forEach(linha => {
+      linha.totalHoras = Object.values(linha.horas).reduce((total, horas) => {
+        return total + parseFloat(horas || "0");
+      }, 0);
+    });
+
+    // Combinar com linhas não salvas existentes
+    const linhasNaoSalvas = linhas.filter(linha => 
+      !Object.keys(linhasAgrupadas).includes(linha.id) && 
+      (linha.clienteId || linha.campanhaId || linha.tarefaId || 
+       Object.values(linha.horas).some(h => parseFloat(h || "0") > 0))
+    );
+
+    setLinhas([...Object.values(linhasAgrupadas), ...linhasNaoSalvas]);
+  };
+
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
     if (direcao === 'anterior') {
@@ -93,7 +183,7 @@ export function TimesheetSemanal() {
     } else {
       setSemanaAtual(addWeeks(semanaAtual, 1));
     }
-    setLinhas([]); // Limpar linhas ao mudar semana
+    // Não limpar linhas - deixar que o carregamento das entradas gerencie isso
   };
 
   // Adicionar nova linha
