@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
+import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -65,6 +67,11 @@ export function TimesheetSemanal() {
   const [tarefasPorCampanha, setTarefasPorCampanha] = useState<Record<string, Tarefa[]>>({});
   const [mostrarHistorico, setMostrarHistorico] = useState(true);
   const [mesAtual, setMesAtual] = useState(new Date());
+  
+  // Estados para modal de edição
+  const [entradaEditando, setEntradaEditando] = useState<EntradaSalva | null>(null);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [horasEditando, setHorasEditando] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -417,6 +424,68 @@ export function TimesheetSemanal() {
     },
   });
 
+  // Funções para editar entrada
+  const abrirModalEdicao = (entrada: EntradaSalva) => {
+    setEntradaEditando(entrada);
+    setHorasEditando(entrada.hours);
+    setModalAberto(true);
+  };
+
+  const fecharModal = () => {
+    setEntradaEditando(null);
+    setHorasEditando("");
+    setModalAberto(false);
+  };
+
+  // Mutation para editar entrada
+  const editarEntrada = useMutation({
+    mutationFn: async () => {
+      if (!entradaEditando) return;
+      
+      await apiRequest("PUT", `/api/time-entries/${entradaEditando.id}`, {
+        hours: horasEditando
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Entrada editada com sucesso",
+      });
+      
+      fecharModal();
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao editar entrada",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para excluir entrada
+  const excluirEntrada = useMutation({
+    mutationFn: async (entradaId: number) => {
+      await apiRequest("DELETE", `/api/time-entries/${entradaId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Entrada excluída com sucesso",
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir entrada",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
     <Card className="w-full">
@@ -684,53 +753,85 @@ export function TimesheetSemanal() {
                 <p>Nenhuma entrada encontrada para este mês</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border border-gray-300 p-3 text-left">Data</th>
-                      <th className="border border-gray-300 p-3 text-left">Cliente</th>
-                      <th className="border border-gray-300 p-3 text-left">Campanha</th>
-                      <th className="border border-gray-300 p-3 text-left">Tarefa</th>
-                      <th className="border border-gray-300 p-3 text-center">Horas</th>
-                      <th className="border border-gray-300 p-3 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historicoMensal
-                      .sort((a: EntradaSalva, b: EntradaSalva) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                      .map((entrada: EntradaSalva) => (
-                      <tr key={entrada.id} className="hover:bg-gray-50">
-                        <td className="border border-gray-300 p-3">
-                          {format(new Date(entrada.date), "dd/MM/yyyy")}
-                        </td>
-                        <td className="border border-gray-300 p-3">
-                          {entrada.clienteNome}
-                        </td>
-                        <td className="border border-gray-300 p-3">
-                          {entrada.campanhaNome}
-                        </td>
-                        <td className="border border-gray-300 p-3">
-                          {entrada.tarefaNome}
-                        </td>
-                        <td className="border border-gray-300 p-3 text-center">
-                          {entrada.hours}h
-                        </td>
-                        <td className="border border-gray-300 p-3 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            entrada.status === 'APROVADO' ? 'bg-green-100 text-green-800' :
-                            entrada.status === 'VALIDACAO' ? 'bg-yellow-100 text-yellow-800' :
-                            entrada.status === 'REJEITADO' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {entrada.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                
+              <>
+                <div className="border border-gray-300 rounded-lg overflow-hidden">
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full border-collapse">
+                      <thead className="sticky top-0 bg-gray-100 z-10">
+                        <tr>
+                          <th className="border-b border-gray-300 p-3 text-left">Data</th>
+                          <th className="border-b border-gray-300 p-3 text-left">Cliente</th>
+                          <th className="border-b border-gray-300 p-3 text-left">Campanha</th>
+                          <th className="border-b border-gray-300 p-3 text-left">Tarefa</th>
+                          <th className="border-b border-gray-300 p-3 text-center">Horas</th>
+                          <th className="border-b border-gray-300 p-3 text-center">Status</th>
+                          <th className="border-b border-gray-300 p-3 text-center">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historicoMensal
+                          .sort((a: EntradaSalva, b: EntradaSalva) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((entrada: EntradaSalva) => (
+                          <tr key={entrada.id} className="hover:bg-gray-50 border-b border-gray-200">
+                            <td className="p-3">
+                              {format(new Date(entrada.date), "dd/MM/yyyy")}
+                            </td>
+                            <td className="p-3">
+                              {entrada.clienteNome}
+                            </td>
+                            <td className="p-3">
+                              {entrada.campanhaNome}
+                            </td>
+                            <td className="p-3">
+                              {entrada.tarefaNome}
+                            </td>
+                            <td className="p-3 text-center">
+                              {entrada.hours}h
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                entrada.status === 'APROVADO' ? 'bg-green-100 text-green-800' :
+                                entrada.status === 'VALIDACAO' ? 'bg-yellow-100 text-yellow-800' :
+                                entrada.status === 'REJEITADO' ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {entrada.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                {(entrada.status === 'RASCUNHO' || entrada.status === 'REJEITADO') && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => abrirModalEdicao(entrada)}
+                                      className="h-8 w-8 p-0"
+                                      title="Editar"
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => excluirEntrada.mutate(entrada.id)}
+                                      className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                                      title="Excluir"
+                                      disabled={excluirEntrada.isPending}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                  
                 <div className="mt-4 p-4 bg-gray-50 rounded">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">Total de horas no mês:</span>
@@ -739,12 +840,72 @@ export function TimesheetSemanal() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
         </CardContent>
       </Card>
     )}
+
+    {/* Modal de Edição */}
+    <Dialog open={modalAberto} onOpenChange={setModalAberto}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Editar Entrada</DialogTitle>
+        </DialogHeader>
+        
+        {entradaEditando && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <Label className="font-medium">Data:</Label>
+                <p>{format(new Date(entradaEditando.date), "dd/MM/yyyy")}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Cliente:</Label>
+                <p>{entradaEditando.clienteNome}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Campanha:</Label>
+                <p>{entradaEditando.campanhaNome}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Tarefa:</Label>
+                <p>{entradaEditando.tarefaNome}</p>
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="horas">Horas</Label>
+              <Select value={horasEditando} onValueChange={setHorasEditando}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione as horas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcoesDuracao.map((duracao) => (
+                    <SelectItem key={duracao} value={duracao}>
+                      {duracao}h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={fecharModal}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => editarEntrada.mutate()}
+                disabled={editarEntrada.isPending}
+              >
+                {editarEntrada.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   </div>
   );
 }
