@@ -72,12 +72,20 @@ export function TimesheetSemanal() {
     queryKey: ["/api/timesheet/semana", format(inicioSemana, "yyyy-MM-dd"), format(addDays(inicioSemana, 5), "yyyy-MM-dd")],
     queryFn: async () => {
       try {
-        const response = await fetch(
-          `/api/timesheet/semana?inicioSemana=${format(inicioSemana, "yyyy-MM-dd")}&fimSemana=${format(addDays(inicioSemana, 5), "yyyy-MM-dd")}`,
-          { credentials: "include" }
-        );
-        if (!response.ok) return [];
-        return response.json();
+        const url = `/api/timesheet/semana?inicioSemana=${format(inicioSemana, "yyyy-MM-dd")}&fimSemana=${format(addDays(inicioSemana, 5), "yyyy-MM-dd")}`;
+        console.log("Buscando entradas da semana:", url);
+        
+        const response = await fetch(url, { credentials: "include" });
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+          console.log("Response não OK, retornando array vazio");
+          return [];
+        }
+        
+        const data = await response.json();
+        console.log("Dados recebidos da API:", data);
+        return data;
       } catch (error) {
         console.error("Erro ao buscar entradas:", error);
         return [];
@@ -93,16 +101,20 @@ export function TimesheetSemanal() {
 
   // Converter entradas do servidor para formato de linhas
   const carregarEntradasExistentes = async () => {
-    if (!clientes.length) {
-      // Aguardar clientes carregarem
-      return;
-    }
+    console.log("carregarEntradasExistentes chamada", { 
+      clientesLength: clientes.length, 
+      entradasExistentes: entradasExistentes,
+      entradasLength: entradasExistentes?.length 
+    });
 
     if (!entradasExistentes || !Array.isArray(entradasExistentes) || entradasExistentes.length === 0) {
       // Se não há entradas salvas, limpar linhas da semana anterior
+      console.log("Nenhuma entrada existente, limpando linhas");
       setLinhas([]);
       return;
     }
+
+    console.log("Processando entradas existentes...");
 
     const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
 
@@ -113,29 +125,28 @@ export function TimesheetSemanal() {
       const chave = `${entrada.campaignTaskId}-${entrada.clientId}-${entrada.campaignId}`;
       
       if (!linhasAgrupadas[chave]) {
-        // Buscar campanhas e tarefas se necessário
-        if (!campanhasPorCliente[entrada.clientId.toString()]) {
-          await buscarCampanhas(entrada.clientId.toString());
-        }
-        if (!tarefasPorCampanha[entrada.campaignId.toString()]) {
-          await buscarTarefas(entrada.campaignId.toString());
-        }
+        // Usar dados que já vêm da API com join
+        const clienteNome = entrada.campaign?.client?.tradeName || 
+                          entrada.campaign?.client?.companyName || 
+                          `Cliente ${entrada.clientId}`;
+        const campanhaNome = entrada.campaign?.name || `Campanha ${entrada.campaignId}`;
+        const tarefaNome = entrada.campaignTask?.description || `Tarefa ${entrada.campaignTaskId}`;
 
-        // Buscar nomes pelos IDs
-        const cliente = clientes.find(c => c.id === entrada.clientId);
-        const campanhas = campanhasPorCliente[entrada.clientId.toString()] || [];
-        const campanha = campanhas.find(c => c.id === entrada.campaignId);
-        const tarefas = tarefasPorCampanha[entrada.campaignId.toString()] || [];
-        const tarefa = tarefas.find(t => t.id === entrada.campaignTaskId);
+        console.log("Criando linha com dados:", { 
+          clienteNome, 
+          campanhaNome, 
+          tarefaNome,
+          entrada 
+        });
         
         linhasAgrupadas[chave] = {
           id: chave,
           clienteId: entrada.clientId.toString(),
-          clienteNome: cliente ? (cliente.tradeName || cliente.companyName) : "",
+          clienteNome,
           campanhaId: entrada.campaignId.toString(),
-          campanhaNome: campanha?.name || "",
+          campanhaNome,
           tarefaId: entrada.campaignTaskId.toString(),
-          tarefaNome: tarefa?.description || "",
+          tarefaNome,
           horas: {
             seg: "0",
             ter: "0",

@@ -385,7 +385,44 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTimeEntriesByUser(userId: number, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]> {
-    return this.getTimeEntries(userId, undefined, fromDate, toDate);
+    const conditions = [eq(timeEntries.userId, userId)];
+    
+    if (fromDate) {
+      conditions.push(gte(timeEntries.date, fromDate));
+    }
+    
+    if (toDate) {
+      conditions.push(lte(timeEntries.date, toDate));
+    }
+
+    try {
+      return await db.query.timeEntries.findMany({
+        where: and(...conditions),
+        with: {
+          user: true,
+          campaign: {
+            with: {
+              client: {
+                with: {
+                  economicGroup: true,
+                },
+              },
+            },
+          },
+          campaignTask: {
+            with: {
+              taskType: true,
+            },
+          },
+          reviewer: true,
+        },
+        orderBy: [desc(timeEntries.date), desc(timeEntries.createdAt)],
+      });
+    } catch (error) {
+      console.error("Error in getTimeEntriesByUser:", error);
+      // Fallback para query simples se a relação falhar
+      return await db.select().from(timeEntries).where(and(...conditions));
+    }
   }
 
   async getPendingTimeEntries(managerId?: number): Promise<TimeEntryWithRelations[]> {
