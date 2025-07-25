@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,19 +94,13 @@ export function TimesheetSemanal() {
     staleTime: 30 * 1000,
   });
 
-  // Carregar entradas existentes quando dados chegam
+  // Carregar e processar entradas existentes quando dados chegam
   useEffect(() => {
-    carregarEntradasExistentes();
-  }, [entradasExistentes]);
-
-  // Converter entradas do servidor para formato de linhas
-  const carregarEntradasExistentes = useCallback(async () => {
-    console.log("carregarEntradasExistentes chamada", { 
-      entradasLength: entradasExistentes?.length 
+    console.log("carregarEntradasExistentes chamada", {
+      entradasLength: entradasExistentes?.length,
     });
 
     if (!entradasExistentes || !Array.isArray(entradasExistentes) || entradasExistentes.length === 0) {
-      // Se não há entradas salvas, limpar linhas da semana anterior
       console.log("Nenhuma entrada existente, limpando linhas");
       setLinhas([]);
       return;
@@ -116,27 +110,26 @@ export function TimesheetSemanal() {
 
     const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
 
-    // Agrupar entradas por tarefa
     for (const entrada of entradasExistentes) {
       if (!entrada || !entrada.campaignTaskId || !entrada.clientId || !entrada.campaignId) continue;
-      
+
       const chave = `${entrada.campaignTaskId}-${entrada.clientId}-${entrada.campaignId}`;
-      
+
       if (!linhasAgrupadas[chave]) {
-        // Usar dados que já vêm da API com join
-        const clienteNome = entrada.campaign?.client?.tradeName || 
-                          entrada.campaign?.client?.companyName || 
-                          `Cliente ${entrada.clientId}`;
+        const clienteNome =
+          entrada.campaign?.client?.tradeName ||
+          entrada.campaign?.client?.companyName ||
+          `Cliente ${entrada.clientId}`;
         const campanhaNome = entrada.campaign?.name || `Campanha ${entrada.campaignId}`;
         const tarefaNome = entrada.campaignTask?.description || `Tarefa ${entrada.campaignTaskId}`;
 
-        console.log("Criando linha com dados:", { 
-          clienteNome, 
-          campanhaNome, 
+        console.log("Criando linha com dados:", {
+          clienteNome,
+          campanhaNome,
           tarefaNome,
-          entrada 
+          entrada,
         });
-        
+
         linhasAgrupadas[chave] = {
           id: chave,
           clienteId: entrada.clientId.toString(),
@@ -148,38 +141,38 @@ export function TimesheetSemanal() {
           horas: {
             seg: "0",
             ter: "0",
-            qua: "0", 
+            qua: "0",
             qui: "0",
             sex: "0",
-            sab: "0"
+            sab: "0",
           },
-          totalHoras: 0
+          totalHoras: 0,
         };
       }
 
-      // Mapear dia da semana
       const dataEntrada = new Date(entrada.date);
       const diaSemana = dataEntrada.getDay();
-      const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+      const mapaDias = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
       const diaKey = mapaDias[diaSemana];
-      
-      if (diaKey && diaKey !== 'dom') {
+
+      if (diaKey && diaKey !== "dom") {
         linhasAgrupadas[chave].horas[diaKey] = entrada.hours.toString();
       }
     }
 
-    // Recalcular totais
-    Object.values(linhasAgrupadas).forEach(linha => {
+    Object.values(linhasAgrupadas).forEach((linha) => {
       linha.totalHoras = Object.values(linha.horas).reduce((total, horas) => {
         return total + parseFloat(horas || "0");
       }, 0);
     });
 
-    // Combinar com linhas não salvas existentes
-    const linhasNaoSalvas = linhas.filter(linha => 
-      !Object.keys(linhasAgrupadas).includes(linha.id) && 
-      (linha.clienteId || linha.campanhaId || linha.tarefaId || 
-       Object.values(linha.horas).some(h => parseFloat(h || "0") > 0))
+    const linhasNaoSalvas = linhas.filter(
+      (linha) =>
+        !Object.keys(linhasAgrupadas).includes(linha.id) &&
+        (linha.clienteId ||
+          linha.campanhaId ||
+          linha.tarefaId ||
+          Object.values(linha.horas).some((h) => parseFloat(h || "0") > 0))
     );
 
     setLinhas([...Object.values(linhasAgrupadas), ...linhasNaoSalvas]);
