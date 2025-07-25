@@ -11,10 +11,10 @@ import {
 import { useLocation } from "wouter";
 
 const navigation = [
-  { name: "Lançar Horas", href: "/timesheet", icon: Clock },
-  { name: "Relatórios", href: "/reports", icon: BarChart3 },
-  { name: "Área do Gestor", href: "/approvals", icon: CheckCircle },
-  { name: "Administração", href: "/admin", icon: Settings },
+  { name: "Lançar Horas", href: "/timesheet", icon: Clock, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
+  { name: "Relatórios", href: "/reports", icon: BarChart3, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
+  { name: "Área do Gestor", href: "/approvals", icon: CheckCircle, roles: ["MASTER", "ADMIN", "GESTOR"] },
+  { name: "Administração", href: "/admin", icon: Settings, roles: ["MASTER", "ADMIN"] },
 ];
 
 export function Sidebar() {
@@ -62,31 +62,33 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="mt-6 px-3">
         <div className="space-y-1">
-          {navigation.map((item) => {
-            const isActive = location === item.href;
-            const Icon = item.icon;
-            
-            return (
-              <button
-                key={item.name}
-                onClick={() => setLocation(item.href)}
-                className={cn(
-                  "w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                  isActive
-                    ? "text-primary bg-primary/5"
-                    : "text-slate-700 hover:bg-slate-50"
-                )}
-              >
-                <Icon className="w-5 h-5 mr-3" />
-                {item.name}
-                {item.name === "Área do Gestor" && (
-                  <span className="ml-auto bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full">
-                    3
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {navigation
+            .filter((item) => !user?.role || item.roles.includes(user.role))
+            .map((item) => {
+              const isActive = location === item.href;
+              const Icon = item.icon;
+              
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => setLocation(item.href)}
+                  className={cn(
+                    "w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                    isActive
+                      ? "text-primary bg-primary/5"
+                      : "text-slate-700 hover:bg-slate-50"
+                  )}
+                >
+                  <Icon className="w-5 h-5 mr-3" />
+                  {item.name}
+                  {item.name === "Área do Gestor" && (
+                    <span className="ml-auto bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full">
+                      3
+                    </span>
+                  )}
+                </button>
+              );
+            })}
         </div>
 
         <div className="pt-6 mt-6 border-t border-slate-200">

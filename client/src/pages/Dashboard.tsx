@@ -81,8 +81,34 @@ export default function Dashboard() {
     return titles[section] || titles.timesheet;
   };
 
+  const hasPermission = (section: string) => {
+    if (!user?.role) return false;
+    
+    const permissions: Record<string, string[]> = {
+      timesheet: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"],
+      reports: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"],
+      approvals: ["MASTER", "ADMIN", "GESTOR"],
+      admin: ["MASTER", "ADMIN"],
+    };
+    
+    return permissions[section]?.includes(user.role) || false;
+  };
+
   const renderContent = () => {
     const section = getCurrentSection();
+    
+    // Check permissions
+    if (!hasPermission(section)) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-6xl mb-4">🔒</div>
+            <h2 className="text-xl font-semibold text-slate-900 mb-2">Acesso Negado</h2>
+            <p className="text-slate-600">Você não tem permissão para acessar esta seção.</p>
+          </div>
+        </div>
+      );
+    }
     
     switch (section) {
       case "approvals":
