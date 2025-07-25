@@ -48,11 +48,23 @@ const opcoesDuracao = [
   "6", "6.25", "6.5", "6.75", "7", "7.25", "7.5", "7.75", "8"
 ];
 
+interface EntradaSalva {
+  id: number;
+  date: string;
+  hours: string;
+  status: string;
+  clienteNome: string;
+  campanhaNome: string;
+  tarefaNome: string;
+}
+
 export function TimesheetSemanal() {
   const [semanaAtual, setSemanaAtual] = useState(new Date());
   const [linhas, setLinhas] = useState<LinhaTimesheet[]>([]);
   const [campanhasPorCliente, setCampanhasPorCliente] = useState<Record<string, Campanha[]>>({});
   const [tarefasPorCampanha, setTarefasPorCampanha] = useState<Record<string, Tarefa[]>>({});
+  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+  const [mesAtual, setMesAtual] = useState(new Date());
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -103,6 +115,33 @@ export function TimesheetSemanal() {
       }
     },
     staleTime: 30 * 1000,
+  });
+
+  // Buscar histórico mensal de entradas
+  const { data: historicoMensal = [] } = useQuery<EntradaSalva[]>({
+    queryKey: ["/api/time-entries/mensal", format(mesAtual, "yyyy-MM")],
+    queryFn: async () => {
+      if (!mostrarHistorico) return [];
+      
+      const inicioMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1), "yyyy-MM-dd");
+      const fimMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0), "yyyy-MM-dd");
+      
+      const response = await fetch(`/api/time-entries?fromDate=${inicioMes}&toDate=${fimMes}`, { credentials: "include" });
+      if (!response.ok) return [];
+      
+      const data = await response.json();
+      return data.map((entrada: any): EntradaSalva => ({
+        id: entrada.id,
+        date: entrada.date,
+        hours: entrada.hours,
+        status: entrada.status,
+        clienteNome: entrada.campaign?.client?.tradeName || entrada.campaign?.client?.companyName || 'Cliente não informado',
+        campanhaNome: entrada.campaign?.name || 'Campanha não informada',
+        tarefaNome: entrada.campaignTask?.description || 'Tarefa não informada'
+      }));
+    },
+    enabled: mostrarHistorico,
+    staleTime: 2 * 60 * 1000,
   });
 
   // Carregar e processar entradas existentes quando dados chegam
@@ -358,11 +397,21 @@ export function TimesheetSemanal() {
         await apiRequest("POST", "/api/timesheet/entrada-horas", entrada);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      const isRascunho = variables === 'RASCUNHO';
+      
       toast({
         title: "Sucesso!",
-        description: "Timesheet salvo com sucesso",
+        description: isRascunho 
+          ? "Timesheet salvo como rascunho. Histórico exibido abaixo." 
+          : "Timesheet enviado para validação",
       });
+      
+      // Mostrar histórico se salvou como rascunho
+      if (isRascunho) {
+        setMostrarHistorico(true);
+      }
+      
       // Manter as linhas na tela para permitir edições
       refetchEntradas();
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
@@ -377,6 +426,7 @@ export function TimesheetSemanal() {
   });
 
   return (
+    <div className="space-y-6">
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -597,5 +647,112 @@ export function TimesheetSemanal() {
         </div>
       </CardContent>
     </Card>
+
+    {/* Histórico Mensal */}
+    {mostrarHistorico && (
+      <Card className="w-full mt-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Histórico Mensal - {format(mesAtual, "MMMM yyyy", { locale: ptBR })}
+            </CardTitle>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1, 1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1))}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setMostrarHistorico(false)}
+              >
+                Ocultar
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent>
+          <div className="space-y-4">
+            {historicoMensal.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Calendar className="h-8 w-8 mx-auto mb-4 text-gray-300" />
+                <p>Nenhuma entrada encontrada para este mês</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 p-3 text-left">Data</th>
+                      <th className="border border-gray-300 p-3 text-left">Cliente</th>
+                      <th className="border border-gray-300 p-3 text-left">Campanha</th>
+                      <th className="border border-gray-300 p-3 text-left">Tarefa</th>
+                      <th className="border border-gray-300 p-3 text-center">Horas</th>
+                      <th className="border border-gray-300 p-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historicoMensal
+                      .sort((a: EntradaSalva, b: EntradaSalva) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((entrada: EntradaSalva) => (
+                      <tr key={entrada.id} className="hover:bg-gray-50">
+                        <td className="border border-gray-300 p-3">
+                          {format(new Date(entrada.date), "dd/MM/yyyy")}
+                        </td>
+                        <td className="border border-gray-300 p-3">
+                          {entrada.clienteNome}
+                        </td>
+                        <td className="border border-gray-300 p-3">
+                          {entrada.campanhaNome}
+                        </td>
+                        <td className="border border-gray-300 p-3">
+                          {entrada.tarefaNome}
+                        </td>
+                        <td className="border border-gray-300 p-3 text-center">
+                          {entrada.hours}h
+                        </td>
+                        <td className="border border-gray-300 p-3 text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            entrada.status === 'APROVADO' ? 'bg-green-100 text-green-800' :
+                            entrada.status === 'VALIDACAO' ? 'bg-yellow-100 text-yellow-800' :
+                            entrada.status === 'REJEITADO' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {entrada.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                
+                <div className="mt-4 p-4 bg-gray-50 rounded">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Total de horas no mês:</span>
+                    <span className="text-lg font-bold">
+                      {historicoMensal.reduce((total: number, entrada: EntradaSalva) => total + parseFloat(entrada.hours), 0).toFixed(2)}h
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )}
+  </div>
   );
 }
