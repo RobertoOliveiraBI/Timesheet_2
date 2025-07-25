@@ -132,13 +132,25 @@ export function WeeklyTimesheetForm() {
 
   const hourOptions = generateHourOptions();
 
+  // Função para filtrar campanhas por cliente
+  const getFilteredCampaigns = (clientId: string) => {
+    if (!clientId || !Array.isArray(campaigns)) return [];
+    return campaigns.filter((campaign: any) => campaign.clientId?.toString() === clientId);
+  };
+
+  // Função para filtrar tarefas por campanha
+  const getFilteredCampaignTasks = (campaignId: string) => {
+    if (!campaignId || !Array.isArray(campaignTasks)) return [];
+    return campaignTasks.filter((task: any) => task.campaignId?.toString() === campaignId);
+  };
+
   const updateTimeEntry = (index: number, field: string, value: string) => {
     const updatedEntries = [...timeEntries];
     
     if (field === 'clientId') {
       const client = Array.isArray(clients) ? clients.find((c: any) => c.id.toString() === value) : null;
       updatedEntries[index].clientId = value;
-      updatedEntries[index].clientName = client?.companyName || "";
+      updatedEntries[index].clientName = client ? (client.tradeName || client.companyName) : "";
       // Reset valores dependentes
       updatedEntries[index].campaignId = "";
       updatedEntries[index].campaignName = "";
@@ -325,7 +337,7 @@ export function WeeklyTimesheetForm() {
                         ) : Array.isArray(clients) && clients.length > 0 ? (
                           clients.map((client: any) => (
                             <SelectItem key={client.id} value={client.id.toString()}>
-                              {client.companyName}
+                              {client.tradeName || client.companyName}
                             </SelectItem>
                           ))
                         ) : (
@@ -346,14 +358,12 @@ export function WeeklyTimesheetForm() {
                       <SelectContent>
                         {campaignsLoading ? (
                           <SelectItem value="loading" disabled>Carregando campanhas...</SelectItem>
-                        ) : Array.isArray(campaigns) && campaigns.length > 0 ? (
-                          campaigns
-                            .filter((campaign: any) => campaign.clientId.toString() === entry.clientId)
-                            .map((campaign: any) => (
-                              <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                                {campaign.name}
-                              </SelectItem>
-                            ))
+                        ) : entry.clientId ? (
+                          getFilteredCampaigns(entry.clientId).map((campaign: any) => (
+                            <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                              {campaign.name}
+                            </SelectItem>
+                          ))
                         ) : (
                           <SelectItem value="empty" disabled>Nenhuma campanha disponível</SelectItem>
                         )}
@@ -372,14 +382,12 @@ export function WeeklyTimesheetForm() {
                       <SelectContent>
                         {campaignTasksLoading ? (
                           <SelectItem value="loading" disabled>Carregando tarefas...</SelectItem>
-                        ) : Array.isArray(campaignTasks) && campaignTasks.length > 0 ? (
-                          campaignTasks
-                            .filter((task: any) => task.campaignId.toString() === entry.campaignId)
-                            .map((task: any) => (
-                              <SelectItem key={task.id} value={task.id.toString()}>
-                                {task.description}
-                              </SelectItem>
-                            ))
+                        ) : entry.campaignId ? (
+                          getFilteredCampaignTasks(entry.campaignId).map((task: any) => (
+                            <SelectItem key={task.id} value={task.id.toString()}>
+                              {task.description}
+                            </SelectItem>
+                          ))
                         ) : (
                           <SelectItem value="empty" disabled>Nenhuma tarefa disponível</SelectItem>
                         )}

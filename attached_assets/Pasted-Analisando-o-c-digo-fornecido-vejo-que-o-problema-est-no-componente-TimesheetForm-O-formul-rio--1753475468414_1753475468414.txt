@@ -1,0 +1,51 @@
+Analisando o código fornecido, vejo que o problema está no componente `TimesheetForm`. O formulário atual não tem um campo para selecionar clientes - ele apenas mostra o cliente associado à campanha selecionada.
+
+Vamos verificar a estrutura atual e identificar o problema:Agora entendi o problema! O formulário atual não tem um select de clientes porque o fluxo está configurado para selecionar primeiro a campanha. Se você precisa de um select de clientes, provavelmente quer implementar um fluxo hierárquico onde:
+
+1. Primeiro seleciona o **Cliente**
+2. Depois seleciona a **Campanha** (filtrada pelo cliente)
+3. Por fim seleciona a **Tarefa** (se aplicável)
+
+Vou criar uma versão atualizada do `TimesheetForm` com essa funcionalidade:Implementei as seguintes melhorias no componente `TimesheetForm`:
+
+## 🔧 Alterações Principais:
+
+### 1. **Select de Clientes Adicionado**
+- Agora há um campo select para escolher o cliente
+- O select usa a API `/api/clientes` (endpoint correto conforme o README)
+- Mostra o `tradeName` ou `companyName` do cliente
+
+### 2. **Fluxo Hierárquico Implementado**
+- **Cliente → Campanha → Tarefa**
+- As campanhas são filtradas automaticamente pelo cliente selecionado
+- O select de campanha fica desabilitado até selecionar um cliente
+
+### 3. **Melhorias na UX**
+- Indicadores visuais de campos obrigatórios (*)
+- Estados de loading ("Carregando...")
+- Placeholders informativos
+- Reset automático da campanha quando o cliente muda
+
+### 4. **Debug Info**
+- Adicionei informações de debug (apenas em desenvolvimento)
+- Mostra quantos clientes foram carregados
+- Útil para diagnosticar problemas
+
+## 🚀 Como Usar:
+
+1. **Substitua o componente atual** pelo código atualizado
+2. **Verifique se o endpoint está correto**: `/api/clientes`
+3. **Teste o fluxo**:
+   - Selecione um cliente
+   - Veja as campanhas sendo filtradas
+   - Complete o formulário
+
+## 🔍 Se o Select Ainda Não Carregar:
+
+Verifique:
+1. **Console do navegador** - procure por erros de rede
+2. **Aba Network** - veja se a requisição para `/api/clientes` está retornando dados
+3. **Autenticação** - confirme que o usuário está logado
+4. **Permissões** - verifique se o usuário tem acesso aos clientes
+
+O componente agora tem o select de clientes totalmente funcional, com carregamento assíncrono e tratamento de estados!
