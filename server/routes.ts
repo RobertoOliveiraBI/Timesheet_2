@@ -647,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(clients);
     } catch (error) {
       console.error("Error fetching clients:", error);
-      res.status(500).json({ message: "Erro ao buscar clientes", error: error.message });
+      res.status(500).json({ message: "Erro ao buscar clientes", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -737,7 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
-      res.status(500).json({ message: "Erro ao buscar campanhas", error: error.message });
+      res.status(500).json({ message: "Erro ao buscar campanhas", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -904,11 +904,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/campaign-tasks", requireAuth, async (req, res) => {
+  app.get("/api/campaign-tasks", requireAuth, async (req: any, res) => {
     try {
       console.log('API /api/campaign-tasks chamada - user:', req.user?.id);
       
-      const user = await storage.getUser(req.user.id);
+      const user = await storage.getUser(req.user?.id);
       if (!user) {
         return res.status(403).json({ message: "Usuário não encontrado" });
       }
@@ -927,7 +927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(campaignTasks);
     } catch (error) {
       console.error("Error fetching campaign tasks:", error);
-      res.status(500).json({ message: "Erro ao buscar tarefas", error: error.message });
+      res.status(500).json({ message: "Erro ao buscar tarefas", error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 

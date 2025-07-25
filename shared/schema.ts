@@ -299,7 +299,7 @@ export type SystemConfig = typeof systemConfig.$inferSelect;
 export type TimeEntryWithRelations = TimeEntry & {
   user: User;
   campaign: Campaign & { client: Client & { economicGroup: EconomicGroup | null } };
-  taskType: TaskType;
+  campaignTask: CampaignTask & { taskType: TaskType };
   reviewer?: User;
 };
 

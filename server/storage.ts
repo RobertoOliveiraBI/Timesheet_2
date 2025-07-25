@@ -101,7 +101,6 @@ export interface IStorage {
 
   // Admin operations
   getAllUsers(): Promise<User[]>;
-  updateUser(id: number, userData: Partial<InsertUser>): Promise<User>;
   deleteUser(id: number): Promise<void>;
   deleteEconomicGroup(id: number): Promise<void>;
   deleteClient(id: number): Promise<void>;
@@ -129,7 +128,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+  async updateUserProfile(id: number, updates: Partial<InsertUser>): Promise<User> {
     const [updatedUser] = await db
       .update(users)
       .set(updates)
@@ -201,7 +200,7 @@ export class DatabaseStorage implements IStorage {
 
   // Campaigns
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const [newCampaign] = await db.insert(campaigns).values(campaign).returning();
+    const [newCampaign] = await db.insert(campaigns).values([campaign]).returning();
     return newCampaign;
   }
 
@@ -374,7 +373,11 @@ export class DatabaseStorage implements IStorage {
             },
           },
         },
-        taskType: true,
+        campaignTask: {
+          with: {
+            taskType: true,
+          },
+        },
         reviewer: true,
       },
       orderBy: [desc(timeEntries.date), desc(timeEntries.createdAt)],
@@ -398,7 +401,7 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    const conditions = [eq(timeEntries.status, "PENDING")];
+    const conditions = [eq(timeEntries.status, "VALIDACAO")];
     
     if (userIds) {
       conditions.push(inArray(timeEntries.userId, userIds));
@@ -417,7 +420,11 @@ export class DatabaseStorage implements IStorage {
             },
           },
         },
-        taskType: true,
+        campaignTask: {
+          with: {
+            taskType: true,
+          },
+        },
         reviewer: true,
       },
       orderBy: [asc(timeEntries.date), asc(timeEntries.createdAt)],
@@ -440,7 +447,7 @@ export class DatabaseStorage implements IStorage {
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
-        status: "PENDING",
+        status: "VALIDACAO",
         submittedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -453,7 +460,7 @@ export class DatabaseStorage implements IStorage {
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
-        status: "APPROVED",
+        status: "APROVADO",
         reviewedBy: reviewerId,
         reviewedAt: new Date(),
         reviewComment: comment,
@@ -468,7 +475,7 @@ export class DatabaseStorage implements IStorage {
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
-        status: "REJECTED",
+        status: "REJEITADO",
         reviewedBy: reviewerId,
         reviewedAt: new Date(),
         reviewComment: comment,
@@ -500,7 +507,11 @@ export class DatabaseStorage implements IStorage {
     const entries = await db.query.timeEntries.findMany({
       where: and(...conditions),
       with: {
-        taskType: true,
+        campaignTask: {
+          with: {
+            taskType: true,
+          },
+        },
       },
     });
 
@@ -508,15 +519,15 @@ export class DatabaseStorage implements IStorage {
       const hours = parseFloat(entry.hours);
       acc.totalHours += hours;
       
-      if (entry.taskType.isBillable) {
+      if (entry.campaignTask.taskType.isBillable) {
         acc.billableHours += hours;
       } else {
         acc.nonBillableHours += hours;
       }
       
-      if (entry.status === "APPROVED") {
+      if (entry.status === "APROVADO") {
         acc.approvedHours += hours;
-      } else if (entry.status === "PENDING") {
+      } else if (entry.status === "VALIDACAO") {
         acc.pendingHours += hours;
       }
       
@@ -564,7 +575,11 @@ export class DatabaseStorage implements IStorage {
     const entries = await db.query.timeEntries.findMany({
       where: and(...conditions),
       with: {
-        taskType: true,
+        campaignTask: {
+          with: {
+            taskType: true,
+          },
+        },
       },
     });
 
@@ -574,7 +589,7 @@ export class DatabaseStorage implements IStorage {
       const hours = parseFloat(entry.hours);
       acc.totalHours += hours;
       
-      if (entry.taskType.isBillable) {
+      if (entry.campaignTask.taskType.isBillable) {
         acc.billableHours += hours;
       }
       
@@ -628,7 +643,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users).orderBy(asc(users.firstName), asc(users.lastName));
   }
 
-  async updateUser(id: number, userData: Partial<InsertUser>): Promise<User> {
+  async updateUserAdmin(id: number, userData: Partial<InsertUser>): Promise<User> {
     const [updatedUser] = await db
       .update(users)
       .set({
