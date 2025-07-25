@@ -123,6 +123,7 @@ export const timeEntries = pgTable("time_entries", {
   taskTypeId: integer("task_type_id").references(() => taskTypes.id).notNull(),
   hours: decimal("hours", { precision: 4, scale: 2 }).notNull(), // Supports 15-minute increments (0.25)
   description: text("description"),
+  comment: text("comment"), // Comentário do usuário para este lançamento
   status: varchar("status", { enum: ["DRAFT", "PENDING", "APPROVED", "REJECTED"] }).default("DRAFT"),
   submittedAt: timestamp("submitted_at"),
   reviewedBy: integer("reviewed_by").references(() => users.id),

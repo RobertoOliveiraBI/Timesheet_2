@@ -3,17 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, MessageSquare, Trash2 } from "lucide-react";
 
 interface TimeEntry {
   campaignId: string;
   campaignName: string;
+  campaignTaskId: string;
+  taskDescription: string;
   taskTypeId: string;
   taskName: string;
   hours: Record<string, string>; // day of week -> hours
+  comment: string;
   total: number;
 }
 
@@ -29,6 +33,10 @@ export function WeeklyTimesheetForm() {
 
   const { data: taskTypes = [] } = useQuery<any[]>({
     queryKey: ["/api/task-types"],
+  });
+
+  const { data: campaignTasks = [] } = useQuery<any[]>({
+    queryKey: ["/api/campaign-tasks"],
   });
 
   // Calcular os dias da semana
@@ -66,24 +74,49 @@ export function WeeklyTimesheetForm() {
     const newEntry: TimeEntry = {
       campaignId: "",
       campaignName: "",
+      campaignTaskId: "",
+      taskDescription: "",
       taskTypeId: "",
       taskName: "",
       hours: {},
+      comment: "",
       total: 0
     };
     setTimeEntries([...timeEntries, newEntry]);
   };
 
+  const removeTimeEntry = (index: number) => {
+    const updatedEntries = timeEntries.filter((_, i) => i !== index);
+    setTimeEntries(updatedEntries);
+  };
+
   const updateTimeEntry = (index: number, field: string, value: string) => {
     const updatedEntries = [...timeEntries];
+    
     if (field === 'campaignId') {
       const campaign = Array.isArray(campaigns) ? campaigns.find((c: any) => c.id.toString() === value) : null;
       updatedEntries[index].campaignId = value;
       updatedEntries[index].campaignName = campaign?.name || "";
+      // Limpar tarefa específica quando mudar campanha
+      updatedEntries[index].campaignTaskId = "";
+      updatedEntries[index].taskDescription = "";
+      updatedEntries[index].taskTypeId = "";
+      updatedEntries[index].taskName = "";
+    } else if (field === 'campaignTaskId') {
+      const campaignTask = Array.isArray(campaignTasks) ? campaignTasks.find((ct: any) => ct.id.toString() === value) : null;
+      updatedEntries[index].campaignTaskId = value;
+      if (campaignTask) {
+        updatedEntries[index].taskDescription = campaignTask.description || "";
+        updatedEntries[index].taskTypeId = campaignTask.taskTypeId?.toString() || "";
+        const taskType = Array.isArray(taskTypes) ? taskTypes.find((t: any) => t.id === campaignTask.taskTypeId) : null;
+        updatedEntries[index].taskName = taskType?.name || "";
+      }
     } else if (field === 'taskTypeId') {
       const taskType = Array.isArray(taskTypes) ? taskTypes.find((t: any) => t.id.toString() === value) : null;
       updatedEntries[index].taskTypeId = value;
       updatedEntries[index].taskName = taskType?.name || "";
+    } else if (field === 'comment') {
+      updatedEntries[index].comment = value;
     } else if (field.startsWith('day-')) {
       const dayIndex = field.split('-')[1];
       updatedEntries[index].hours[dayIndex] = value;
@@ -95,6 +128,11 @@ export function WeeklyTimesheetForm() {
       updatedEntries[index].total = total;
     }
     setTimeEntries(updatedEntries);
+  };
+
+  // Filtrar tarefas específicas da campanha selecionada
+  const getAvailableCampaignTasks = (campaignId: string) => {
+    return Array.isArray(campaignTasks) ? campaignTasks.filter((task: any) => task.campaignId.toString() === campaignId) : [];
   };
 
   const getColumnTotal = (dayIndex: number) => {
@@ -173,99 +211,168 @@ export function WeeklyTimesheetForm() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2 font-medium text-sm">Cliente & Projeto</th>
-                <th className="text-left p-2 font-medium text-sm">Tarefa</th>
-                {weekDays.map((day, index) => (
-                  <th key={index} className="text-center p-2 font-medium text-sm min-w-20">
-                    {formatDate(day)}
-                  </th>
-                ))}
-                <th className="text-center p-2 font-medium text-sm">Total</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="space-y-6">
+          {timeEntries.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+                <Plus className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-lg font-medium mb-2">Nenhuma entrada de tempo</p>
+              <p className="text-sm">Clique em "Adicionar linha" para começar a registrar suas horas</p>
+            </div>
+          ) : (
+            <>
               {timeEntries.map((entry, index) => (
-                <tr key={index} className="border-b hover:bg-slate-50">
-                  <td className="p-2">
-                    <Select 
-                      value={entry.campaignId} 
-                      onValueChange={(value) => updateTimeEntry(index, 'campaignId', value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecionar projeto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
-                          <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                            {campaign.name}
-                          </SelectItem>
+                <Card key={index} className="border border-slate-200 shadow-sm">
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                      {/* Seleção de Projeto */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Projeto</label>
+                        <Select 
+                          value={entry.campaignId} 
+                          onValueChange={(value) => updateTimeEntry(index, 'campaignId', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar projeto..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
+                              <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{campaign.name}</span>
+                                  <span className="text-xs text-slate-500">{campaign.client?.companyName}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Seleção de Tarefa Específica */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700">Tarefa Específica</label>
+                        <Select 
+                          value={entry.campaignTaskId} 
+                          onValueChange={(value) => updateTimeEntry(index, 'campaignTaskId', value)}
+                          disabled={!entry.campaignId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecionar tarefa..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {getAvailableCampaignTasks(entry.campaignId).map((task: any) => (
+                              <SelectItem key={task.id} value={task.id.toString()}>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{task.description}</span>
+                                  <span className="text-xs text-slate-500">{task.taskType?.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {entry.taskDescription && (
+                          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <p className="text-sm text-blue-800 font-medium">{entry.taskDescription}</p>
+                            {entry.taskName && (
+                              <p className="text-xs text-blue-600 mt-1">Categoria: {entry.taskName}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Horas da semana */}
+                    <div className="space-y-3 mb-6">
+                      <label className="text-sm font-medium text-slate-700">Horas da semana</label>
+                      <div className="grid grid-cols-5 gap-3">
+                        {weekDays.map((day, dayIndex) => (
+                          <div key={dayIndex} className="space-y-1">
+                            <label className="text-xs font-medium text-slate-600">
+                              {formatDate(day)}
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder="0:00"
+                              value={entry.hours[dayIndex.toString()] || ''}
+                              onChange={(e) => updateTimeEntry(index, `day-${dayIndex}`, e.target.value)}
+                              className="text-center"
+                            />
+                          </div>
                         ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="p-2">
-                    <Select 
-                      value={entry.taskTypeId} 
-                      onValueChange={(value) => updateTimeEntry(index, 'taskTypeId', value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecionar tarefa" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.isArray(taskTypes) && taskTypes.map((taskType: any) => (
-                          <SelectItem key={taskType.id} value={taskType.id.toString()}>
-                            {taskType.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  {weekDays.map((_, dayIndex) => (
-                    <td key={dayIndex} className="p-2">
-                      <Input
-                        type="text"
-                        placeholder="0:00"
-                        value={entry.hours[dayIndex.toString()] || ''}
-                        onChange={(e) => updateTimeEntry(index, `day-${dayIndex}`, e.target.value)}
-                        className="text-center text-sm"
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                        <span className="text-sm font-medium text-slate-700">Total da linha:</span>
+                        <span className="text-lg font-bold text-primary">{formatHours(entry.total)}</span>
+                      </div>
+                    </div>
+
+                    {/* Campo de comentário */}
+                    <div className="space-y-2 mb-4">
+                      <label className="text-sm font-medium text-slate-700 flex items-center">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Comentário (opcional)
+                      </label>
+                      <Textarea
+                        placeholder="Adicione detalhes sobre esta atividade..."
+                        value={entry.comment || ''}
+                        onChange={(e) => updateTimeEntry(index, 'comment', e.target.value)}
+                        className="resize-none"
+                        rows={2}
                       />
-                    </td>
-                  ))}
-                  <td className="p-2 text-center font-medium">
-                    {formatHours(entry.total)}
-                  </td>
-                </tr>
+                    </div>
+
+                    {/* Botão remover */}
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeTimeEntry(index)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Remover linha
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
-              
-              {/* Empty rows for adding new entries */}
-              {timeEntries.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center p-8 text-slate-500">
-                    Clique em "Adicionar linha" para começar a lançar suas horas
-                  </td>
-                </tr>
-              )}
-            </tbody>
-            {timeEntries.length > 0 && (
-              <tfoot>
-                <tr className="border-t bg-slate-50 font-medium">
-                  <td className="p-2" colSpan={2}>Total</td>
-                  {weekDays.map((_, dayIndex) => (
-                    <td key={dayIndex} className="p-2 text-center">
-                      {formatHours(getColumnTotal(dayIndex))}
-                    </td>
-                  ))}
-                  <td className="p-2 text-center font-bold">
-                    {formatHours(getGrandTotal())}
-                  </td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
+
+              {/* Resumo total */}
+              <Card className="bg-slate-50 border-slate-300">
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-5 gap-3 mb-4">
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-slate-600 mb-1">Segunda</p>
+                      <p className="text-lg font-bold text-slate-900">{formatHours(getColumnTotal(0))}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-slate-600 mb-1">Terça</p>
+                      <p className="text-lg font-bold text-slate-900">{formatHours(getColumnTotal(1))}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-slate-600 mb-1">Quarta</p>
+                      <p className="text-lg font-bold text-slate-900">{formatHours(getColumnTotal(2))}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-slate-600 mb-1">Quinta</p>
+                      <p className="text-lg font-bold text-slate-900">{formatHours(getColumnTotal(3))}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-medium text-slate-600 mb-1">Sexta</p>
+                      <p className="text-lg font-bold text-slate-900">{formatHours(getColumnTotal(4))}</p>
+                    </div>
+                  </div>
+                  <div className="border-t border-slate-300 pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold text-slate-700">Total da semana:</span>
+                      <span className="text-2xl font-bold text-primary">{formatHours(getGrandTotal())}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
         
         {timeEntries.length > 0 && (
