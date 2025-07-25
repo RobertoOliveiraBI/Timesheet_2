@@ -30,25 +30,25 @@ export function WeeklyTimesheetForm() {
   // Só carrega dados se o usuário estiver autenticado
   const { data: clients = [], isLoading: clientsLoading, isError: clientsError } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 1 * 60 * 1000, // 1 minuto
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
     enabled: !!user,
   });
 
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 1 * 60 * 1000, // 1 minuto
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
     enabled: !!user,
   });
 
   const { data: campaignTasks = [], isLoading: campaignTasksLoading } = useQuery<any[]>({
     queryKey: ["/api/campaign-tasks"],
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 1 * 60 * 1000, // 1 minuto
     refetchOnWindowFocus: false,
-    retry: 2,
+    retry: 1,
     enabled: !!user,
   });
 
@@ -449,7 +449,7 @@ export function WeeklyTimesheetForm() {
         {timeEntries.length > 0 && (
           <div className="flex justify-end mt-6">
             <Button 
-              onClick={() => saveTimesheet.mutate()}
+              onClick={() => saveTimesheet.mutate('SALVO')}
               disabled={saveTimesheet.isPending}
               className="bg-primary hover:bg-primary/90"
             >
