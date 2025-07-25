@@ -25,7 +25,8 @@ import {
   Building2,
   Briefcase,
   Tags,
-  Search
+  Search,
+  Copy
 } from "lucide-react";
 import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal } from "./AdminModals";
 
@@ -765,6 +766,32 @@ export function AdminSection() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Duplicar tarefa"
+                          onClick={async () => {
+                            try {
+                              await apiRequest("POST", "/api/campaign-tasks", {
+                                campaignId: task.campaignId,
+                                taskTypeId: task.taskTypeId,
+                                description: `${task.description} (Cópia)`,
+                                isBillable: task.isBillable,
+                                estimatedHours: task.estimatedHours
+                              });
+                              queryClient.invalidateQueries({ queryKey: ["/api/campaign-tasks"] });
+                              toast({ title: "Tarefa duplicada com sucesso!" });
+                            } catch (error: any) {
+                              toast({
+                                title: "Erro ao duplicar tarefa",
+                                description: error.message,
+                                variant: "destructive"
+                              });
+                            }
+                          }}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"

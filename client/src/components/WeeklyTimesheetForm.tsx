@@ -11,7 +11,7 @@ import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 interface TimeEntry {
   campaignId: string;
   campaignName: string;
-  taskTypeId: string;
+  campaignTaskId: string;
   taskName: string;
   hours: Record<string, string>; // day of week -> hours
   total: number;
@@ -29,6 +29,10 @@ export function WeeklyTimesheetForm() {
 
   const { data: taskTypes = [] } = useQuery<any[]>({
     queryKey: ["/api/task-types"],
+  });
+
+  const { data: campaignTasks = [] } = useQuery<any[]>({
+    queryKey: ["/api/campaign-tasks"],
   });
 
   // Calcular os dias da semana
@@ -66,7 +70,7 @@ export function WeeklyTimesheetForm() {
     const newEntry: TimeEntry = {
       campaignId: "",
       campaignName: "",
-      taskTypeId: "",
+      campaignTaskId: "",
       taskName: "",
       hours: {},
       total: 0
@@ -80,10 +84,10 @@ export function WeeklyTimesheetForm() {
       const campaign = Array.isArray(campaigns) ? campaigns.find((c: any) => c.id.toString() === value) : null;
       updatedEntries[index].campaignId = value;
       updatedEntries[index].campaignName = campaign?.name || "";
-    } else if (field === 'taskTypeId') {
-      const taskType = Array.isArray(taskTypes) ? taskTypes.find((t: any) => t.id.toString() === value) : null;
-      updatedEntries[index].taskTypeId = value;
-      updatedEntries[index].taskName = taskType?.name || "";
+    } else if (field === 'campaignTaskId') {
+      const campaignTask = Array.isArray(campaignTasks) ? campaignTasks.find((t: any) => t.id.toString() === value) : null;
+      updatedEntries[index].campaignTaskId = value;
+      updatedEntries[index].taskName = campaignTask?.description || "";
     } else if (field.startsWith('day-')) {
       const dayIndex = field.split('-')[1];
       updatedEntries[index].hours[dayIndex] = value;
@@ -125,7 +129,7 @@ export function WeeklyTimesheetForm() {
             await apiRequest("POST", "/api/time-entries", {
               date,
               campaignId: parseInt(entry.campaignId),
-              taskTypeId: parseInt(entry.taskTypeId),
+              campaignTaskId: parseInt(entry.campaignTaskId),
               hours,
               description: `${entry.campaignName} - ${entry.taskName}`
             });
@@ -209,18 +213,23 @@ export function WeeklyTimesheetForm() {
                   </td>
                   <td className="p-2">
                     <Select 
-                      value={entry.taskTypeId} 
-                      onValueChange={(value) => updateTimeEntry(index, 'taskTypeId', value)}
+                      value={entry.campaignTaskId} 
+                      onValueChange={(value) => updateTimeEntry(index, 'campaignTaskId', value)}
+                      disabled={!entry.campaignId}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecionar tarefa" />
+                        <SelectValue placeholder={entry.campaignId ? "Selecionar tarefa" : "Selecione campanha primeiro"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(taskTypes) && taskTypes.map((taskType: any) => (
-                          <SelectItem key={taskType.id} value={taskType.id.toString()}>
-                            {taskType.name}
-                          </SelectItem>
-                        ))}
+                        {Array.isArray(campaignTasks) && 
+                         campaignTasks
+                           .filter((task: any) => task.campaignId.toString() === entry.campaignId)
+                           .map((task: any) => (
+                             <SelectItem key={task.id} value={task.id.toString()}>
+                               {task.description}
+                             </SelectItem>
+                           ))
+                        }
                       </SelectContent>
                     </Select>
                   </td>
