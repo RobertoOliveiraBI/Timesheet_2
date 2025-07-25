@@ -623,10 +623,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/clientes', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+      if (!user) {
         return res.status(403).json({ message: "Acesso negado" });
       }
 
+      // Todos os usuários autenticados podem ver clientes (necessário para timesheet)
       const clients = await storage.getClients();
       res.json(clients);
     } catch (error) {
@@ -706,10 +707,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/campaigns', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
-      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+      if (!user) {
         return res.status(403).json({ message: "Acesso negado" });
       }
 
+      // Todos os usuários autenticados podem ver campanhas (necessário para timesheet)
       const campaigns = await storage.getCampaigns();
       res.json(campaigns);
     } catch (error) {
@@ -883,6 +885,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/campaign-tasks", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Todos os usuários autenticados podem ver tarefas (necessário para timesheet)
       const campaignId = req.query.campaignId ? parseInt(req.query.campaignId as string) : undefined;
       const campaignTasks = await storage.getCampaignTasks(campaignId);
       res.json(campaignTasks);
