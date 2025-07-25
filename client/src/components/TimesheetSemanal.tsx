@@ -63,7 +63,7 @@ export function TimesheetSemanal() {
   const [linhas, setLinhas] = useState<LinhaTimesheet[]>([]);
   const [campanhasPorCliente, setCampanhasPorCliente] = useState<Record<string, Campanha[]>>({});
   const [tarefasPorCampanha, setTarefasPorCampanha] = useState<Record<string, Tarefa[]>>({});
-  const [mostrarHistorico, setMostrarHistorico] = useState(false);
+  const [mostrarHistorico, setMostrarHistorico] = useState(true);
   const [mesAtual, setMesAtual] = useState(new Date());
 
   const { toast } = useToast();
@@ -117,12 +117,10 @@ export function TimesheetSemanal() {
     staleTime: 30 * 1000,
   });
 
-  // Buscar histórico mensal de entradas
+  // Buscar histórico mensal de entradas - sempre ativo
   const { data: historicoMensal = [] } = useQuery<EntradaSalva[]>({
     queryKey: ["/api/time-entries/mensal", format(mesAtual, "yyyy-MM")],
     queryFn: async () => {
-      if (!mostrarHistorico) return [];
-      
       const inicioMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1), "yyyy-MM-dd");
       const fimMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0), "yyyy-MM-dd");
       
@@ -140,7 +138,6 @@ export function TimesheetSemanal() {
         tarefaNome: entrada.campaignTask?.description || 'Tarefa não informada'
       }));
     },
-    enabled: mostrarHistorico,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -403,14 +400,9 @@ export function TimesheetSemanal() {
       toast({
         title: "Sucesso!",
         description: isRascunho 
-          ? "Timesheet salvo como rascunho. Histórico exibido abaixo." 
+          ? "Timesheet salvo como rascunho." 
           : "Timesheet enviado para validação",
       });
-      
-      // Mostrar histórico se salvou como rascunho
-      if (isRascunho) {
-        setMostrarHistorico(true);
-      }
       
       // Manter as linhas na tela para permitir edições
       refetchEntradas();
