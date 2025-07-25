@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, Save, Send, Eye } from "lucide-react";
 
 interface TimeEntry {
   clientId: string;
@@ -158,36 +158,50 @@ export function WeeklyTimesheetForm() {
   };
 
   const saveTimesheet = useMutation({
-    mutationFn: async () => {
-      // Aqui você implementaria a lógica para salvar todas as entradas
+    mutationFn: async (status: 'RASCUNHO' | 'SALVO' | 'VALIDACAO') => {
+      const savedEntries = [];
       for (const entry of timeEntries) {
         for (let i = 0; i < 5; i++) {
           const hours = parseFloat(entry.hours[i.toString()] || '0');
           if (hours > 0) {
             const date = weekDays[i].toISOString().split('T')[0];
-            await apiRequest("POST", "/api/time-entries", {
+            const response = await apiRequest("POST", "/api/time-entries", {
               date,
               campaignId: parseInt(entry.campaignId),
               campaignTaskId: parseInt(entry.campaignTaskId),
-              hours,
-              description: `${entry.campaignName} - ${entry.taskName}`
+              hours: hours.toString(),
+              description: `${entry.campaignName} - ${entry.taskName}`,
+              status,
+              submittedAt: status === 'VALIDACAO' ? new Date().toISOString() : null
             });
+            savedEntries.push(await response.json());
           }
         }
       }
+      return { status, entries: savedEntries };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      const statusMessages = {
+        'RASCUNHO': 'Timesheet salvo como rascunho!',
+        'SALVO': 'Timesheet salvo com sucesso!',
+        'VALIDACAO': 'Timesheet enviado para validação!'
+      };
+      
       toast({
         title: "Sucesso",
-        description: "Timesheet salvo com sucesso!",
+        description: statusMessages[result.status],
       });
-      setTimeEntries([]);
+      
+      if (result.status === 'VALIDACAO') {
+        setTimeEntries([]);
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Erro",
-        description: "Falha ao salvar timesheet",
+        description: error.message || "Falha ao salvar timesheet",
         variant: "destructive",
       });
     },
@@ -208,10 +222,45 @@ export function WeeklyTimesheetForm() {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-            <Button onClick={addTimeEntry} size="sm">
-              <Plus className="w-4 h-4 mr-2" />
-              Adicionar linha
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button onClick={addTimeEntry} size="sm" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar linha
+              </Button>
+              
+              {timeEntries.length > 0 && (
+                <>
+                  <Button 
+                    onClick={() => saveTimesheet.mutate('RASCUNHO')} 
+                    size="sm" 
+                    variant="outline"
+                    disabled={saveTimesheet.isPending}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Rascunho
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => saveTimesheet.mutate('SALVO')} 
+                    size="sm" 
+                    variant="secondary"
+                    disabled={saveTimesheet.isPending}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => saveTimesheet.mutate('VALIDACAO')} 
+                    size="sm"
+                    disabled={saveTimesheet.isPending}
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Enviar para Aprovação
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -329,7 +378,7 @@ export function WeeklyTimesheetForm() {
                     </td>
                   ))}
                   <td className="p-2 text-center font-medium">
-                    {formatHours(entry.total)}
+                    {formatHours(entry.total || 0)}
                   </td>
                 </tr>
               ))}

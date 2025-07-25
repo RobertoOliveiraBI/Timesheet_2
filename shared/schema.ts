@@ -120,10 +120,10 @@ export const timeEntries = pgTable("time_entries", {
   userId: integer("user_id").references(() => users.id).notNull(),
   date: date("date").notNull(),
   campaignId: integer("campaign_id").references(() => campaigns.id).notNull(),
-  taskTypeId: integer("task_type_id").references(() => taskTypes.id).notNull(),
-  hours: decimal("hours", { precision: 4, scale: 2 }).notNull(), // Supports 15-minute increments (0.25)
+  campaignTaskId: integer("campaign_task_id").references(() => campaignTasks.id).notNull(),
+  hours: varchar("hours").notNull(), // Changed to varchar to accept string format like "2.5"
   description: text("description"),
-  status: varchar("status", { enum: ["DRAFT", "PENDING", "APPROVED", "REJECTED"] }).default("DRAFT"),
+  status: varchar("status", { enum: ["RASCUNHO", "SALVO", "VALIDACAO", "APROVADO", "REJEITADO"] }).default("RASCUNHO"),
   submittedAt: timestamp("submitted_at"),
   reviewedBy: integer("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at"),
@@ -202,9 +202,9 @@ export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
     fields: [timeEntries.campaignId],
     references: [campaigns.id],
   }),
-  taskType: one(taskTypes, {
-    fields: [timeEntries.taskTypeId],
-    references: [taskTypes.id],
+  campaignTask: one(campaignTasks, {
+    fields: [timeEntries.campaignTaskId],
+    references: [campaignTasks.id],
   }),
   reviewer: one(users, {
     fields: [timeEntries.reviewedBy],

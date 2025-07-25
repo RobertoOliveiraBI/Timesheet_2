@@ -8,6 +8,7 @@ import { WeeklyTimesheetForm } from "@/components/WeeklyTimesheetForm";
 import { RecentEntries } from "@/components/RecentEntries";
 import { ApprovalSection } from "@/components/ApprovalSection";
 import { AdminSection } from "@/components/AdminSectionNew";
+import { ApprovalManagement } from "@/components/ApprovalManagement";
 import { ReportsSection } from "@/components/ReportsSection";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -85,7 +86,7 @@ export default function Dashboard() {
     
     switch (section) {
       case "approvals":
-        return <ApprovalSection />;
+        return <ApprovalManagement />;
       case "admin":
         return <AdminSection />;
       case "reports":

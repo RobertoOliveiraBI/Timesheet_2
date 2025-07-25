@@ -297,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Don't allow editing approved entries
-      if (timeEntry.status === 'APPROVED' && !['MASTER', 'ADMIN'].includes(user?.role || '')) {
+      if (timeEntry.status === 'APROVADO' && !['MASTER', 'ADMIN'].includes(user?.role || '')) {
         return res.status(400).json({ message: "Cannot edit approved entries" });
       }
 
