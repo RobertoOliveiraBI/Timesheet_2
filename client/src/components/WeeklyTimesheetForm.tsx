@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,15 @@ export function WeeklyTimesheetForm() {
     retry: 2,
     enabled: !!user,
   });
+
+  // Prefetch data as soon as the user is available so dropdowns are ready
+  useEffect(() => {
+    if (user) {
+      queryClient.prefetchQuery({ queryKey: ["/api/clientes"] });
+      queryClient.prefetchQuery({ queryKey: ["/api/campaigns"] });
+      queryClient.prefetchQuery({ queryKey: ["/api/campaign-tasks"] });
+    }
+  }, [user, queryClient]);
 
   // Debug: log para verificar dados
   console.log('Timesheet Form - Dados carregados:', {
