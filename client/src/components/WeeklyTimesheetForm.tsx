@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useSimpleAuth";
 import { Plus, ChevronLeft, ChevronRight, Save, Send, Eye } from "lucide-react";
 
 interface TimeEntry {
@@ -24,23 +25,41 @@ export function WeeklyTimesheetForm() {
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const { data: clients = [], isLoading: clientsLoading } = useQuery<any[]>({
+  // Só carrega dados se o usuário estiver autenticado
+  const { data: clients = [], isLoading: clientsLoading, isError: clientsError } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
+    retry: 2,
+    enabled: !!user,
   });
 
   const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
+    retry: 2,
+    enabled: !!user,
   });
 
   const { data: campaignTasks = [], isLoading: campaignTasksLoading } = useQuery<any[]>({
     queryKey: ["/api/campaign-tasks"],
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
+    retry: 2,
+    enabled: !!user,
+  });
+
+  // Debug: log para verificar dados
+  console.log('Timesheet Form - Dados carregados:', {
+    user: !!user,
+    clients: clients?.length || 0,
+    campaigns: campaigns?.length || 0,
+    campaignTasks: campaignTasks?.length || 0,
+    clientsLoading,
+    clientsError
   });
 
   // Calcular os dias da semana
