@@ -73,8 +73,13 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        done(null, false);
+        return;
+      }
       done(null, user);
     } catch (error) {
+      console.error("Error deserializing user:", error);
       done(error);
     }
   });
@@ -180,12 +185,26 @@ export function setupAuth(app: Express) {
     }
 
     const user = req.user as SelectUser;
-    res.json({ 
-      id: user.id, 
-      email: user.email, 
-      firstName: user.firstName, 
+    res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
       lastName: user.lastName,
-      role: user.role 
+      role: user.role,
+      position: user.position,
+      department: user.department,
+      contractType: user.contractType,
+      costCenter: user.costCenter,
+      companyName: user.companyName,
+      cnpj: user.cnpj,
+      isManager: user.isManager,
+      managerId: user.managerId,
+      contractStartDate: user.contractStartDate,
+      contractEndDate: user.contractEndDate,
+      contractValue: user.contractValue,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     });
   });
 }

@@ -30,6 +30,9 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UpdateUserData>({});
 
+  // Debug: Log user data
+  console.log("Profile Page - User data:", user);
+
   const updateMutation = useMutation({
     mutationFn: async (data: UpdateUserData) => {
       const res = await apiRequest("PUT", `/api/usuarios/${user?.id}`, data);
