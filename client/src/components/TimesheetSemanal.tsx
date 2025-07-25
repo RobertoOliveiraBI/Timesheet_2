@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,13 +97,11 @@ export function TimesheetSemanal() {
   // Carregar entradas existentes quando dados chegam
   useEffect(() => {
     carregarEntradasExistentes();
-  }, [entradasExistentes, clientes]);
+  }, [entradasExistentes]);
 
   // Converter entradas do servidor para formato de linhas
-  const carregarEntradasExistentes = async () => {
+  const carregarEntradasExistentes = useCallback(async () => {
     console.log("carregarEntradasExistentes chamada", { 
-      clientesLength: clientes.length, 
-      entradasExistentes: entradasExistentes,
       entradasLength: entradasExistentes?.length 
     });
 
@@ -114,7 +112,7 @@ export function TimesheetSemanal() {
       return;
     }
 
-    console.log("Processando entradas existentes...");
+    console.log("Processando entradas existentes...", entradasExistentes);
 
     const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
 
@@ -185,7 +183,7 @@ export function TimesheetSemanal() {
     );
 
     setLinhas([...Object.values(linhasAgrupadas), ...linhasNaoSalvas]);
-  };
+  }, [entradasExistentes]);
 
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
