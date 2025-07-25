@@ -624,12 +624,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clientes - API simplificada para teste
-  app.get('/api/clientes', async (req: any, res) => {
+  // Clientes - Todos os usuários autenticados podem acessar
+  app.get('/api/clientes', requireAuth, async (req: any, res) => {
     try {
       console.log('API /api/clientes chamada - user:', req.user?.id);
       
-      // Buscar clientes diretamente do banco sem verificação complexa
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(403).json({ message: "Usuário não encontrado" });
+      }
+      
+      console.log('User role:', user.role);
+      
+      // Todos os usuários autenticados podem ver clientes (necessário para timesheet)
       const clients = await db.select({
         id: clientsTable.id,
         companyName: clientsTable.companyName,
@@ -711,17 +718,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campanhas - API simplificada
-  app.get('/api/campaigns', async (req: any, res) => {
+  // Campanhas - Todos os usuários autenticados podem acessar
+  app.get('/api/campaigns', requireAuth, async (req: any, res) => {
     try {
-      console.log('API /api/campaigns chamada');
+      console.log('API /api/campaigns chamada - user:', req.user?.id);
       
-      // Buscar campanhas diretamente do banco
-      const campaigns = await db.select({
-        id: campaignsTable.id,
-        name: campaignsTable.name,
-        clientId: campaignsTable.clientId
-      }).from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(403).json({ message: "Usuário não encontrado" });
+      }
+      
+      console.log('User role:', user.role);
+      
+      // Todos os usuários autenticados podem ver campanhas (necessário para timesheet)
+      const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
       
       console.log('Campanhas encontradas:', campaigns.length);
       res.json(campaigns);
@@ -894,11 +904,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/campaign-tasks", async (req, res) => {
+  app.get("/api/campaign-tasks", requireAuth, async (req, res) => {
     try {
-      console.log('API /api/campaign-tasks chamada');
+      console.log('API /api/campaign-tasks chamada - user:', req.user?.id);
       
-      // Buscar tarefas diretamente do banco
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(403).json({ message: "Usuário não encontrado" });
+      }
+      
+      console.log('User role:', user.role);
+      
+      // Todos os usuários autenticados podem ver tarefas (necessário para timesheet)
       const campaignTasks = await db.select({
         id: campaignTasksTable.id,
         campaignId: campaignTasksTable.campaignId,
