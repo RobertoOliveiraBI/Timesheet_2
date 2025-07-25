@@ -25,16 +25,22 @@ export function WeeklyTimesheetForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: clients = [] } = useQuery<any[]>({
+  const { data: clients = [], isLoading: clientsLoading } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
   });
 
-  const { data: campaigns = [] } = useQuery<any[]>({
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
   });
 
-  const { data: campaignTasks = [] } = useQuery<any[]>({
+  const { data: campaignTasks = [], isLoading: campaignTasksLoading } = useQuery<any[]>({
     queryKey: ["/api/campaign-tasks"],
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
   });
 
   // Calcular os dias da semana
@@ -237,11 +243,17 @@ export function WeeklyTimesheetForm() {
                         <SelectValue placeholder="Selecionar cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(clients) && clients.map((client: any) => (
-                          <SelectItem key={client.id} value={client.id.toString()}>
-                            {client.companyName}
-                          </SelectItem>
-                        ))}
+                        {clientsLoading ? (
+                          <SelectItem value="" disabled>Carregando clientes...</SelectItem>
+                        ) : Array.isArray(clients) && clients.length > 0 ? (
+                          clients.map((client: any) => (
+                            <SelectItem key={client.id} value={client.id.toString()}>
+                              {client.companyName}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="" disabled>Nenhum cliente disponível</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </td>
@@ -255,15 +267,19 @@ export function WeeklyTimesheetForm() {
                         <SelectValue placeholder={entry.clientId ? "Selecionar campanha" : "Selecione cliente primeiro"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(campaigns) && 
-                         campaigns
-                           .filter((campaign: any) => campaign.clientId.toString() === entry.clientId)
-                           .map((campaign: any) => (
-                             <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                               {campaign.name}
-                             </SelectItem>
-                           ))
-                        }
+                        {campaignsLoading ? (
+                          <SelectItem value="" disabled>Carregando campanhas...</SelectItem>
+                        ) : Array.isArray(campaigns) && campaigns.length > 0 ? (
+                          campaigns
+                            .filter((campaign: any) => campaign.clientId.toString() === entry.clientId)
+                            .map((campaign: any) => (
+                              <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                                {campaign.name}
+                              </SelectItem>
+                            ))
+                        ) : (
+                          <SelectItem value="" disabled>Nenhuma campanha disponível</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </td>
@@ -277,15 +293,19 @@ export function WeeklyTimesheetForm() {
                         <SelectValue placeholder={entry.campaignId ? "Selecionar tarefa" : "Selecione campanha primeiro"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(campaignTasks) && 
-                         campaignTasks
-                           .filter((task: any) => task.campaignId.toString() === entry.campaignId)
-                           .map((task: any) => (
-                             <SelectItem key={task.id} value={task.id.toString()}>
-                               {task.description}
-                             </SelectItem>
-                           ))
-                        }
+                        {campaignTasksLoading ? (
+                          <SelectItem value="" disabled>Carregando tarefas...</SelectItem>
+                        ) : Array.isArray(campaignTasks) && campaignTasks.length > 0 ? (
+                          campaignTasks
+                            .filter((task: any) => task.campaignId.toString() === entry.campaignId)
+                            .map((task: any) => (
+                              <SelectItem key={task.id} value={task.id.toString()}>
+                                {task.description}
+                              </SelectItem>
+                            ))
+                        ) : (
+                          <SelectItem value="" disabled>Nenhuma tarefa disponível</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </td>
