@@ -181,7 +181,7 @@ export function WeeklyTimesheetForm() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
-                <th className="text-left p-2 font-medium text-sm">Cliente & Projeto</th>
+                <th className="text-left p-2 font-medium text-sm">Campanha</th>
                 <th className="text-left p-2 font-medium text-sm">Tarefa</th>
                 {weekDays.map((day, index) => (
                   <th key={index} className="text-center p-2 font-medium text-sm min-w-20">
