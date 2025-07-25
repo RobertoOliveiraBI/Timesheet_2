@@ -95,24 +95,29 @@ RASCUNHO → SALVO → VALIDACAO → APROVADO
 ## ✅ Problema Resolvido: Select de Clientes
 
 ### Solução Implementada
-**Padronização de endpoints para português:**
-- **Frontend**: Usa `/api/clientes` (português) ✅
-- **Backend**: Endpoint atualizado para `/api/clientes` ✅
+**Duas correções foram necessárias:**
+1. **Padronização de endpoints**: Frontend e backend agora usam `/api/clientes` ✅
+2. **Correção de credenciais**: Hash da senha do colaborador estava corrompido ✅
 
-### Dados no Banco (Confirmado)
-```sql
-SELECT id, company_name, trade_name, is_active FROM clients;
-```
-```
-1 | Cappei Marketing LTDA | Cappei    | true
-2 | Cliente teste         | Teste Ltd | true
-3 | Gotcha               | G         | true
-4 | Zaeli                | Zaeli Ltda| true
-```
+### Problema Identificado
+- **Usuário Master**: Funcionava corretamente (senha hash válida)
+- **Usuário Colaborador**: Falha na autenticação (senha hash corrompida)
+- **Endpoint**: Inconsistência entre `/api/clients` (backend) e `/api/clientes` (frontend)
 
 ### Alterações Realizadas
-- **Backend**: `server/routes.ts` linha 66 - Endpoint alterado de `/api/clients` para `/api/clientes`
-- **Consistência**: Frontend e backend agora usam o mesmo endpoint
+- **Backend**: `server/routes.ts` - Endpoint padronizado para `/api/clientes`
+- **Banco**: Hash da senha do colaborador roberto@cappei.com corrigido
+- **Testes**: Confirmado que colaboradores agora acessam a API corretamente
+
+### Dados no Banco (4 clientes ativos)
+```json
+[
+  {"companyName": "Cappei Marketing LTDA", "tradeName": "Cappei"},
+  {"companyName": "Cliente teste", "tradeName": "Teste Ltda"},
+  {"companyName": "Gotcha", "tradeName": "G"},
+  {"companyName": "Zaeli", "tradeName": "Zaeli Ltda"}
+]
+```
 
 ## 🚀 Como Executar
 

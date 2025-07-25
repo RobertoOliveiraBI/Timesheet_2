@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clients routes
-  app.get('/api/clientes', requireAuth, async (req, res) => {
+  app.get('/api/clientes', requireAuth, async (req: any, res) => {
     try {
       const clients = await storage.getClients();
       res.json(clients);

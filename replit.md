@@ -71,7 +71,9 @@ The application follows a modern full-stack architecture with clear separation b
 - **Profile Page**: Complete user profile management with edit capabilities
 - **User Management**: Manual user creation for missing registrations (luciano@tractionfy.com added)
 - **API Consistency**: Fixed client select population issue by standardizing endpoints to Portuguese (/api/clientes)
+- **Authentication Fix**: Corrected corrupted password hash for collaborator user (roberto@cappei.com)
 - **Documentation**: Created comprehensive README.md for project handover and debugging
+- **Validation**: Confirmed API access works for both MASTER and COLABORADOR roles
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions

@@ -190,7 +190,6 @@ export function setupAuth(app: Express) {
       // Find user by email
       const user = await storage.getUserByEmail(email);
       if (!user) {
-
         return res.status(401).json({ message: "Email ou senha inválidos" });
       }
 
