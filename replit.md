@@ -70,6 +70,8 @@ The application follows a modern full-stack architecture with clear separation b
 - **Workflow Actions**: Three distinct save actions (Save Draft, Save, Submit for Approval)
 - **Profile Page**: Complete user profile management with edit capabilities
 - **User Management**: Manual user creation for missing registrations (luciano@tractionfy.com added)
+- **API Consistency**: Fixed client select population issue by standardizing endpoints to Portuguese (/api/clientes)
+- **Documentation**: Created comprehensive README.md for project handover and debugging
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions

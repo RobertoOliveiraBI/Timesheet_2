@@ -60,7 +60,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Clients routes
-  app.get('/api/clients', requireAuth, async (req, res) => {
+  app.get('/api/clientes', requireAuth, async (req, res) => {
     try {
       const clients = await storage.getClients();
       res.json(clients);
@@ -70,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/clients', requireAuth, async (req: any, res) => {
+  app.post('/api/clientes', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
