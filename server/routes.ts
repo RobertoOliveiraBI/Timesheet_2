@@ -975,6 +975,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deletar entradas de timesheet por período e tarefa
+  app.delete("/api/timesheet/limpar-semana", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { inicioSemana, fimSemana, campaignTaskId } = req.body;
+      
+      if (!inicioSemana || !fimSemana || !campaignTaskId) {
+        return res.status(400).json({ 
+          message: "Parâmetros inicioSemana, fimSemana e campaignTaskId são obrigatórios" 
+        });
+      }
+
+      await db.delete(timeEntries)
+        .where(and(
+          eq(timeEntries.userId, userId),
+          eq(timeEntries.campaignTaskId, parseInt(campaignTaskId)),
+          gte(timeEntries.date, inicioSemana),
+          lte(timeEntries.date, fimSemana)
+        ));
+
+      res.json({ message: "Entradas removidas com sucesso" });
+    } catch (error) {
+      console.error("Error clearing weekly entries:", error);
+      res.status(500).json({ message: "Erro ao limpar entradas da semana" });
+    }
+  });
+
   // Endpoint para submissão de entrada de horas individual
   app.post("/api/timesheet/entrada-horas", requireAuth, async (req: any, res) => {
     try {

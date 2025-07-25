@@ -67,6 +67,105 @@ export function TimesheetSemanal() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Buscar entradas existentes da semana
+  const { data: entradasExistentes = [], refetch: refetchEntradas } = useQuery({
+    queryKey: ["/api/timesheet/semana", format(inicioSemana, "yyyy-MM-dd"), format(addDays(inicioSemana, 5), "yyyy-MM-dd")],
+    queryFn: async () => {
+      const response = await fetch(
+        `/api/timesheet/semana?inicioSemana=${format(inicioSemana, "yyyy-MM-dd")}&fimSemana=${format(addDays(inicioSemana, 5), "yyyy-MM-dd")}`,
+        { credentials: "include" }
+      );
+      if (!response.ok) return [];
+      return response.json();
+    },
+    staleTime: 30 * 1000,
+  });
+
+  // Carregar entradas existentes quando a semana mudar
+  useEffect(() => {
+    carregarEntradasExistentes();
+  }, [entradasExistentes]);
+
+  // Converter entradas do servidor para formato de linhas
+  const carregarEntradasExistentes = async () => {
+    if (!entradasExistentes.length || !clientes.length) return;
+
+    const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
+    const clientesParaCarregar = new Set<string>();
+    const campanhasParaCarregar = new Set<string>();
+
+    // Primeira passada - identificar quais campanhas e tarefas precisamos carregar
+    entradasExistentes.forEach((entrada: any) => {
+      clientesParaCarregar.add(entrada.clientId.toString());
+      campanhasParaCarregar.add(entrada.campaignId.toString());
+    });
+
+    // Carregar campanhas e tarefas necessárias
+    for (const clienteId of Array.from(clientesParaCarregar)) {
+      if (!campanhasPorCliente[clienteId]) {
+        await buscarCampanhas(clienteId);
+      }
+    }
+
+    for (const campanhaId of Array.from(campanhasParaCarregar)) {
+      if (!tarefasPorCampanha[campanhaId]) {
+        await buscarTarefas(campanhaId);
+      }
+    }
+
+    // Segunda passada - criar as linhas
+    entradasExistentes.forEach((entrada: any) => {
+      const chave = `${entrada.campaignTaskId}-${entrada.clientId}-${entrada.campaignId}`;
+      
+      if (!linhasAgrupadas[chave]) {
+        // Buscar nomes pelos IDs
+        const cliente = clientes.find(c => c.id === entrada.clientId);
+        const campanhas = campanhasPorCliente[entrada.clientId.toString()] || [];
+        const campanha = campanhas.find(c => c.id === entrada.campaignId);
+        const tarefas = tarefasPorCampanha[entrada.campaignId.toString()] || [];
+        const tarefa = tarefas.find(t => t.id === entrada.campaignTaskId);
+        
+        linhasAgrupadas[chave] = {
+          id: chave,
+          clienteId: entrada.clientId.toString(),
+          clienteNome: cliente ? (cliente.tradeName || cliente.companyName) : "",
+          campanhaId: entrada.campaignId.toString(),
+          campanhaNome: campanha?.name || "",
+          tarefaId: entrada.campaignTaskId.toString(),
+          tarefaNome: tarefa?.description || "",
+          horas: {
+            seg: "0",
+            ter: "0",
+            qua: "0", 
+            qui: "0",
+            sex: "0",
+            sab: "0"
+          },
+          totalHoras: 0
+        };
+      }
+
+      // Mapear dia da semana
+      const dataEntrada = new Date(entrada.date);
+      const diaSemana = dataEntrada.getDay();
+      const mapaDias = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+      const diaKey = mapaDias[diaSemana];
+      
+      if (diaKey && diaKey !== 'dom') {
+        linhasAgrupadas[chave].horas[diaKey] = entrada.hours.toString();
+      }
+    });
+
+    // Recalcular totais
+    Object.values(linhasAgrupadas).forEach(linha => {
+      linha.totalHoras = Object.values(linha.horas).reduce((total, horas) => {
+        return total + parseFloat(horas || "0");
+      }, 0);
+    });
+
+    setLinhas(Object.values(linhasAgrupadas));
+  };
+
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
     if (direcao === 'anterior') {
@@ -74,6 +173,7 @@ export function TimesheetSemanal() {
     } else {
       setSemanaAtual(addWeeks(semanaAtual, 1));
     }
+    setLinhas([]); // Limpar linhas ao mudar semana
   };
 
   // Adicionar nova linha
@@ -208,17 +308,27 @@ export function TimesheetSemanal() {
   // Mutation para salvar timesheet
   const salvarTimesheet = useMutation({
     mutationFn: async (status: 'RASCUNHO' | 'VALIDACAO') => {
-      const entradas = [];
+      const inicioSemanaFormatada = format(inicioSemana, "yyyy-MM-dd");
+      const fimSemanaFormatada = format(addDays(inicioSemana, 5), "yyyy-MM-dd");
       
+      // Para cada linha, primeiro limpar entradas existentes dessa tarefa na semana
       for (const linha of linhas) {
         if (!linha.clienteId || !linha.campanhaId || !linha.tarefaId) continue;
         
+        // Limpar entradas existentes desta tarefa na semana
+        await apiRequest("DELETE", "/api/timesheet/limpar-semana", {
+          inicioSemana: inicioSemanaFormatada,
+          fimSemana: fimSemanaFormatada,
+          campaignTaskId: parseInt(linha.tarefaId)
+        });
+        
+        // Criar novas entradas apenas para dias com horas > 0
         for (let i = 0; i < diasSemana.length; i++) {
           const dia = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab'][i];
           const horas = linha.horas[dia];
           
           if (parseFloat(horas || "0") > 0) {
-            entradas.push({
+            await apiRequest("POST", "/api/timesheet/entrada-horas", {
               clientId: parseInt(linha.clienteId),
               campaignId: parseInt(linha.campanhaId),
               campaignTaskId: parseInt(linha.tarefaId),
@@ -230,17 +340,14 @@ export function TimesheetSemanal() {
           }
         }
       }
-
-      for (const entrada of entradas) {
-        await apiRequest("POST", "/api/timesheet/entrada-horas", entrada);
-      }
     },
     onSuccess: () => {
       toast({
         title: "Sucesso!",
         description: "Timesheet salvo com sucesso",
       });
-      setLinhas([]);
+      // Não limpar as linhas - manter na tela
+      refetchEntradas(); // Atualizar dados do servidor
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
     },
     onError: (error: any) => {
