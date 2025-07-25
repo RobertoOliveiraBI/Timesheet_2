@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/StatsCard";
-import { NovoTimesheet } from "@/pages/NovoTimesheet";
+import { TimesheetSemanal } from "@/components/TimesheetSemanal";
 import { RecentEntries } from "@/components/RecentEntries";
 import { ApprovalSection } from "@/components/ApprovalSection";
 import { AdminSection } from "@/components/AdminSectionNew";
@@ -165,8 +165,8 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* Nova interface de timesheet */}
-            <NovoTimesheet />
+            {/* Timesheet semanal em formato de planilha */}
+            <TimesheetSemanal />
           </div>
         );
     }

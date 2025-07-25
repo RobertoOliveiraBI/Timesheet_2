@@ -955,11 +955,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Buscar entradas de timesheet por semana
+  app.get("/api/timesheet/semana", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { inicioSemana, fimSemana } = req.query;
+      
+      if (!inicioSemana || !fimSemana) {
+        return res.status(400).json({ 
+          message: "Parâmetros inicioSemana e fimSemana são obrigatórios" 
+        });
+      }
+
+      const entries = await storage.getTimeEntriesByUser(userId, inicioSemana, fimSemana);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching weekly timesheet:", error);
+      res.status(500).json({ message: "Erro ao buscar timesheet da semana" });
+    }
+  });
+
   // Endpoint para submissão de entrada de horas individual
   app.post("/api/timesheet/entrada-horas", requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const { clientId, campaignId, campaignTaskId, date, hours, description } = req.body;
+      const { clientId, campaignId, campaignTaskId, date, hours, description, status = "RASCUNHO" } = req.body;
       
       // Validações
       if (!clientId || !campaignId || !campaignTaskId || !date || !hours) {
@@ -1004,7 +1024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         campaignTaskId: parseInt(campaignTaskId),
         hours: hours.toString(),
         description: description || null,
-        status: "RASCUNHO"
+        status
       });
 
       const timeEntry = await storage.createTimeEntry(data);

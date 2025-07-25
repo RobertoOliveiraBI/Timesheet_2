@@ -1,0 +1,79 @@
+Claro, aqui está o prompt atualizado, agora incluindo a instrução para criar a interface de lançamento semanal de horas no formato de planilha, com dias de segunda a sábado:
+
+---
+
+**Prompt para o agente Replit (em inglês):**
+
+---
+
+Hello, we need to **rebuild the entire timesheet hour entry module** from scratch. After multiple unsuccessful attempts to configure the select fields for clients, campaigns, and tasks, we’ve decided to change the approach entirely.
+
+⚠️ **Important:**
+**Do not make changes to any other part of the system** — only work on the hour entry section (the timesheet input). Leave all other modules untouched.
+
+Please **respond in Portuguese**, as I will validate and test everything in that language.
+
+---
+
+### 1. User Flow
+
+* The user selects a **client**
+* Based on the client, the system loads **related campaigns**
+* Based on the campaign, the system loads **related tasks**
+* The user inputs:
+
+  * Number of hours worked
+  * Date of the task
+* The entry is submitted for manager review
+
+---
+
+### 2. New Requirement: Weekly Timesheet Format
+
+* Instead of daily entries, we want a **weekly input view**
+* Display a table (like a spreadsheet) with **columns from Monday to Saturday**
+* Each **row represents one task** (selected by the user)
+* The user will fill in the number of hours worked on each day for that task
+* The table should allow:
+
+  * Selecting client, campaign, and task for each row
+  * Inputting hours from Monday to Saturday
+  * Adding or removing rows dynamically
+* At the bottom, calculate the total of hours per day and per row
+
+---
+
+### 3. Technical Requirements
+
+* **Do not reuse the broken dropdown logic**
+* Use a **more stable and dynamic method**, with:
+
+  * Server-side or async loading of options
+  * Proper validation and error handling
+  * Smart dependencies (campaigns should load only after client selection, etc.)
+
+---
+
+### 4. Database Considerations
+
+Make sure each entry stores:
+
+* user ID
+* client ID
+* campaign ID
+* task ID
+* day of the week
+* date
+* number of hours
+
+---
+
+### 5. UX Expectation
+
+* Prioritize **usability and stability**
+* The weekly table should be easy to navigate and quick to fill
+* It must validate before submission and support error feedback
+
+---
+
+Let me know if you need sample data or mockups. Once you start, please confirm in Portuguese.
