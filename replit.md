@@ -76,6 +76,7 @@ The application follows a modern full-stack architecture with clear separation b
 - **Validation**: Confirmed API access works for both MASTER and COLABORADOR roles
 - **Post-Login Redirection**: Implemented complete role-based redirection system with Landing page
 - **Security Enhancement**: Updated /api/user endpoint to exclude password from responses
+- **Redirection Fix**: Simplified all users to redirect to /timesheet with 5-second auto-refresh
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions
