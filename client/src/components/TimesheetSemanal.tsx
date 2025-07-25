@@ -64,7 +64,18 @@ export function TimesheetSemanal() {
   // Buscar clientes
   const { data: clientes = [], isLoading: clientesLoading } = useQuery<Cliente[]>({
     queryKey: ["/api/clientes"],
+    queryFn: async () => {
+      const response = await fetch("/api/clientes", { credentials: "include" });
+      if (!response.ok) {
+        console.error("Erro ao buscar clientes:", response.status);
+        return [];
+      }
+      const data = await response.json();
+      console.log("Clientes carregados:", data);
+      return data;
+    },
     staleTime: 5 * 60 * 1000,
+    retry: 3,
   });
 
   // Buscar entradas existentes da semana
