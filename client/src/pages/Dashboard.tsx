@@ -21,9 +21,25 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+
+  // Helper function to get default route based on user role
+  const getDefaultRoute = (user: any) => {
+    if (!user) return "/";
+    
+    switch (user.role) {
+      case "MASTER":
+      case "ADMIN":
+        return "/admin";
+      case "GESTOR":
+        return "/approvals";
+      case "COLABORADOR":
+      default:
+        return "/timesheet";
+    }
+  };
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -33,8 +49,17 @@ export default function Dashboard() {
         description: "Você precisa fazer login para acessar esta página",
         variant: "destructive",
       });
+      setLocation("/login");
     }
-  }, [user, isLoading, toast]);
+  }, [user, isLoading, toast, setLocation]);
+
+  // Redirect to appropriate page if user is on root path
+  useEffect(() => {
+    if (!isLoading && user && location === "/") {
+      const defaultRoute = getDefaultRoute(user);
+      setLocation(defaultRoute);
+    }
+  }, [user, isLoading, location, setLocation]);
 
   const { data: userStats } = useQuery<any>({
     queryKey: ["/api/reports/user-stats"],

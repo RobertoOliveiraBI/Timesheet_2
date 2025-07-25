@@ -1,0 +1,224 @@
+# Prompt para Replit: Correção do Sistema de Redirecionamento Pós-Login
+
+## Contexto do Problema
+O sistema Tractionfy Timesheet não está redirecionando corretamente os usuários após o login. Atualmente, todos os usuários permanecem na tela de login ao invés de serem direcionados para suas páginas específicas baseadas em seus roles.
+
+## Redirecionamentos Esperados
+- **COLABORADOR** → `/timesheet` (formulário de horas)
+- **GESTOR** → `/approvals` (aprovações)
+- **MASTER/ADMIN** → `/admin` (administração)
+
+## Alterações Necessárias
+
+### 1. Atualizar `client/src/App.tsx`
+Modificar a rota raiz para redirecionar usuários autenticados:
+
+```typescript
+// Localizar por volta da linha 85-92 e substituir:
+      <Route path="/" component={user ? Dashboard : Landing} />
+      <Route path="/login" component={LoginPage} />
+      <Route path="/timesheet" component={Dashboard} />
+      <Route path="/reports" component={Dashboard} />
+      <Route path="/approvals" component={Dashboard} />
+      <Route path="/admin" component={Dashboard} />
+      <Route path="/profile" component={ProfilePage} />
+      <Route component={NotFound} />
+```
+
+### 2. Atualizar `client/src/pages/Landing.tsx`
+Substituir o arquivo inteiro com:
+
+```typescript
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Clock } from "lucide-react";
+import { useLocation } from "wouter";
+
+export default function Landing() {
+  const [, setLocation] = useLocation();
+
+  const handleLogin = () => {
+    setLocation("/login");
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-blue-50 px-4">
+      <div className="w-full max-w-md">
+        {/* Logo and branding */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-xl mb-4">
+            <Clock className="text-white text-2xl" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Tractionfy</h1>
+          <p className="text-slate-600">Sistema de Gestão de Timesheet</p>
+        </div>
+
+        {/* Login card */}
+        <Card className="shadow-xl border border-slate-200">
+          <CardContent className="p-8">
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-xl font-semibold text-slate-900 mb-2">
+                  Bem-vindo de volta
+                </h2>
+                <p className="text-slate-600">
+                  Faça login para acessar o sistema de timesheet
+                </p>
+              </div>
+              
+              <Button 
+                onClick={handleLogin}
+                className="w-full bg-primary hover:bg-primary/90 py-3"
+              >
+                Fazer Login
+              </Button>
+              
+              <div className="text-center">
+                <p className="text-sm text-slate-500">
+                  Entre em contato com o administrador para acesso
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+```
+
+### 3. Atualizar `client/src/hooks/useSimpleAuth.tsx`
+Localizar a função `loginMutation` (por volta da linha 44) e substituir por:
+
+```typescript
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginCredentials) => {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login falhou");
+      }
+
+      const userData = await response.json();
+      
+      // Invalidate and refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      return userData;
+    },
+    onSuccess: (userData) => {
+      // User data will be available through the query after invalidation
+      console.log("Login successful:", userData);
+    },
+  });
+```
+
+### 4. Atualizar `client/src/pages/Dashboard.tsx`
+Localizar a função `Dashboard` e substituir o início (até a linha 45) por:
+
+```typescript
+export default function Dashboard() {
+  const [location, setLocation] = useLocation();
+  const { user, isLoading } = useAuth();
+  const { toast } = useToast();
+
+  // Helper function to get default route based on user role
+  const getDefaultRoute = (user: any) => {
+    if (!user) return "/";
+    
+    switch (user.role) {
+      case "MASTER":
+      case "ADMIN":
+        return "/admin";
+      case "GESTOR":
+        return "/approvals";
+      case "COLABORADOR":
+      default:
+        return "/timesheet";
+    }
+  };
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      toast({
+        title: "Não autenticado",
+        description: "Você precisa fazer login para acessar esta página",
+        variant: "destructive",
+      });
+      setLocation("/login");
+    }
+  }, [user, isLoading, toast, setLocation]);
+
+  // Redirect to appropriate page if user is on root path
+  useEffect(() => {
+    if (!isLoading && user && location === "/") {
+      const defaultRoute = getDefaultRoute(user);
+      setLocation(defaultRoute);
+    }
+  }, [user, isLoading, location, setLocation]);
+
+  const { data: userStats } = useQuery<any>({
+    queryKey: ["/api/reports/user-stats"],
+    retry: false,
+  });
+```
+
+### 5. Atualizar `server/routes.ts`
+Localizar a rota `/api/user` (por volta da linha 137) e substituir por:
+
+```typescript
+  // Get current user
+  app.get("/api/user", (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    // Return user data without sensitive information
+    const { password, ...userWithoutPassword } = req.user as any;
+    res.json(userWithoutPassword);
+  });
+```
+
+## Teste das Alterações
+
+Após implementar todas as alterações:
+
+1. Reinicie o servidor de desenvolvimento
+2. Teste o login com as credenciais:
+   - **Colaborador**: roberto@cappei.com / 123mudar → Deve ir para `/timesheet`
+   - **Master**: roberto@tractionfy.com / 123mudar → Deve ir para `/admin`
+   - **Admin**: luciano@tractionfy.com / 123mudar → Deve ir para `/admin`
+
+## Commit das Alterações
+
+Após testar e confirmar que funciona:
+
+```bash
+git add .
+git commit -m "fix: corrige redirecionamento após login baseado em roles
+
+- Ajusta App.tsx para redirecionar usuários autenticados da rota raiz
+- Muda Landing page para usar login interno ao invés de OIDC
+- Melhora hook de autenticação para atualizar dados corretamente
+- Adiciona lógica de redirecionamento no Dashboard
+- Remove senha dos dados retornados pela API /api/user"
+
+git push origin main
+```
+
+## Resultado Esperado
+
+Após as alterações, o fluxo será:
+1. Usuário acessa o sistema → Landing page
+2. Clica em "Fazer Login" → LoginPage
+3. Faz login com email/senha
+4. Sistema redireciona automaticamente baseado no role
+5. Se usuário autenticado acessa "/" → redireciona para a página apropriada

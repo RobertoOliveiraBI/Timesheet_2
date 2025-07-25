@@ -4,7 +4,7 @@ import { User } from "@shared/schema";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type LoginData = {
+type LoginCredentials = {
   email: string;
   password: string;
 };
@@ -31,21 +31,34 @@ export function useAuth() {
     },
   });
 
+  // Login mutation
   const loginMutation = useMutation({
-    mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Erro ao fazer login");
+    mutationFn: async (credentials: LoginCredentials) => {
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Login falhou");
       }
-      return await res.json();
+
+      const userData = await response.json();
+      
+      // Invalidate and refetch user data
+      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      return userData;
     },
-    onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    onSuccess: (userData) => {
+      // User data will be available through the query after invalidation
+      console.log("Login successful:", userData);
       toast({
         title: "Login realizado com sucesso",
-        description: `Bem-vindo, ${user.firstName || user.email}!`,
+        description: `Bem-vindo, ${userData.firstName || userData.email}!`,
       });
     },
     onError: (error: Error) => {

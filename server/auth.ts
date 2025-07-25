@@ -236,32 +236,13 @@ export function setupAuth(app: Express) {
 
   // Get current user
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Não autenticado" });
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
-
-    const user = req.user as SelectUser;
-    res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role,
-      position: user.position,
-      department: user.department,
-      contractType: user.contractType,
-      costCenter: user.costCenter,
-      companyName: user.companyName,
-      cnpj: user.cnpj,
-      isManager: user.isManager,
-      managerId: user.managerId,
-      contractStartDate: user.contractStartDate,
-      contractEndDate: user.contractEndDate,
-      contractValue: user.contractValue,
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
-    });
+    
+    // Return user data without sensitive information
+    const { password, ...userWithoutPassword } = req.user as any;
+    res.json(userWithoutPassword);
   });
 }
 

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useSimpleAuth";
+import Landing from "@/pages/Landing";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
 import ProfilePage from "@/pages/ProfilePage";
@@ -24,10 +25,15 @@ function Router() {
   return (
     <Switch>
       {!user ? (
-        <Route path="*" component={LoginPage} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/login" component={LoginPage} />
+          <Route component={Landing} />
+        </>
       ) : (
         <>
           <Route path="/" component={Dashboard} />
+          <Route path="/login" component={Dashboard} />
           <Route path="/timesheet" component={Dashboard} />
           <Route path="/reports" component={Dashboard} />
           <Route path="/approvals" component={Dashboard} />

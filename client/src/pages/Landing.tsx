@@ -1,10 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
+
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    setLocation("/login");
   };
 
   return (
@@ -36,7 +39,7 @@ export default function Landing() {
                 onClick={handleLogin}
                 className="w-full bg-primary hover:bg-primary/90 py-3"
               >
-                Entrar com Replit
+                Fazer Login
               </Button>
               
               <div className="text-center">
