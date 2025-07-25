@@ -9,6 +9,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface TimeEntry {
+  clientId: string;
+  clientName: string;
   campaignId: string;
   campaignName: string;
   campaignTaskId: string;
@@ -23,12 +25,12 @@ export function WeeklyTimesheetForm() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: campaigns = [] } = useQuery<any[]>({
-    queryKey: ["/api/campaigns"],
+  const { data: clients = [] } = useQuery<any[]>({
+    queryKey: ["/api/clientes"],
   });
 
-  const { data: taskTypes = [] } = useQuery<any[]>({
-    queryKey: ["/api/task-types"],
+  const { data: campaigns = [] } = useQuery<any[]>({
+    queryKey: ["/api/campaigns"],
   });
 
   const { data: campaignTasks = [] } = useQuery<any[]>({
@@ -68,6 +70,8 @@ export function WeeklyTimesheetForm() {
 
   const addTimeEntry = () => {
     const newEntry: TimeEntry = {
+      clientId: "",
+      clientName: "",
       campaignId: "",
       campaignName: "",
       campaignTaskId: "",
@@ -78,12 +82,41 @@ export function WeeklyTimesheetForm() {
     setTimeEntries([...timeEntries, newEntry]);
   };
 
+  // Gerar opções de horas (15 em 15 minutos até 12 horas)
+  const generateHourOptions = () => {
+    const options = [{ value: "0", label: "0:00" }];
+    for (let h = 0; h < 12; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        if (h === 0 && m === 0) continue; // Já adicionamos 0:00
+        const hours = h + m / 60;
+        const label = `${h}:${m.toString().padStart(2, '0')}`;
+        options.push({ value: hours.toString(), label });
+      }
+    }
+    return options;
+  };
+
+  const hourOptions = generateHourOptions();
+
   const updateTimeEntry = (index: number, field: string, value: string) => {
     const updatedEntries = [...timeEntries];
-    if (field === 'campaignId') {
+    
+    if (field === 'clientId') {
+      const client = Array.isArray(clients) ? clients.find((c: any) => c.id.toString() === value) : null;
+      updatedEntries[index].clientId = value;
+      updatedEntries[index].clientName = client?.companyName || "";
+      // Reset valores dependentes
+      updatedEntries[index].campaignId = "";
+      updatedEntries[index].campaignName = "";
+      updatedEntries[index].campaignTaskId = "";
+      updatedEntries[index].taskName = "";
+    } else if (field === 'campaignId') {
       const campaign = Array.isArray(campaigns) ? campaigns.find((c: any) => c.id.toString() === value) : null;
       updatedEntries[index].campaignId = value;
       updatedEntries[index].campaignName = campaign?.name || "";
+      // Reset valores dependentes
+      updatedEntries[index].campaignTaskId = "";
+      updatedEntries[index].taskName = "";
     } else if (field === 'campaignTaskId') {
       const campaignTask = Array.isArray(campaignTasks) ? campaignTasks.find((t: any) => t.id.toString() === value) : null;
       updatedEntries[index].campaignTaskId = value;
@@ -181,6 +214,7 @@ export function WeeklyTimesheetForm() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b">
+                <th className="text-left p-2 font-medium text-sm">Cliente</th>
                 <th className="text-left p-2 font-medium text-sm">Campanha</th>
                 <th className="text-left p-2 font-medium text-sm">Tarefa</th>
                 {weekDays.map((day, index) => (
@@ -196,18 +230,40 @@ export function WeeklyTimesheetForm() {
                 <tr key={index} className="border-b hover:bg-slate-50">
                   <td className="p-2">
                     <Select 
-                      value={entry.campaignId} 
-                      onValueChange={(value) => updateTimeEntry(index, 'campaignId', value)}
+                      value={entry.clientId} 
+                      onValueChange={(value) => updateTimeEntry(index, 'clientId', value)}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecionar projeto" />
+                        <SelectValue placeholder="Selecionar cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
-                          <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                            {campaign.name}
+                        {Array.isArray(clients) && clients.map((client: any) => (
+                          <SelectItem key={client.id} value={client.id.toString()}>
+                            {client.companyName}
                           </SelectItem>
                         ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-2">
+                    <Select 
+                      value={entry.campaignId} 
+                      onValueChange={(value) => updateTimeEntry(index, 'campaignId', value)}
+                      disabled={!entry.clientId}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={entry.clientId ? "Selecionar campanha" : "Selecione cliente primeiro"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.isArray(campaigns) && 
+                         campaigns
+                           .filter((campaign: any) => campaign.clientId.toString() === entry.clientId)
+                           .map((campaign: any) => (
+                             <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                               {campaign.name}
+                             </SelectItem>
+                           ))
+                        }
                       </SelectContent>
                     </Select>
                   </td>
@@ -235,13 +291,21 @@ export function WeeklyTimesheetForm() {
                   </td>
                   {weekDays.map((_, dayIndex) => (
                     <td key={dayIndex} className="p-2">
-                      <Input
-                        type="text"
-                        placeholder="0:00"
-                        value={entry.hours[dayIndex.toString()] || ''}
-                        onChange={(e) => updateTimeEntry(index, `day-${dayIndex}`, e.target.value)}
-                        className="text-center text-sm"
-                      />
+                      <Select
+                        value={entry.hours[dayIndex.toString()] || "0"}
+                        onValueChange={(value) => updateTimeEntry(index, `day-${dayIndex}`, value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="0:00" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {hourOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </td>
                   ))}
                   <td className="p-2 text-center font-medium">
@@ -253,7 +317,7 @@ export function WeeklyTimesheetForm() {
               {/* Empty rows for adding new entries */}
               {timeEntries.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center p-8 text-slate-500">
+                  <td colSpan={9} className="text-center p-8 text-slate-500">
                     Clique em "Adicionar linha" para começar a lançar suas horas
                   </td>
                 </tr>
@@ -262,7 +326,7 @@ export function WeeklyTimesheetForm() {
             {timeEntries.length > 0 && (
               <tfoot>
                 <tr className="border-t bg-slate-50 font-medium">
-                  <td className="p-2" colSpan={2}>Total</td>
+                  <td className="p-2" colSpan={3}>Total</td>
                   {weekDays.map((_, dayIndex) => (
                     <td key={dayIndex} className="p-2 text-center">
                       {formatHours(getColumnTotal(dayIndex))}
