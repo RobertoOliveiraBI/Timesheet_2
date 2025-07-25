@@ -178,6 +178,63 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Login endpoint with email/password
+  app.post("/api/login", async (req, res, next) => {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email e senha são obrigatórios" });
+    }
+
+    try {
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+
+        return res.status(401).json({ message: "Email ou senha inválidos" });
+      }
+
+      // Check password
+      const isValidPassword = await comparePasswords(password, user.password);
+      
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Email ou senha inválidos" });
+      }
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Erro no login:", err);
+          return next(err);
+        }
+        
+        // Return user data (excluding password)
+        const { password: _, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+      });
+    } catch (error) {
+      console.error("Erro no login:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
+  });
+
+  // Logout endpoint (POST) for API
+  app.post("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Erro no logout:", err);
+        return next(err);
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Erro ao destruir sessão:", err);
+        }
+        res.clearCookie('connect.sid');
+        res.json({ message: "Logout realizado com sucesso" });
+      });
+    });
+  });
+
   // Get current user
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated() || !req.user) {

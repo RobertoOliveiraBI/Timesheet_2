@@ -42,6 +42,7 @@ export function useAuth() {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Login realizado com sucesso",
         description: `Bem-vindo, ${user.firstName || user.email}!`,
