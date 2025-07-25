@@ -446,14 +446,21 @@ export function TimesheetSemanal() {
         hours: horasEditando
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Sucesso!",
         description: "Entrada editada com sucesso",
       });
       
       fecharModal();
-      queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+      
+      // Forçar atualização imediata de todas as queries relacionadas
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchEntradas()
+      ]);
     },
     onError: (error: any) => {
       toast({
@@ -469,13 +476,19 @@ export function TimesheetSemanal() {
     mutationFn: async (entradaId: number) => {
       await apiRequest("DELETE", `/api/time-entries/${entradaId}`);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Sucesso!",
         description: "Entrada excluída com sucesso",
       });
       
-      queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+      // Forçar atualização imediata de todas as queries relacionadas
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchEntradas()
+      ]);
     },
     onError: (error: any) => {
       toast({
