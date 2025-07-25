@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useSimpleAuth";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
+import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ function Router() {
           <Route path="/reports" component={Dashboard} />
           <Route path="/approvals" component={Dashboard} />
           <Route path="/admin" component={Dashboard} />
+          <Route path="/profile" component={ProfilePage} />
         </>
       )}
       <Route component={NotFound} />

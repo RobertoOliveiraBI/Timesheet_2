@@ -468,6 +468,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.put('/api/usuarios/:id', requireAuth, async (req: any, res) => {
+    try {
+      const currentUserId = req.user.id;
+      const targetUserId = parseInt(req.params.id);
+      const updateData = req.body;
+
+      const currentUser = await storage.getUser(currentUserId);
+      
+      // Users can only update their own profile, unless they are admin/master
+      if (currentUserId !== targetUserId && !['MASTER', 'ADMIN'].includes(currentUser?.role || '')) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Non-admin users cannot change role or sensitive fields
+      if (currentUserId === targetUserId && !['MASTER', 'ADMIN'].includes(currentUser?.role || '')) {
+        delete updateData.role;
+        delete updateData.isManager;
+        delete updateData.managerId;
+        delete updateData.isActive;
+      }
+
+      const updatedUser = await storage.updateUser(targetUserId, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(400).json({ message: "Erro ao atualizar usuário" });
+    }
+  });
+
   app.patch('/api/usuarios/:id', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
