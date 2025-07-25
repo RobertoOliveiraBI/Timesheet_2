@@ -43,7 +43,10 @@ export default function LoginPage() {
   useEffect(() => {
     if (loginMutation.isSuccess && loginMutation.data) {
       const defaultRoute = getDefaultRoute(loginMutation.data);
-      setLocation(defaultRoute);
+      // Use setTimeout to ensure the user state is updated before redirect
+      setTimeout(() => {
+        setLocation(defaultRoute);
+      }, 100);
     }
   }, [loginMutation.isSuccess, loginMutation.data, setLocation]);
 

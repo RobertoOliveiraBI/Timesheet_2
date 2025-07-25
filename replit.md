@@ -74,6 +74,8 @@ The application follows a modern full-stack architecture with clear separation b
 - **Authentication Fix**: Corrected corrupted password hash for collaborator user (roberto@cappei.com)
 - **Documentation**: Created comprehensive README.md for project handover and debugging
 - **Validation**: Confirmed API access works for both MASTER and COLABORADOR roles
+- **Post-Login Redirection**: Implemented complete role-based redirection system with Landing page
+- **Security Enhancement**: Updated /api/user endpoint to exclude password from responses
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions

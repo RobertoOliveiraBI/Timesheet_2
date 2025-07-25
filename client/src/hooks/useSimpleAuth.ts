@@ -47,15 +47,13 @@ export function useAuth() {
       }
 
       const userData = await response.json();
-      
-      // Invalidate and refetch user data
-      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
       return userData;
     },
     onSuccess: (userData) => {
-      // User data will be available through the query after invalidation
-      console.log("Login successful:", userData);
+      // Set user data immediately and invalidate to refetch
+      queryClient.setQueryData(["/api/user"], userData);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
       toast({
         title: "Login realizado com sucesso",
         description: `Bem-vindo, ${userData.firstName || userData.email}!`,
