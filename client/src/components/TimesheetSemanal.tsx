@@ -457,7 +457,7 @@ export function TimesheetSemanal() {
     mutationFn: async () => {
       if (!entradaEditando) return;
       
-      await apiRequest("PUT", `/api/time-entries/${entradaEditando.id}`, {
+      await apiRequest("PATCH", `/api/time-entries/${entradaEditando.id}`, {
         hours: horasEditando
       });
     },
@@ -473,7 +473,9 @@ export function TimesheetSemanal() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
-        queryClient.refetchQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/timesheet/semana"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/user-stats"] }),
+        refetchHistorico(),
         refetchEntradas()
       ]);
     },
