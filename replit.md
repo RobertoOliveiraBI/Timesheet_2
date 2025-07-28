@@ -82,9 +82,10 @@ The application follows a modern full-stack architecture with clear separation b
   - **NEW**: Added status filter to reports for better data segmentation
   - **NEW**: Colorized status badges across all interfaces for better visual identification
 - **Status Badge System**: Implemented unified status visualization across all interfaces
-  - Color-coded badges: Gray (Rascunho), Blue (Salvo), Yellow (Em Validação), Green (Aprovado), Red (Rejeitado)
+  - Color-coded badges: Gray (Rascunho), Blue (Salvo), Yellow (Em Validação), Green (Aprovado)
   - Applied to Reports, Monthly History, and Manager Approval interfaces
   - Consistent visual language throughout the application
+  - **CORRECTION**: Removed "REJEITADO" status - rejected entries return to "RASCUNHO" for editing
 - **UI Enhancements**: 
   - Added send icons and proper button states in monthly history
   - Batch action button appears only when draft entries exist

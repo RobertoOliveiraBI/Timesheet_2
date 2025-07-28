@@ -25,11 +25,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
           label: "Aprovado",
           className: "bg-green-100 text-green-800 border-green-200"
         };
-      case "REJEITADO":
-        return {
-          label: "Rejeitado",
-          className: "bg-red-100 text-red-800 border-red-200"
-        };
+
       default:
         return {
           label: status || "Não definido",

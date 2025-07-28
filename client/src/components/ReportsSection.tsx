@@ -140,7 +140,7 @@ export function ReportsSection() {
     ]);
 
     const csvContent = [headers, ...rows]
-      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .map(row => row.map((cell: any) => `"${cell}"`).join(','))
       .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -183,7 +183,7 @@ export function ReportsSection() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os clientes</SelectItem>
-                  {clientes.map((cliente: any) => (
+                  {(clientes as any[]).map((cliente: any) => (
                     <SelectItem key={cliente.id} value={cliente.id.toString()}>
                       {cliente.tradeName || cliente.companyName}
                     </SelectItem>
@@ -226,7 +226,6 @@ export function ReportsSection() {
                   <SelectItem value="SALVO">Salvo</SelectItem>
                   <SelectItem value="VALIDACAO">Em Validação</SelectItem>
                   <SelectItem value="APROVADO">Aprovado</SelectItem>
-                  <SelectItem value="REJEITADO">Rejeitado</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -23,10 +23,7 @@ export const getStatusConfig = (status: string): StatusConfig => {
       variant: 'secondary', 
       className: 'bg-green-100 text-green-800 border-green-300' 
     },
-    'REJEITADO': { 
-      label: 'Rejeitado', 
-      variant: 'destructive' 
-    },
+
   };
   
   return statusConfigs[status] || statusConfigs.RASCUNHO;
