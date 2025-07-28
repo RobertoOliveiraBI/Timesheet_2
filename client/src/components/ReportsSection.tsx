@@ -155,7 +155,7 @@ export function ReportsSection() {
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "dd/MM/yyyy");
+    return format(new Date(dateString + 'T00:00:00'), "dd/MM/yyyy");
   };
 
   // Função para download CSV

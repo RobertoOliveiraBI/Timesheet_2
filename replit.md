@@ -108,6 +108,10 @@ The application follows a modern full-stack architecture with clear separation b
   - **Security**: Collaborators cannot access campaigns without explicit permission assignment
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
 - **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
+- **Date Display Fix**: Corrected timezone issues in date formatting across all components
+  - **FIXED**: Date entries now display correctly (28/07 shows as 28/07, not 27/07)
+  - **IMPROVEMENT**: Added 'T00:00:00' suffix to date strings before parsing to prevent timezone shifting
+  - **CONSISTENCY**: Applied fix to all date formatting functions in timesheet, reports, and approval components
 - **Performance**: Optimized query invalidation and real-time data updates across all modules
 
 ### User Interface Components

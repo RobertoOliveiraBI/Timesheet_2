@@ -896,11 +896,11 @@ export function TimesheetSemanal() {
                       </thead>
                       <tbody>
                         {historicoMensal
-                          .sort((a: EntradaSalva, b: EntradaSalva) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .sort((a: EntradaSalva, b: EntradaSalva) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime())
                           .map((entrada: EntradaSalva) => (
                           <tr key={entrada.id} className="hover:bg-gray-50 border-b border-gray-200">
                             <td className="p-3">
-                              {format(new Date(entrada.date), "dd/MM/yyyy")}
+                              {format(new Date(entrada.date + 'T00:00:00'), "dd/MM/yyyy")}
                             </td>
                             <td className="p-3">
                               {entrada.clienteNome}
@@ -1000,7 +1000,7 @@ export function TimesheetSemanal() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <Label className="font-medium">Data:</Label>
-                <p>{format(new Date(entradaEditando.date), "dd/MM/yyyy")}</p>
+                <p>{format(new Date(entradaEditando.date + 'T00:00:00'), "dd/MM/yyyy")}</p>
               </div>
               <div>
                 <Label className="font-medium">Cliente:</Label>
