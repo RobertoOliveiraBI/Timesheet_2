@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,11 +150,10 @@ export function TimesheetSemanal() {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Carregar e processar entradas existentes quando dados chegam
-  useEffect(() => {
+  // Processar entradas existentes usando useMemo para evitar loops
+  const linhasProcessadas = useMemo(() => {
     if (!entradasExistentes || !Array.isArray(entradasExistentes) || entradasExistentes.length === 0) {
-      setLinhas([]);
-      return;
+      return [];
     }
 
     const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
@@ -208,8 +207,13 @@ export function TimesheetSemanal() {
       }, 0);
     });
 
-    setLinhas(Object.values(linhasAgrupadas));
-  }, [entradasExistentes?.length, inicioSemana]);
+    return Object.values(linhasAgrupadas);
+  }, [entradasExistentes]);
+
+  // Sincronizar linhas processadas com o estado
+  useEffect(() => {
+    setLinhas(linhasProcessadas);
+  }, [linhasProcessadas]);
 
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
