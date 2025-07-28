@@ -9,6 +9,8 @@ import {
   LogOut
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { useValidationCount } from "@/hooks/useValidationCount";
+import { Badge } from "@/components/ui/badge";
 
 const navigation = [
   { name: "Lançar Horas", href: "/timesheet", icon: Clock, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
@@ -20,6 +22,7 @@ const navigation = [
 export function Sidebar() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const validationCount = useValidationCount();
 
   const userInitials = user ? 
     `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() : 
@@ -81,10 +84,10 @@ export function Sidebar() {
                 >
                   <Icon className="w-5 h-5 mr-3" />
                   {item.name}
-                  {item.name === "Área do Gestor" && (
-                    <span className="ml-auto bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full">
-                      3
-                    </span>
+                  {item.name === "Área do Gestor" && validationCount > 0 && (
+                    <Badge variant="secondary" className="ml-auto bg-amber-100 text-amber-800 text-xs">
+                      {validationCount}
+                    </Badge>
                   )}
                 </button>
               );

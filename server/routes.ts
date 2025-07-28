@@ -387,6 +387,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Validation route for managers
+  app.get('/api/time-entries/validation', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Buscar entradas em VALIDACAO que o gestor pode gerenciar
+      let entries;
+      if (user.role === 'GESTOR' && user.isManager) {
+        // Gestor vê apenas entradas de sua equipe
+        entries = await db.query.timeEntries.findMany({
+          where: and(
+            eq(timeEntries.status, "VALIDACAO")
+          ),
+          with: {
+            user: true,
+            campaign: {
+              with: {
+                client: true,
+              },
+            },
+            campaignTask: {
+              with: {
+                taskType: true,
+              },
+            },
+          },
+        });
+        
+        // Filtrar apenas colaboradores gerenciados por este gestor
+        entries = entries.filter(entry => entry.user.managerId === user.id);
+      } else {
+        // MASTER e ADMIN veem todas as entradas
+        entries = await db.query.timeEntries.findMany({
+          where: eq(timeEntries.status, "VALIDACAO"),
+          with: {
+            user: true,
+            campaign: {
+              with: {
+                client: true,
+              },
+            },
+            campaignTask: {
+              with: {
+                taskType: true,
+              },
+            },
+          },
+        });
+      }
+
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching validation entries:", error);
+      res.status(500).json({ message: "Failed to fetch validation entries" });
+    }
+  });
+
+  // Validation count for badge
+  app.get('/api/time-entries/validation-count', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.json({ count: 0 });
+      }
+
+      let count;
+      if (user.role === 'GESTOR' && user.isManager) {
+        // Gestor conta apenas entradas de sua equipe
+        const entries = await db.query.timeEntries.findMany({
+          where: eq(timeEntries.status, "VALIDACAO"),
+          with: {
+            user: true,
+          },
+        });
+        
+        count = entries.filter(entry => entry.user.managerId === user.id).length;
+      } else {
+        // MASTER e ADMIN contam todas as entradas
+        const entries = await db.query.timeEntries.findMany({
+          where: eq(timeEntries.status, "VALIDACAO"),
+        });
+        count = entries.length;
+      }
+
+      res.json({ count });
+    } catch (error) {
+      console.error("Error counting validation entries:", error);
+      res.json({ count: 0 });
+    }
+  });
+
   // Reports routes
   app.get('/api/reports/user-stats', requireAuth, async (req: any, res) => {
     try {
