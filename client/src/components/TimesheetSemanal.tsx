@@ -74,6 +74,10 @@ export function TimesheetSemanal() {
   const [entradaEditando, setEntradaEditando] = useState<EntradaSalva | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [horasEditando, setHorasEditando] = useState("");
+  
+  // Estados para confirmação de exclusão
+  const [entradaParaExcluir, setEntradaParaExcluir] = useState<EntradaSalva | null>(null);
+  const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -418,6 +422,21 @@ export function TimesheetSemanal() {
     setEntradaEditando(null);
     setHorasEditando("");
     setModalAberto(false);
+  };
+
+  // Abrir modal de confirmação de exclusão
+  const abrirModalExclusao = (entrada: EntradaSalva) => {
+    setEntradaParaExcluir(entrada);
+    setModalExclusaoAberto(true);
+  };
+
+  // Confirmar exclusão
+  const confirmarExclusao = () => {
+    if (entradaParaExcluir) {
+      excluirEntrada.mutate(entradaParaExcluir.id);
+      setModalExclusaoAberto(false);
+      setEntradaParaExcluir(null);
+    }
   };
 
   // Mutation para editar entrada
@@ -794,21 +813,23 @@ export function TimesheetSemanal() {
                             </td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1">
-                                {(entrada.status === 'RASCUNHO' || entrada.status === 'REJEITADO') && (
+                                {entrada.status !== 'APROVADO' && (
                                   <>
+                                    {(entrada.status === 'RASCUNHO' || entrada.status === 'REJEITADO') && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => abrirModalEdicao(entrada)}
+                                        className="h-8 w-8 p-0"
+                                        title="Editar"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    )}
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      onClick={() => abrirModalEdicao(entrada)}
-                                      className="h-8 w-8 p-0"
-                                      title="Editar"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => excluirEntrada.mutate(entrada.id)}
+                                      onClick={() => abrirModalExclusao(entrada)}
                                       className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
                                       title="Excluir"
                                       disabled={excluirEntrada.isPending}
@@ -816,6 +837,9 @@ export function TimesheetSemanal() {
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
                                   </>
+                                )}
+                                {entrada.status === 'APROVADO' && (
+                                  <span className="text-xs text-gray-500">Validado</span>
                                 )}
                               </div>
                             </td>
@@ -894,6 +918,62 @@ export function TimesheetSemanal() {
                 disabled={editarEntrada.isPending}
               >
                 {editarEntrada.isPending ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Confirmação de Exclusão */}
+    <Dialog open={modalExclusaoAberto} onOpenChange={setModalExclusaoAberto}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmar Exclusão</DialogTitle>
+        </DialogHeader>
+        
+        {entradaParaExcluir && (
+          <div className="space-y-4">
+            <p>Tem certeza que deseja excluir esta entrada de timesheet?</p>
+            
+            <div className="bg-gray-50 p-4 rounded">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Data:</span>
+                  <p>{format(new Date(entradaParaExcluir.date), "dd/MM/yyyy")}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Horas:</span>
+                  <p>{entradaParaExcluir.hours}h</p>
+                </div>
+                <div>
+                  <span className="font-medium">Cliente:</span>
+                  <p>{entradaParaExcluir.clienteNome}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Campanha:</span>
+                  <p>{entradaParaExcluir.campanhaNome}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium">Tarefa:</span>
+                  <p>{entradaParaExcluir.tarefaNome}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setModalExclusaoAberto(false)}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={confirmarExclusao}
+                disabled={excluirEntrada.isPending}
+              >
+                {excluirEntrada.isPending ? "Excluindo..." : "Excluir"}
               </Button>
             </div>
           </div>
