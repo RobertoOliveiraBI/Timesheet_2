@@ -81,13 +81,17 @@ export function ReportsSection() {
       .filter((entry: any) => entry.campaignTask?.taskType?.isBillable)
       .reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
     const nonBillableHours = totalHours - billableHours;
-    const activeUsers = new Set(timeEntries.map((entry: any) => entry.userId)).size;
+    const clientesAtendidos = new Set(
+      timeEntries
+        .map((entry: any) => entry.campaign?.client?.id)
+        .filter(Boolean)
+    ).size;
     
     return {
       totalHours,
       billableHours,
       nonBillableHours,
-      activeUsers,
+      clientesAtendidos,
       utilization: totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0
     };
   }, [timeEntries]);
@@ -229,9 +233,9 @@ export function ReportsSection() {
           iconBgColor="bg-purple-100"
         />
         <StatsCard
-          title="Colaboradores"
-          value={stats.activeUsers.toString()}
-          subtitle="Colaboradores ativos"
+          title="Clientes"
+          value={(stats.clientesAtendidos || 0).toString()}
+          subtitle="Clientes atendidos"
           icon={Users}
           iconColor="text-orange-600"
           iconBgColor="bg-orange-100"
