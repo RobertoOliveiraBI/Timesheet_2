@@ -15,6 +15,7 @@ import {
   clients as clientsTable,
   campaigns as campaignsTable,
   campaignTasks as campaignTasksTable,
+  campaignUsers as campaignUsersTable,
   timeEntries,
 } from "@shared/schema";
 import { z } from "zod";
@@ -845,7 +846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campanhas - Todos os usuários autenticados podem acessar
+  // Campanhas com controle de acesso por usuário
   app.get('/api/campaigns', requireAuth, async (req: any, res) => {
     try {
       console.log('API /api/campaigns chamada - user:', req.user?.id);
@@ -857,8 +858,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('User role:', user.role);
       
-      // Todos os usuários autenticados podem ver campanhas (necessário para timesheet)
-      const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      let campaigns;
+      if (['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        // Admins, masters e gestores veem todas as campanhas ativas
+        campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      } else {
+        // Colaboradores veem apenas campanhas às quais têm acesso
+        campaigns = await db.select({
+          id: campaignsTable.id,
+          name: campaignsTable.name,
+          description: campaignsTable.description,
+          contractStartDate: campaignsTable.contractStartDate,
+          contractEndDate: campaignsTable.contractEndDate,
+          contractValue: campaignsTable.contractValue,
+          clientId: campaignsTable.clientId,
+          isActive: campaignsTable.isActive,
+          createdAt: campaignsTable.createdAt,
+        })
+        .from(campaignsTable)
+        .innerJoin(campaignUsersTable, eq(campaignUsersTable.campaignId, campaignsTable.id))
+        .where(and(
+          eq(campaignsTable.isActive, true),
+          eq(campaignUsersTable.userId, user.id)
+        ));
+      }
       
       console.log('Campanhas encontradas:', campaigns.length);
       res.json(campaigns);
@@ -880,8 +903,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('User role:', user.role);
       
-      // Todos os usuários autenticados podem ver campanhas (necessário para timesheet)
-      const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      let campaigns;
+      if (['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        // Admins, masters e gestores veem todas as campanhas ativas
+        campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      } else {
+        // Colaboradores veem apenas campanhas às quais têm acesso
+        campaigns = await db.select({
+          id: campaignsTable.id,
+          name: campaignsTable.name,
+          description: campaignsTable.description,
+          contractStartDate: campaignsTable.contractStartDate,
+          contractEndDate: campaignsTable.contractEndDate,
+          contractValue: campaignsTable.contractValue,
+          clientId: campaignsTable.clientId,
+          isActive: campaignsTable.isActive,
+          createdAt: campaignsTable.createdAt,
+        })
+        .from(campaignsTable)
+        .innerJoin(campaignUsersTable, eq(campaignUsersTable.campaignId, campaignsTable.id))
+        .where(and(
+          eq(campaignsTable.isActive, true),
+          eq(campaignUsersTable.userId, user.id)
+        ));
+      }
       
       console.log('Campanhas encontradas:', campaigns.length);
       res.json(campaigns);
@@ -937,6 +982,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting campaign:", error);
       res.status(400).json({ message: "Erro ao remover campanha" });
+    }
+  });
+
+  // Gestão de acesso de colaboradores às campanhas
+  app.get('/api/campanhas/:id/colaboradores', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaignId = parseInt(req.params.id);
+      const collaborators = await db.query.campaignUsers.findMany({
+        where: eq(campaignUsersTable.campaignId, campaignId),
+        with: {
+          user: true,
+        },
+      });
+
+      res.json(collaborators.map(cu => cu.user));
+    } catch (error) {
+      console.error("Error fetching campaign collaborators:", error);
+      res.status(500).json({ message: "Erro ao buscar colaboradores da campanha" });
+    }
+  });
+
+  app.post('/api/campanhas/:id/colaboradores', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaignId = parseInt(req.params.id);
+      const { userId } = req.body;
+
+      // Verificar se já existe
+      const existing = await db.query.campaignUsers.findFirst({
+        where: and(
+          eq(campaignUsersTable.campaignId, campaignId),
+          eq(campaignUsersTable.userId, parseInt(userId))
+        ),
+      });
+
+      if (existing) {
+        return res.status(400).json({ message: "Colaborador já tem acesso a esta campanha" });
+      }
+
+      await storage.addUserToCampaign(campaignId, parseInt(userId));
+      res.status(201).json({ message: "Colaborador adicionado à campanha com sucesso" });
+    } catch (error) {
+      console.error("Error adding collaborator to campaign:", error);
+      res.status(400).json({ message: "Erro ao adicionar colaborador à campanha" });
+    }
+  });
+
+  app.delete('/api/campanhas/:campaignId/colaboradores/:userId', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const campaignId = parseInt(req.params.campaignId);
+      const userId = parseInt(req.params.userId);
+
+      await db.delete(campaignUsersTable)
+        .where(and(
+          eq(campaignUsersTable.campaignId, campaignId),
+          eq(campaignUsersTable.userId, userId)
+        ));
+
+      res.json({ message: "Colaborador removido da campanha com sucesso" });
+    } catch (error) {
+      console.error("Error removing collaborator from campaign:", error);
+      res.status(400).json({ message: "Erro ao remover colaborador da campanha" });
     }
   });
 
@@ -1273,13 +1394,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Usuário não encontrado" });
       }
       
-      // Todos os usuários autenticados podem ver tarefas (necessário para timesheet)
-      const campaignTasks = await db.select({
-        id: campaignTasksTable.id,
-        campaignId: campaignTasksTable.campaignId,
-        taskTypeId: campaignTasksTable.taskTypeId,
-        description: campaignTasksTable.description
-      }).from(campaignTasksTable).where(eq(campaignTasksTable.isActive, true));
+      // Buscar tarefas com informações de campanha e cliente para melhor visualização
+      const campaignTasks = await db.query.campaignTasks.findMany({
+        where: eq(campaignTasksTable.isActive, true),
+        with: {
+          campaign: {
+            with: {
+              client: true,
+            },
+          },
+          taskType: true,
+        },
+      });
       
       res.json(campaignTasks);
     } catch (error) {

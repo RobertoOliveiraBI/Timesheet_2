@@ -23,6 +23,7 @@ import {
   type InsertTimeEntry,
   type TimeEntry,
   type InsertCampaignUser,
+  type CampaignUser,
   type TimeEntryWithRelations,
   type CampaignWithRelations,
   systemConfig,

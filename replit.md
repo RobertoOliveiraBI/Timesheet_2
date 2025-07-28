@@ -99,6 +99,13 @@ The application follows a modern full-stack architecture with clear separation b
   - **NEW**: Implemented pagination for reports when more than 100 entries (100 entries per page)
   - **NEW**: Pagination controls with page numbers, navigation buttons, and entry count display
   - **REFINED**: Collaborator filter now shows only users with COLABORADOR role for better usability
+- **Campaign Access Control System**: Implemented complete system for managing collaborator access to campaigns
+  - **NEW**: Campaign access endpoints (`/api/campanhas/:id/colaboradores`) for admin management
+  - **NEW**: Role-based campaign filtering - collaborators see only assigned campaigns, admins see all
+  - **NEW**: CampaignAccessModal component for intuitive permission management in admin interface
+  - **NEW**: Enhanced task visualization with client and campaign information displayed below descriptions
+  - **Automatic Assignment**: When creating new campaigns, access control must be explicitly managed
+  - **Security**: Collaborators cannot access campaigns without explicit permission assignment
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
 - **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
 - **Performance**: Optimized query invalidation and real-time data updates across all modules

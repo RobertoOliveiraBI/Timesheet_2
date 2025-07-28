@@ -29,10 +29,12 @@ import {
   Copy
 } from "lucide-react";
 import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal } from "./AdminModals";
+import { CampaignAccessModal } from "./CampaignAccessModal";
 
 export function AdminSection() {
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [campaignAccessModal, setCampaignAccessModal] = useState<{ isOpen: boolean; campaign: any }>({ isOpen: false, campaign: null });
   const [searchTerms, setSearchTerms] = useState({
     users: "",
     groups: "",
@@ -577,6 +579,14 @@ export function AdminSection() {
                       )}
                     </div>
                     <div className="flex space-x-1">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => setCampaignAccessModal({ isOpen: true, campaign })}
+                        title="Gerenciar acesso de colaboradores"
+                      >
+                        <UserCog className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => openModal("campaign", campaign)}>
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -750,9 +760,42 @@ export function AdminSection() {
                     <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium">{task.description}</p>
-                        <p className="text-sm text-slate-500">
-                          {task.campaign?.name} • {task.taskType?.name}
-                        </p>
+                        {/* Nova visualização melhorada com cliente e campanha */}
+                        <div className="text-sm text-slate-500 mt-1 space-y-1">
+                          {task.campaign && task.campaign.client ? (
+                            <p className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Cliente: {task.campaign.client.companyName || task.campaign.client.tradeName}
+                            </p>
+                          ) : (
+                            <p className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3" />
+                              Cliente: {clients.find(c => campaigns.find(camp => camp.id === task.campaignId)?.clientId === c.id)?.companyName || 'N/A'}
+                            </p>
+                          )}
+                          {task.campaign ? (
+                            <p className="flex items-center gap-1">
+                              <Target className="w-3 h-3" />
+                              Campanha: {task.campaign.name}
+                            </p>
+                          ) : (
+                            <p className="flex items-center gap-1">
+                              <Target className="w-3 h-3" />
+                              Campanha: {campaigns.find(c => c.id === task.campaignId)?.name || 'N/A'}
+                            </p>
+                          )}
+                          {task.taskType ? (
+                            <p className="flex items-center gap-1">
+                              <Tags className="w-3 h-3" />
+                              Tipo: {task.taskType.name}
+                            </p>
+                          ) : (
+                            <p className="flex items-center gap-1">
+                              <Tags className="w-3 h-3" />
+                              Tipo: {taskTypes.find(t => t.id === task.taskTypeId)?.name || 'N/A'}
+                            </p>
+                          )}
+                        </div>
                         {task.taskType?.color && (
                           <div className="flex items-center gap-2 mt-1">
                             <div 
@@ -851,6 +894,13 @@ export function AdminSection() {
           />
         )}
       </Dialog>
+
+      {/* Modal de Acesso à Campanha */}
+      <CampaignAccessModal
+        isOpen={campaignAccessModal.isOpen}
+        onClose={() => setCampaignAccessModal({ isOpen: false, campaign: null })}
+        campaign={campaignAccessModal.campaign}
+      />
     </div>
   );
 }
