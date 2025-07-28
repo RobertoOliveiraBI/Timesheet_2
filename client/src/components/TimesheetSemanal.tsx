@@ -216,10 +216,15 @@ export function TimesheetSemanal() {
 
   // Sincronizar linhas processadas com o estado apenas quando necessário
   useEffect(() => {
-    if (JSON.stringify(linhasProcessadas) !== JSON.stringify(linhas)) {
-      setLinhas(linhasProcessadas);
+    // Preservar linhas manuais e atualizar apenas as linhas existentes
+    const linhasManuais = linhas.filter(linha => linha.id.startsWith('linha-'));
+    const linhasExistentesAtuais = linhas.filter(linha => !linha.id.startsWith('linha-'));
+    
+    // Só atualizar se as linhas existentes mudaram
+    if (JSON.stringify(linhasProcessadas) !== JSON.stringify(linhasExistentesAtuais)) {
+      setLinhas([...linhasProcessadas, ...linhasManuais]);
     }
-  }, [linhasProcessadas.length, inicioSemana]);
+  }, [linhasProcessadas, inicioSemana]);
 
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
@@ -251,7 +256,8 @@ export function TimesheetSemanal() {
       },
       totalHoras: 0
     };
-    setLinhas([...linhas, novaLinha]);
+    
+    setLinhas(linhasAtuais => [...linhasAtuais, novaLinha]);
   };
 
   // Remover linha
