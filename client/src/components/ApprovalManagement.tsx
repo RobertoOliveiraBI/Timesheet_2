@@ -76,9 +76,11 @@ export function ApprovalManagement() {
 
   // Buscar campanhas
   const { data: campaigns = [] } = useQuery<any[]>({
-    queryKey: ["/api/campaigns"],
+    queryKey: ["/api/campanhas"],
     staleTime: 5 * 60 * 1000,
   });
+
+
 
   // Filtrar entradas com base nos filtros selecionados
   const filteredEntries = useMemo(() => {

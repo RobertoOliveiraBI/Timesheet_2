@@ -851,6 +851,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alias para /api/campaigns em português
+  app.get('/api/campanhas', requireAuth, async (req: any, res) => {
+    try {
+      console.log('API /api/campanhas chamada - user:', req.user?.id);
+      
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(403).json({ message: "Usuário não encontrado" });
+      }
+      
+      console.log('User role:', user.role);
+      
+      // Todos os usuários autenticados podem ver campanhas (necessário para timesheet)
+      const campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
+      
+      console.log('Campanhas encontradas:', campaigns.length);
+      res.json(campaigns);
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      res.status(500).json({ message: "Erro ao buscar campanhas", error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
   app.post('/api/campanhas', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
