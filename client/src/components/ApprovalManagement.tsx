@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Check, X, Filter, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { StatusBadge } from "./StatusBadge";
 
 interface TimeEntry {
   id: number;
@@ -383,9 +384,7 @@ export function ApprovalManagement() {
                       </TableCell>
                       <TableCell>{formatHours(entry.hours)}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                          Em validação
-                        </Badge>
+                        <StatusBadge status={entry.status} />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2 justify-center">

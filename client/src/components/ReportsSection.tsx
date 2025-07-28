@@ -13,6 +13,7 @@ import {
   Download
 } from "lucide-react";
 import { StatsCard } from "./StatsCard";
+import { StatusBadge } from "./StatusBadge";
 import { getStatusLabel } from "@/lib/statusUtils";
 
 export function ReportsSection() {
@@ -20,6 +21,7 @@ export function ReportsSection() {
     month: format(new Date(), "yyyy-MM"),
     clientId: "all",
     campaignId: "all",
+    status: "all",
   });
 
   // Buscar clientes
@@ -43,7 +45,7 @@ export function ReportsSection() {
 
   // Buscar entradas filtradas
   const { data: timeEntries = [] } = useQuery({
-    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId],
+    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId, filters.status],
     queryFn: async () => {
       const [year, month] = filters.month.split("-");
       const startDate = format(startOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
@@ -67,6 +69,13 @@ export function ReportsSection() {
       if (filters.campaignId !== "all") {
         entries = entries.filter((entry: any) => 
           entry.campaignId?.toString() === filters.campaignId
+        );
+      }
+      
+      // Filtrar por status se especificado
+      if (filters.status !== "all") {
+        entries = entries.filter((entry: any) => 
+          entry.status === filters.status
         );
       }
       
@@ -153,7 +162,7 @@ export function ReportsSection() {
           <CardTitle>Filtros do Relatório</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Mês/Ano</label>
               <input
@@ -199,6 +208,25 @@ export function ReportsSection() {
                       {campanha.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Status</label>
+              <Select
+                value={filters.status}
+                onValueChange={(value) => setFilters({ ...filters, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="RASCUNHO">Rascunho</SelectItem>
+                  <SelectItem value="SALVO">Salvo</SelectItem>
+                  <SelectItem value="VALIDACAO">Em Validação</SelectItem>
+                  <SelectItem value="APROVADO">Aprovado</SelectItem>
+                  <SelectItem value="REJEITADO">Rejeitado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -325,7 +353,7 @@ export function ReportsSection() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        {getStatusLabel(entry.status)}
+                        <StatusBadge status={entry.status} />
                       </td>
                     </tr>
                   ))}

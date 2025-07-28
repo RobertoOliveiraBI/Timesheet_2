@@ -79,12 +79,19 @@ The application follows a modern full-stack architecture with clear separation b
   - Correct indicators: Total hours, billable hours, non-billable hours, and clients served
   - Detailed reports table with all filtered entries
   - CSV-only download functionality (removed Excel and PDF options)
+  - **NEW**: Added status filter to reports for better data segmentation
+  - **NEW**: Colorized status badges across all interfaces for better visual identification
+- **Status Badge System**: Implemented unified status visualization across all interfaces
+  - Color-coded badges: Gray (Rascunho), Blue (Salvo), Yellow (Em Validação), Green (Aprovado), Red (Rejeitado)
+  - Applied to Reports, Monthly History, and Manager Approval interfaces
+  - Consistent visual language throughout the application
 - **UI Enhancements**: 
   - Added send icons and proper button states in monthly history
   - Batch action button appears only when draft entries exist
   - Individual send buttons for each RASCUNHO entry
   - Status indicators for entries in VALIDACAO state
   - Dashboard indicators expanded to 5 cards including "Horas este mês"
+  - Enhanced reports filters now include 4 columns: Month/Year, Client, Campaign, Status
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
 - **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
 - **Performance**: Optimized query invalidation and real-time data updates across all modules

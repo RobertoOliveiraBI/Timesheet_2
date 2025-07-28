@@ -13,6 +13,7 @@ import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getStatusConfig } from "@/lib/statusUtils";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "./StatusBadge";
 
 interface Cliente {
   id: number;
@@ -914,12 +915,7 @@ export function TimesheetSemanal() {
                               {entrada.hours}h
                             </td>
                             <td className="p-3 text-center">
-                              <Badge 
-                                variant={getStatusConfig(entrada.status).variant}
-                                className={getStatusConfig(entrada.status).className}
-                              >
-                                {getStatusConfig(entrada.status).label}
-                              </Badge>
+                              <StatusBadge status={entrada.status} />
                             </td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1">
