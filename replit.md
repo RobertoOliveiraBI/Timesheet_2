@@ -98,6 +98,7 @@ The application follows a modern full-stack architecture with clear separation b
   - **NEW**: Added collaborator filter to reports for filtering entries by specific users
   - **NEW**: Implemented pagination for reports when more than 100 entries (100 entries per page)
   - **NEW**: Pagination controls with page numbers, navigation buttons, and entry count display
+  - **REFINED**: Collaborator filter now shows only users with COLABORADOR role for better usability
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
 - **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
 - **Performance**: Optimized query invalidation and real-time data updates across all modules

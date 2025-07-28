@@ -549,15 +549,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Alias em inglês para compatibilidade
+  // Alias em inglês para compatibilidade - retorna apenas colaboradores
   app.get('/api/users', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
       if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Acesso negado" });
       }
-      const users = await storage.getAllUsers();
-      res.json(users);
+      const allUsers = await storage.getAllUsers();
+      // Filtrar apenas usuários com role COLABORADOR
+      const colaboradores = allUsers.filter(u => u.role === 'COLABORADOR');
+      res.json(colaboradores);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Erro ao buscar usuários" });
