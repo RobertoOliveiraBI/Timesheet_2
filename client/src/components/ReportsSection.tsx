@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -10,7 +11,8 @@ import {
   DollarSign, 
   TrendingUp, 
   Users,
-  Download
+  Download,
+  MessageCircle
 } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { StatusBadge } from "./StatusBadge";
@@ -124,6 +126,7 @@ export function ReportsSection() {
       "Horas",
       "Tipo",
       "Status",
+      "Comentário do Gestor",
       "Descrição"
     ];
 
@@ -136,6 +139,7 @@ export function ReportsSection() {
       entry.hours,
       entry.campaignTask?.taskType?.isBillable ? 'Faturável' : 'Não faturável',
       getStatusLabel(entry.status),
+      entry.reviewComment || '',
       entry.description || ''
     ]);
 
@@ -319,6 +323,9 @@ export function ReportsSection() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Comentário
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -353,6 +360,48 @@ export function ReportsSection() {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <StatusBadge status={entry.status} />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-center">
+                        {entry.reviewComment ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-600 hover:text-blue-800"
+                                title="Ver comentário do gestor"
+                              >
+                                <MessageCircle className="w-4 h-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>Comentário do Gestor</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="text-sm text-gray-600">
+                                  <strong>Entrada:</strong> {formatDate(entry.date)} - {entry.hours}h
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  <strong>Tarefa:</strong> {entry.campaignTask?.description || '-'}
+                                </div>
+                                <div className="bg-gray-50 p-3 rounded-md">
+                                  <div className="text-sm font-medium text-gray-700 mb-2">Comentário:</div>
+                                  <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                                    {entry.reviewComment}
+                                  </div>
+                                </div>
+                                {entry.reviewedAt && (
+                                  <div className="text-xs text-gray-500">
+                                    Comentado em: {format(new Date(entry.reviewedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </div>
+                                )}
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}
