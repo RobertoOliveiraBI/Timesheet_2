@@ -63,6 +63,12 @@ The application follows a modern full-stack architecture with clear separation b
 - **Task Types**: Configurable activity categories for precise time classification
 
 ### Recent Updates (January 28, 2025)
+- **Manager Approval System**: Complete implementation of enhanced approval interface
+  - Comprehensive filtering by collaborator, month, client, and campaign
+  - Individual and batch approval buttons with proper status transitions
+  - Badge counter showing pending validations in manager menu (Área do Gestor)
+  - Specialized endpoint `/api/time-entries/validation` for manager access control
+  - Real-time validation count updates with automatic refresh every 30 seconds
 - **Validation Workflow**: Implemented complete validation submission system in monthly history
   - Individual line validation: Send single entries from RASCUNHO to VALIDACAO status
   - Batch validation: Send all draft entries for validation with one click
@@ -80,6 +86,7 @@ The application follows a modern full-stack architecture with clear separation b
   - Status indicators for entries in VALIDACAO state
   - Dashboard indicators expanded to 5 cards including "Horas este mês"
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
+- **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
 - **Performance**: Optimized query invalidation and real-time data updates across all modules
 
 ### User Interface Components
