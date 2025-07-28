@@ -130,14 +130,14 @@ export function TimesheetSemanal() {
     staleTime: 30 * 1000,
   });
 
-  // Buscar histórico mensal de entradas - sempre ativo
+  // Buscar histórico mensal de entradas - sempre ativo (apenas do usuário logado)
   const { data: historicoMensal = [], refetch: refetchHistorico } = useQuery<EntradaSalva[]>({
     queryKey: ["/api/time-entries/mensal", format(mesAtual, "yyyy-MM")],
     queryFn: async () => {
       const inicioMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1), "yyyy-MM-dd");
       const fimMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 0), "yyyy-MM-dd");
       
-      const response = await fetch(`/api/time-entries?fromDate=${inicioMes}&toDate=${fimMes}`, { credentials: "include" });
+      const response = await fetch(`/api/time-entries/user?fromDate=${inicioMes}&toDate=${fimMes}`, { credentials: "include" });
       if (!response.ok) return [];
       
       const data = await response.json();

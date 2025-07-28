@@ -267,6 +267,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get time entries for current user only (used in monthly history)
+  app.get('/api/time-entries/user', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const { fromDate, toDate } = req.query;
+      
+      // Always return only current user's entries
+      const entries = await storage.getTimeEntriesByUser(userId, fromDate, toDate);
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching user time entries:", error);
+      res.status(500).json({ message: "Failed to fetch user time entries" });
+    }
+  });
+
   app.post('/api/time-entries', requireAuth, async (req: any, res) => {
     try {
       const userId = req.user.id;
