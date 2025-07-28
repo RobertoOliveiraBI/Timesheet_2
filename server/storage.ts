@@ -73,6 +73,7 @@ export interface IStorage {
   // Time Entries
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
   getTimeEntries(userId?: number, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
+  deleteTimeEntry(id: number): Promise<void>;
   getTimeEntriesByUser(userId: number, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
   getPendingTimeEntries(managerId?: number): Promise<TimeEntryWithRelations[]>;
   updateTimeEntry(id: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry>;
@@ -728,6 +729,10 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTaskType(id: number): Promise<void> {
     await db.delete(taskTypes).where(eq(taskTypes.id, id));
+  }
+
+  async deleteTimeEntry(id: number): Promise<void> {
+    await db.delete(timeEntries).where(eq(timeEntries.id, id));
   }
 }
 

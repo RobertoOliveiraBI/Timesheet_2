@@ -15,6 +15,7 @@ import {
   clients as clientsTable,
   campaigns as campaignsTable,
   campaignTasks as campaignTasksTable,
+  timeEntries,
 } from "@shared/schema";
 import { z } from "zod";
 import { eq, and, asc, desc, gte, lte, inArray } from "drizzle-orm";
@@ -972,6 +973,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching weekly timesheet:", error);
       res.status(500).json({ message: "Erro ao buscar timesheet da semana" });
+    }
+  });
+
+  // Excluir entrada de timesheet
+  app.delete("/api/time-entries/:id", requireAuth, async (req: any, res) => {
+    try {
+      const entryId = parseInt(req.params.id);
+      const userId = req.user.id;
+
+      // Verificar se a entrada existe e pertence ao usuário
+      const entries = await storage.getTimeEntries(userId);
+      const entry = entries.find(e => e.id === entryId);
+      
+      if (!entry) {
+        return res.status(404).json({ message: "Entrada não encontrada" });
+      }
+
+      // Verificar se o usuário pode excluir esta entrada
+      if (entry.userId !== userId) {
+        const user = await storage.getUser(userId);
+        if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+          return res.status(403).json({ message: "Acesso negado" });
+        }
+      }
+
+      // Verificar se a entrada está validada (status APROVADO)
+      if (entry.status === 'APROVADO') {
+        return res.status(400).json({ 
+          message: "Entradas validadas não podem ser excluídas" 
+        });
+      }
+
+      await storage.deleteTimeEntry(entryId);
+      res.json({ message: "Entrada excluída com sucesso" });
+    } catch (error) {
+      console.error("Error deleting time entry:", error);
+      res.status(500).json({ message: "Erro ao excluir entrada" });
     }
   });
 
