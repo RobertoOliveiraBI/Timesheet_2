@@ -11,6 +11,8 @@ import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X 
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getStatusConfig } from "@/lib/statusUtils";
+import { Badge } from "@/components/ui/badge";
 
 interface Cliente {
   id: number;
@@ -150,17 +152,10 @@ export function TimesheetSemanal() {
 
   // Carregar e processar entradas existentes quando dados chegam
   useEffect(() => {
-    console.log("carregarEntradasExistentes chamada", {
-      entradasLength: entradasExistentes?.length,
-    });
-
     if (!entradasExistentes || !Array.isArray(entradasExistentes) || entradasExistentes.length === 0) {
-      console.log("Nenhuma entrada existente, limpando linhas");
       setLinhas([]);
       return;
     }
-
-    console.log("Processando entradas existentes...", entradasExistentes);
 
     const linhasAgrupadas: Record<string, LinhaTimesheet> = {};
 
@@ -176,13 +171,6 @@ export function TimesheetSemanal() {
           `Cliente ${entrada.clientId}`;
         const campanhaNome = entrada.campaign?.name || `Campanha ${entrada.campaignId}`;
         const tarefaNome = entrada.campaignTask?.description || `Tarefa ${entrada.campaignTaskId}`;
-
-        console.log("Criando linha com dados:", {
-          clienteNome,
-          campanhaNome,
-          tarefaNome,
-          entrada,
-        });
 
         linhasAgrupadas[chave] = {
           id: chave,
@@ -220,9 +208,8 @@ export function TimesheetSemanal() {
       }, 0);
     });
 
-    // Remover dependência do estado linhas para evitar loop infinito
     setLinhas(Object.values(linhasAgrupadas));
-  }, [entradasExistentes]);
+  }, [entradasExistentes?.length, inicioSemana]);
 
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
@@ -540,7 +527,7 @@ export function TimesheetSemanal() {
                     disabled={salvarTimesheet.isPending}
                   >
                     <Send className="w-4 h-4 mr-2" />
-                    Enviar para Aprovação
+                    Enviar para Validação
                   </Button>
                 </>
               )}
@@ -794,14 +781,12 @@ export function TimesheetSemanal() {
                               {entrada.hours}h
                             </td>
                             <td className="p-3 text-center">
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                entrada.status === 'APROVADO' ? 'bg-green-100 text-green-800' :
-                                entrada.status === 'VALIDACAO' ? 'bg-yellow-100 text-yellow-800' :
-                                entrada.status === 'REJEITADO' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {entrada.status}
-                              </span>
+                              <Badge 
+                                variant={getStatusConfig(entrada.status).variant}
+                                className={getStatusConfig(entrada.status).className}
+                              >
+                                {getStatusConfig(entrada.status).label}
+                              </Badge>
                             </td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1">

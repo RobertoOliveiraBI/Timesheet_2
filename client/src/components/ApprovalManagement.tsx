@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Check, X, Eye, MessageSquare } from "lucide-react";
+import { getStatusConfig } from "@/lib/statusUtils";
 
 interface TimeEntry {
   id: number;
@@ -106,20 +107,9 @@ export function ApprovalManagement() {
   });
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      'RASCUNHO': { label: 'Rascunho', variant: 'outline' as const },
-      'SALVO': { label: 'Salvo', variant: 'secondary' as const },
-      'VALIDACAO': { label: 'Em Validação', variant: 'default' as const },
-      'APROVADO': { label: 'Aprovado', variant: 'secondary' as const, className: 'bg-green-100 text-green-800 border-green-300' },
-      'REJEITADO': { label: 'Rejeitado', variant: 'destructive' as const },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.RASCUNHO;
+    const config = getStatusConfig(status);
     return (
-      <Badge 
-        variant={config.variant} 
-        className={'className' in config ? config.className : undefined}
-      >
+      <Badge variant={config.variant} className={config.className}>
         {config.label}
       </Badge>
     );
@@ -142,9 +132,9 @@ export function ApprovalManagement() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Gestão de Aprovações</CardTitle>
+          <CardTitle>Gestão de Validações</CardTitle>
           <CardDescription>
-            Gerencie e aprove as entradas de timesheet da sua equipe
+            Gerencie e valide as entradas de timesheet da sua equipe
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -155,8 +145,8 @@ export function ApprovalManagement() {
                   <SelectValue placeholder="Filtrar por status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="VALIDACAO">Em Validação</SelectItem>
-                  <SelectItem value="APROVADO">Aprovados</SelectItem>
+                  <SelectItem value="VALIDACAO">Em validação</SelectItem>
+                  <SelectItem value="APROVADO">Validados</SelectItem>
                   <SelectItem value="REJEITADO">Rejeitados</SelectItem>
                   <SelectItem value="SALVO">Salvos</SelectItem>
                 </SelectContent>
@@ -174,7 +164,7 @@ export function ApprovalManagement() {
                   size="sm"
                 >
                   <Check className="w-4 h-4 mr-2" />
-                  Aprovar Todas
+                  Validar Todas
                 </Button>
                 <Button
                   onClick={() => batchApprove.mutate({ 
@@ -288,7 +278,7 @@ export function ApprovalManagement() {
                                             disabled={approveEntry.isPending}
                                           >
                                             <Check className="w-4 h-4 mr-2" />
-                                            Aprovar
+                                            Validar
                                           </Button>
                                           <Button
                                             onClick={() => approveEntry.mutate({
