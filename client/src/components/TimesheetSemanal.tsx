@@ -220,16 +220,8 @@ export function TimesheetSemanal() {
       }, 0);
     });
 
-    const linhasNaoSalvas = linhas.filter(
-      (linha) =>
-        !Object.keys(linhasAgrupadas).includes(linha.id) &&
-        (linha.clienteId ||
-          linha.campanhaId ||
-          linha.tarefaId ||
-          Object.values(linha.horas).some((h) => parseFloat(h || "0") > 0))
-    );
-
-    setLinhas([...Object.values(linhasAgrupadas), ...linhasNaoSalvas]);
+    // Remover dependência do estado linhas para evitar loop infinito
+    setLinhas(Object.values(linhasAgrupadas));
   }, [entradasExistentes]);
 
   // Navegação de semanas

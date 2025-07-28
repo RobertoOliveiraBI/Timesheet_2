@@ -25,6 +25,13 @@ export default function Dashboard() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
 
+  // Função para formatar horas decimais em HH:MM
+  const formatHours = (hours: number) => {
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
+  };
+
   // Helper function to get default route based on user role
   const getDefaultRoute = (user: any) => {
     // Todos os usuários vão para timesheet
@@ -51,8 +58,32 @@ export default function Dashboard() {
     }
   }, [user, isLoading, location, setLocation]);
 
+  // Calcular datas da semana atual (segunda a sexta)
+  const getCurrentWeekDates = () => {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - currentDay + 1); // Segunda-feira
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 4); // Sexta-feira
+    
+    return {
+      fromDate: startOfWeek.toISOString().split('T')[0],
+      endDate: endOfWeek.toISOString().split('T')[0]
+    };
+  };
+
+  const weekDates = getCurrentWeekDates();
+
   const { data: userStats } = useQuery<any>({
-    queryKey: ["/api/reports/user-stats"],
+    queryKey: ["/api/reports/user-stats", weekDates.fromDate, weekDates.endDate],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports/user-stats?fromDate=${weekDates.fromDate}&toDate=${weekDates.endDate}`, {
+        credentials: "include"
+      });
+      if (!response.ok) return null;
+      return response.json();
+    },
     retry: false,
   });
 
@@ -133,7 +164,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <StatsCard
                 title="Esta semana"
-                value={userStats?.totalHours ? `${Math.round(userStats.totalHours)}:00` : "0:00"}
+                value={userStats?.totalHours ? formatHours(userStats.totalHours) : "0:00"}
                 subtitle="Horas esta semana"
                 icon={Clock}
                 iconColor="text-blue-600"
@@ -141,7 +172,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Aprovadas"
-                value={userStats?.approvedHours ? `${Math.round(userStats.approvedHours)}:00` : "0:00"}
+                value={userStats?.approvedHours ? formatHours(userStats.approvedHours) : "0:00"}
                 subtitle="Horas aprovadas"
                 icon={CheckCircle}
                 iconColor="text-green-600"
@@ -149,7 +180,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Pendentes"
-                value={userStats?.pendingHours ? `${Math.round(userStats.pendingHours)}:00` : "0:00"}
+                value={userStats?.pendingHours ? formatHours(userStats.pendingHours) : "0:00"}
                 subtitle="Pendente aprovação"
                 icon={HourglassIcon}
                 iconColor="text-amber-600"
