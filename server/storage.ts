@@ -469,13 +469,23 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async updateTimeEntry(id: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry> {
+  async updateTimeEntry(id: number, timeEntry: any): Promise<TimeEntry> {
+    const updateData: any = {
+      ...timeEntry,
+      updatedAt: new Date(),
+    };
+    
+    // Convert ISO string dates to Date objects if needed
+    if (updateData.reviewedAt && typeof updateData.reviewedAt === 'string') {
+      updateData.reviewedAt = new Date(updateData.reviewedAt);
+    }
+    if (updateData.submittedAt && typeof updateData.submittedAt === 'string') {
+      updateData.submittedAt = new Date(updateData.submittedAt);
+    }
+    
     const [updatedTimeEntry] = await db
       .update(timeEntries)
-      .set({
-        ...timeEntry,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(timeEntries.id, id))
       .returning();
     return updatedTimeEntry;
