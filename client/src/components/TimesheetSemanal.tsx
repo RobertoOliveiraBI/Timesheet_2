@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X } from "lucide-react";
+import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -131,7 +131,7 @@ export function TimesheetSemanal() {
   });
 
   // Buscar histórico mensal de entradas - sempre ativo
-  const { data: historicoMensal = [] } = useQuery<EntradaSalva[]>({
+  const { data: historicoMensal = [], refetch: refetchHistorico } = useQuery<EntradaSalva[]>({
     queryKey: ["/api/time-entries/mensal", format(mesAtual, "yyyy-MM")],
     queryFn: async () => {
       const inicioMes = format(new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1), "yyyy-MM-dd");
@@ -212,12 +212,14 @@ export function TimesheetSemanal() {
     });
 
     return Object.values(linhasAgrupadas);
-  }, [entradasExistentes]);
+  }, [entradasExistentes, format(inicioSemana, "yyyy-MM-dd")]);
 
-  // Sincronizar linhas processadas com o estado
+  // Sincronizar linhas processadas com o estado apenas quando necessário
   useEffect(() => {
-    setLinhas(linhasProcessadas);
-  }, [linhasProcessadas]);
+    if (JSON.stringify(linhasProcessadas) !== JSON.stringify(linhas)) {
+      setLinhas(linhasProcessadas);
+    }
+  }, [linhasProcessadas.length, inicioSemana]);
 
   // Navegação de semanas
   const navegarSemana = (direcao: 'anterior' | 'proxima') => {
@@ -433,9 +435,14 @@ export function TimesheetSemanal() {
   // Confirmar exclusão
   const confirmarExclusao = () => {
     if (entradaParaExcluir) {
-      excluirEntrada.mutate(entradaParaExcluir.id);
-      setModalExclusaoAberto(false);
-      setEntradaParaExcluir(null);
+      excluirEntrada.mutate(entradaParaExcluir.id, {
+        onSuccess: () => {
+          setModalExclusaoAberto(false);
+          setEntradaParaExcluir(null);
+          // Forçar atualização imediata do histórico
+          refetchHistorico();
+        }
+      });
     }
   };
 
@@ -488,7 +495,12 @@ export function TimesheetSemanal() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
         queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/timesheet/semana"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/reports/user-stats"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/time-entries"] }),
         queryClient.refetchQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/timesheet/semana"] }),
+        queryClient.refetchQueries({ queryKey: ["/api/reports/user-stats"] }),
         refetchEntradas()
       ]);
     },
@@ -748,6 +760,14 @@ export function TimesheetSemanal() {
                 onClick={() => setMesAtual(new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 1, 1))}
               >
                 <ChevronRight className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => refetchHistorico()}
+                title="Atualizar histórico"
+              >
+                <RefreshCw className="w-4 h-4" />
               </Button>
               <Button 
                 variant="outline" 
