@@ -40,11 +40,17 @@ export function ReportsSection() {
   });
 
   // Buscar usuários para filtro de colaborador
-  const { data: usuarios = [] } = useQuery({
+  const { data: usuarios = [], isLoading: loadingUsers, error: errorUsers } = useQuery({
     queryKey: ["/api/users"],
     queryFn: async () => {
       const response = await fetch("/api/users", { credentials: "include" });
-      return response.ok ? await response.json() : [];
+      if (!response.ok) {
+        console.error("Erro ao buscar usuários:", response.status, response.statusText);
+        return [];
+      }
+      const data = await response.json();
+      console.log("Usuários carregados:", data);
+      return data;
     },
   });
 
@@ -224,15 +230,16 @@ export function ReportsSection() {
                   setFilters({ ...filters, userId: value });
                   setPagination({ ...pagination, page: 1 });
                 }}
+                disabled={loadingUsers}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Todos os colaboradores" />
+                  <SelectValue placeholder={loadingUsers ? "Carregando colaboradores..." : "Todos os colaboradores"} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os colaboradores</SelectItem>
                   {(usuarios as any[]).map((usuario: any) => (
                     <SelectItem key={usuario.id} value={usuario.id.toString()}>
-                      {usuario.firstName} {usuario.lastName}
+                      {usuario.first_name || usuario.firstName} {usuario.last_name || usuario.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>

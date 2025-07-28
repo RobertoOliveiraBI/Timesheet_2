@@ -549,6 +549,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Alias em inglês para compatibilidade
+  app.get('/api/users', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Erro ao buscar usuários" });
+    }
+  });
+
   app.post('/api/usuarios', requireAuth, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.id);
