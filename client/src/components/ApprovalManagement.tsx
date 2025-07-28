@@ -47,7 +47,7 @@ interface TimeEntry {
 
 export function ApprovalManagement() {
   const [selectedCollaborator, setSelectedCollaborator] = useState<string>("all");
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all-months");
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
   const [reviewComment, setReviewComment] = useState("");
@@ -92,7 +92,7 @@ export function ApprovalManagement() {
       }
       
       // Filtro por mês
-      if (selectedMonth && !entry.date.startsWith(selectedMonth)) {
+      if (selectedMonth && selectedMonth !== "all-months" && !entry.date.startsWith(selectedMonth)) {
         return false;
       }
       
@@ -266,7 +266,7 @@ export function ApprovalManagement() {
                   <SelectValue placeholder="Todos os meses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos os meses</SelectItem>
+                  <SelectItem value="all-months">Todos os meses</SelectItem>
                   {monthOptions.map(month => (
                     <SelectItem key={month.value} value={month.value}>
                       {month.label}

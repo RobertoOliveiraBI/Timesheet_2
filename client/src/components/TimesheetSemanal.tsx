@@ -682,7 +682,7 @@ export function TimesheetSemanal() {
                       </SelectTrigger>
                       <SelectContent>
                         {clientesLoading ? (
-                          <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                          <SelectItem value="loading-clients" disabled>Carregando...</SelectItem>
                         ) : clientes.length > 0 ? (
                           clientes.map((cliente) => (
                             <SelectItem key={cliente.id} value={cliente.id.toString()}>
@@ -690,7 +690,7 @@ export function TimesheetSemanal() {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="empty" disabled>Nenhum cliente disponível</SelectItem>
+                          <SelectItem value="no-clients" disabled>Nenhum cliente disponível</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -714,7 +714,7 @@ export function TimesheetSemanal() {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="empty" disabled>Nenhuma campanha disponível</SelectItem>
+                          <SelectItem value="no-campaigns" disabled>Nenhuma campanha disponível</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -738,7 +738,7 @@ export function TimesheetSemanal() {
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="empty" disabled>Nenhuma tarefa disponível</SelectItem>
+                          <SelectItem value="no-tasks" disabled>Nenhuma tarefa disponível</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

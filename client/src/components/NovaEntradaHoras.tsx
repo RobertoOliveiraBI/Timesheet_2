@@ -266,7 +266,7 @@ export function NovaEntradaHoras() {
                   </SelectItem>
                 ))
               ) : (
-                <SelectItem value="empty" disabled>Nenhum cliente disponível</SelectItem>
+                <SelectItem value="no-clients" disabled>Nenhum cliente disponível</SelectItem>
               )}
             </SelectContent>
           </Select>
@@ -309,7 +309,7 @@ export function NovaEntradaHoras() {
                   </SelectItem>
                 ))
               ) : (
-                <SelectItem value="empty" disabled>Nenhuma campanha disponível</SelectItem>
+                <SelectItem value="no-campaigns" disabled>Nenhuma campanha disponível</SelectItem>
               )}
             </SelectContent>
           </Select>
