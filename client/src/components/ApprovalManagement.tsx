@@ -75,8 +75,15 @@ export function ApprovalManagement() {
   });
 
   // Buscar campanhas
-  const { data: campaigns = [] } = useQuery<any[]>({
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<any[]>({
     queryKey: ["/api/campanhas"],
+    queryFn: async () => {
+      const response = await fetch("/api/campanhas", { credentials: "include" });
+      if (!response.ok) {
+        return [];
+      }
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000,
   });
 
@@ -156,15 +163,15 @@ export function ApprovalManagement() {
   const rejectEntry = useMutation({
     mutationFn: async ({ id, comment }: { id: number; comment?: string }) => {
       await apiRequest("PATCH", `/api/time-entries/${id}`, {
-        status: "REJEITADO",
+        status: "RASCUNHO",
         reviewComment: comment,
         reviewedAt: new Date().toISOString(),
       });
     },
     onSuccess: () => {
       toast({
-        title: "Sucesso",
-        description: "Entrada rejeitada com sucesso!",
+        title: "Sucesso", 
+        description: "Entrada retornada para rascunho!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/validation"] });
@@ -402,13 +409,13 @@ export function ApprovalManagement() {
                             </DialogTrigger>
                             <DialogContent>
                               <DialogHeader>
-                                <DialogTitle>Rejeitar Entrada</DialogTitle>
+                                <DialogTitle>Retornar para Rascunho</DialogTitle>
                                 <DialogDescription>
-                                  Tem certeza que deseja rejeitar esta entrada? Adicione um comentário explicando o motivo.
+                                  Esta entrada será retornada para rascunho para que o colaborador possa fazer correções. Adicione um comentário explicando o motivo.
                                 </DialogDescription>
                               </DialogHeader>
                               <Textarea
-                                placeholder="Motivo da rejeição (opcional)"
+                                placeholder="Motivo da devolução (opcional)"
                                 value={reviewComment}
                                 onChange={(e) => setReviewComment(e.target.value)}
                               />
@@ -427,7 +434,7 @@ export function ApprovalManagement() {
                                   })}
                                   disabled={rejectEntry.isPending}
                                 >
-                                  {rejectEntry.isPending ? "Rejeitando..." : "Rejeitar"}
+                                  {rejectEntry.isPending ? "Devolvendo..." : "Devolver"}
                                 </Button>
                               </DialogFooter>
                             </DialogContent>
