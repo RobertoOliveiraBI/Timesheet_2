@@ -78,6 +78,7 @@ The application follows a modern full-stack architecture with clear separation b
   - Batch action button appears only when draft entries exist
   - Individual send buttons for each RASCUNHO entry
   - Status indicators for entries in VALIDACAO state
+  - Dashboard indicators expanded to 5 cards including "Horas este mês"
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
 - **Performance**: Optimized query invalidation and real-time data updates across all modules
 

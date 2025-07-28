@@ -74,11 +74,37 @@ export default function Dashboard() {
   };
 
   const weekDates = getCurrentWeekDates();
+  
+  // Função para obter as datas do mês atual
+  const getCurrentMonthDates = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    return {
+      fromDate: startOfMonth.toISOString().split('T')[0],
+      endDate: endOfMonth.toISOString().split('T')[0]
+    };
+  };
+  
+  const monthDates = getCurrentMonthDates();
 
   const { data: userStats } = useQuery<any>({
     queryKey: ["/api/reports/user-stats", weekDates.fromDate, weekDates.endDate],
     queryFn: async () => {
       const response = await fetch(`/api/reports/user-stats?fromDate=${weekDates.fromDate}&toDate=${weekDates.endDate}`, {
+        credentials: "include"
+      });
+      if (!response.ok) return null;
+      return response.json();
+    },
+    retry: false,
+  });
+
+  const { data: monthStats } = useQuery<any>({
+    queryKey: ["/api/reports/user-stats", monthDates.fromDate, monthDates.endDate, "month"],
+    queryFn: async () => {
+      const response = await fetch(`/api/reports/user-stats?fromDate=${monthDates.fromDate}&toDate=${monthDates.endDate}`, {
         credentials: "include"
       });
       if (!response.ok) return null;
@@ -161,7 +187,7 @@ export default function Dashboard() {
         return (
           <div className="space-y-8">
             {/* Quick stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <StatsCard
                 title="Esta semana"
                 value={userStats?.totalHours ? formatHours(userStats.totalHours) : "0:00"}
@@ -169,6 +195,14 @@ export default function Dashboard() {
                 icon={Clock}
                 iconColor="text-blue-600"
                 iconBgColor="bg-blue-100"
+              />
+              <StatsCard
+                title="Este mês"
+                value={monthStats?.totalHours ? formatHours(monthStats.totalHours) : "0:00"}
+                subtitle="Horas este mês"
+                icon={Clock}
+                iconColor="text-purple-600"
+                iconBgColor="bg-purple-100"
               />
               <StatsCard
                 title="Aprovadas"
