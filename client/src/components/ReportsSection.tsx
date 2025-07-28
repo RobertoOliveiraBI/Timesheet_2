@@ -1,130 +1,212 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { 
   Clock, 
   DollarSign, 
   TrendingUp, 
   Users,
-  Search,
-  FileDown,
-  FileText,
-  FileSpreadsheet
+  Download
 } from "lucide-react";
 import { StatsCard } from "./StatsCard";
+import { getStatusLabel } from "@/lib/statusUtils";
 
 export function ReportsSection() {
   const [filters, setFilters] = useState({
-    period: "currentMonth",
-    userId: "all",
+    month: format(new Date(), "yyyy-MM"),
     clientId: "all",
+    campaignId: "all",
   });
 
-  const { data: userStats } = useQuery({
-    queryKey: ["/api/reports/user-stats"],
+  // Buscar clientes
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["/api/clientes"],
   });
 
-  const { data: teamStats } = useQuery({
-    queryKey: ["/api/reports/team-stats"],
+  // Buscar campanhas baseado no cliente selecionado
+  const { data: campanhas = [] } = useQuery({
+    queryKey: ["/api/campanhas", filters.clientId],
+    queryFn: async () => {
+      if (filters.clientId === "all") {
+        const response = await fetch("/api/campanhas", { credentials: "include" });
+        return response.ok ? await response.json() : [];
+      } else {
+        const response = await fetch(`/api/clientes/${filters.clientId}/campanhas`, { credentials: "include" });
+        return response.ok ? await response.json() : [];
+      }
+    },
   });
 
+  // Buscar entradas filtradas
   const { data: timeEntries = [] } = useQuery({
-    queryKey: ["/api/time-entries"],
+    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId],
+    queryFn: async () => {
+      const [year, month] = filters.month.split("-");
+      const startDate = format(startOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
+      const endDate = format(endOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
+      
+      let url = `/api/time-entries?fromDate=${startDate}&toDate=${endDate}`;
+      
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) return [];
+      
+      let entries = await response.json();
+      
+      // Filtrar por cliente se especificado
+      if (filters.clientId !== "all") {
+        entries = entries.filter((entry: any) => 
+          entry.campaign?.client?.id?.toString() === filters.clientId
+        );
+      }
+      
+      // Filtrar por campanha se especificado
+      if (filters.campaignId !== "all") {
+        entries = entries.filter((entry: any) => 
+          entry.campaignId?.toString() === filters.campaignId
+        );
+      }
+      
+      return entries;
+    },
   });
 
-  const formatHours = (hours: string | number) => {
-    const h = parseFloat(hours.toString());
-    const wholeHours = Math.floor(h);
-    const minutes = Math.round((h - wholeHours) * 60);
-    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
-  };
+  // Calcular estatísticas
+  const stats = useMemo(() => {
+    const totalHours = timeEntries.reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
+    const billableHours = timeEntries
+      .filter((entry: any) => entry.campaignTask?.taskType?.isBillable)
+      .reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
+    const nonBillableHours = totalHours - billableHours;
+    const activeUsers = new Set(timeEntries.map((entry: any) => entry.userId)).size;
+    
+    return {
+      totalHours,
+      billableHours,
+      nonBillableHours,
+      activeUsers,
+      utilization: totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0
+    };
+  }, [timeEntries]);
 
-  const getUserInitials = (user: any) => {
-    return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
+  const formatHours = (hours: number) => {
+    return hours.toFixed(2);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    return format(new Date(dateString), "dd/MM/yyyy");
   };
 
-  // Calculate totals from actual data
-  const totalHours = timeEntries.reduce((sum: number, entry: any) => sum + parseFloat(entry.hours), 0);
-  const billableHours = timeEntries
-    .filter((entry: any) => entry.taskType?.isBillable)
-    .reduce((sum: number, entry: any) => sum + parseFloat(entry.hours), 0);
-  const utilization = totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0;
-  const activeUsers = new Set(timeEntries.map((entry: any) => entry.userId)).size;
+  // Função para download CSV
+  const downloadCSV = () => {
+    const headers = [
+      "Data",
+      "Colaborador", 
+      "Cliente",
+      "Campanha",
+      "Tarefa",
+      "Horas",
+      "Tipo",
+      "Status",
+      "Descrição"
+    ];
+
+    const rows = timeEntries.map((entry: any) => [
+      formatDate(entry.date),
+      `${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim(),
+      entry.campaign?.client?.tradeName || entry.campaign?.client?.companyName || '',
+      entry.campaign?.name || '',
+      entry.campaignTask?.description || '',
+      entry.hours,
+      entry.campaignTask?.taskType?.isBillable ? 'Faturável' : 'Não faturável',
+      getStatusLabel(entry.status),
+      entry.description || ''
+    ]);
+
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `relatorio-timesheet-${filters.month}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-8">
-      {/* Report filters */}
+      {/* Filtros do Relatório */}
       <Card>
         <CardHeader>
           <CardTitle>Filtros do Relatório</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Select
-                value={filters.period}
-                onValueChange={(value) => setFilters({ ...filters, period: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="currentMonth">Este mês</SelectItem>
-                  <SelectItem value="lastMonth">Mês passado</SelectItem>
-                  <SelectItem value="last3Months">Últimos 3 meses</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
-                </SelectContent>
-              </Select>
+              <label className="block text-sm font-medium mb-2">Mês/Ano</label>
+              <input
+                type="month"
+                value={filters.month}
+                onChange={(e) => setFilters({ ...filters, month: e.target.value, campaignId: "all" })}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
             <div>
-              <Select
-                value={filters.userId}
-                onValueChange={(value) => setFilters({ ...filters, userId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Colaborador" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {/* Would be populated with actual users */}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
+              <label className="block text-sm font-medium mb-2">Cliente</label>
               <Select
                 value={filters.clientId}
-                onValueChange={(value) => setFilters({ ...filters, clientId: value })}
+                onValueChange={(value) => setFilters({ ...filters, clientId: value, campaignId: "all" })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Cliente" />
+                  <SelectValue placeholder="Todos os clientes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {/* Would be populated with actual clients */}
+                  <SelectItem value="all">Todos os clientes</SelectItem>
+                  {clientes.map((cliente: any) => (
+                    <SelectItem key={cliente.id} value={cliente.id.toString()}>
+                      {cliente.tradeName || cliente.companyName}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Button className="w-full bg-primary hover:bg-primary/90">
-                <Search className="w-4 h-4 mr-2" />
-                Gerar Relatório
-              </Button>
+              <label className="block text-sm font-medium mb-2">Campanha</label>
+              <Select
+                value={filters.campaignId}
+                onValueChange={(value) => setFilters({ ...filters, campaignId: value })}
+                disabled={filters.clientId === "all"}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={filters.clientId === "all" ? "Primeiro selecione um cliente" : "Todas as campanhas"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as campanhas</SelectItem>
+                  {campanhas.map((campanha: any) => (
+                    <SelectItem key={campanha.id} value={campanha.id.toString()}>
+                      {campanha.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Report summary */}
+      {/* Indicadores */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatsCard
           title="Total"
-          value={Math.round(totalHours).toString()}
+          value={formatHours(stats.totalHours)}
           subtitle="Horas totais"
           icon={Clock}
           iconColor="text-blue-600"
@@ -132,23 +214,23 @@ export function ReportsSection() {
         />
         <StatsCard
           title="Faturáveis"
-          value={Math.round(billableHours).toString()}
+          value={formatHours(stats.billableHours)}
           subtitle="Horas faturáveis"
           icon={DollarSign}
           iconColor="text-green-600"
           iconBgColor="bg-green-100"
         />
         <StatsCard
-          title="Utilização"
-          value={`${utilization}%`}
-          subtitle="Taxa de utilização"
+          title="Não Faturáveis"
+          value={formatHours(stats.nonBillableHours)}
+          subtitle="Horas não faturáveis"
           icon={TrendingUp}
           iconColor="text-purple-600"
           iconBgColor="bg-purple-100"
         />
         <StatsCard
           title="Colaboradores"
-          value={activeUsers.toString()}
+          value={stats.activeUsers.toString()}
           subtitle="Colaboradores ativos"
           icon={Users}
           iconColor="text-orange-600"
@@ -156,25 +238,20 @@ export function ReportsSection() {
         />
       </div>
 
-      {/* Detailed report table */}
+      {/* Relatório Detalhado */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Relatório Detalhado</CardTitle>
-            <div className="flex space-x-2">
-              <Button variant="outline" size="sm">
-                <FileText className="w-4 h-4 mr-1" />
-                CSV
-              </Button>
-              <Button variant="outline" size="sm">
-                <FileSpreadsheet className="w-4 h-4 mr-1" />
-                Excel
-              </Button>
-              <Button variant="outline" size="sm">
-                <FileDown className="w-4 h-4 mr-1" />
-                PDF
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={downloadCSV}
+              disabled={timeEntries.length === 0}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Baixar CSV
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -188,13 +265,19 @@ export function ReportsSection() {
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Data
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Colaborador
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Cliente
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Data
+                      Campanha
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Tarefa
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Horas
@@ -208,37 +291,37 @@ export function ReportsSection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {timeEntries.slice(0, 20).map((entry: any) => (
-                    <tr key={entry.id}>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-600 font-medium text-xs">
-                              {getUserInitials(entry.user)}
-                            </span>
-                          </div>
-                          <div className="ml-3">
-                            <p className="text-sm font-medium text-slate-900">
-                              {`${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim()}
-                            </p>
-                            <p className="text-xs text-slate-500">{entry.user?.position || entry.user?.role}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-900">
-                        {entry.campaign?.client?.companyName || 'N/A'}
-                      </td>
+                  {timeEntries.map((entry: any) => (
+                    <tr key={entry.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 text-sm text-slate-900">
                         {formatDate(entry.date)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                        {formatHours(entry.hours)}
+                      <td className="px-6 py-4 text-sm text-slate-900">
+                        {`${entry.user?.firstName || ''} ${entry.user?.lastName || ''}`.trim()}
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-900">
-                        {entry.taskType?.name || 'N/A'}
+                        {entry.campaign?.client?.tradeName || entry.campaign?.client?.companyName || '-'}
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-900">
-                        {entry.status}
+                        {entry.campaign?.name || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-900">
+                        {entry.campaignTask?.description || '-'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-900 font-medium">
+                        {entry.hours}h
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                          entry.campaignTask?.taskType?.isBillable
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {entry.campaignTask?.taskType?.isBillable ? 'Faturável' : 'Não faturável'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {getStatusLabel(entry.status)}
                       </td>
                     </tr>
                   ))}
