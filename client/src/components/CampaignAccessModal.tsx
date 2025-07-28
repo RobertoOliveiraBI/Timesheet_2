@@ -33,10 +33,19 @@ export function CampaignAccessModal({ isOpen, onClose, campaign }: CampaignAcces
   });
 
   // Buscar todos os colaboradores disponíveis
-  const { data: allCollaborators = [] } = useQuery({
-    queryKey: ["/api/users"],
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["/api/usuarios"],
     enabled: isOpen,
+    queryFn: async () => {
+      const response = await fetch("/api/usuarios", {
+        credentials: "include",
+      });
+      return response.ok ? await response.json() : [];
+    },
   });
+
+  // Filtrar apenas colaboradores
+  const allCollaborators = allUsers.filter((user: any) => user.role === "COLABORADOR");
 
   // Colaboradores que ainda não têm acesso
   const availableCollaborators = allCollaborators.filter(
@@ -142,7 +151,7 @@ export function CampaignAccessModal({ isOpen, onClose, campaign }: CampaignAcces
                   <SelectContent>
                     {availableCollaborators.map((user: any) => (
                       <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.first_name || user.firstName} {user.last_name || user.lastName}
+                        {user.firstName} {user.lastName}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -177,38 +186,41 @@ export function CampaignAccessModal({ isOpen, onClose, campaign }: CampaignAcces
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {campaignCollaborators.map((user: any) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600">
-                            {(user.first_name || user.firstName || "U")[0].toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-medium">
-                            {user.first_name || user.firstName} {user.last_name || user.lastName}
+                  {campaignCollaborators.map((collaborator: any) => {
+                    const user = collaborator.user || collaborator;
+                    return (
+                      <div
+                        key={user.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-sm font-medium text-blue-600">
+                              {(user.firstName || "U")[0].toUpperCase()}
+                            </span>
                           </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
+                          <div>
+                            <div className="font-medium">
+                              {user.firstName} {user.lastName}
+                            </div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">{user.role}</Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveCollaborator(user.id)}
+                            disabled={removeCollaboratorMutation.isPending}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <UserMinus className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{user.role}</Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveCollaborator(user.id)}
-                          disabled={removeCollaboratorMutation.isPending}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <UserMinus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
