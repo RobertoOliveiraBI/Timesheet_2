@@ -62,21 +62,24 @@ The application follows a modern full-stack architecture with clear separation b
 - **Time Entries**: Core timesheet data with approval workflows using campaign_task_id and status field
 - **Task Types**: Configurable activity categories for precise time classification
 
-### Recent Updates (January 25, 2025)
-- **Schema Migration**: Updated time_entries table to use campaign_task_id instead of task_type_id
-- **Status System**: Implemented 5-stage approval workflow (RASCUNHO, SALVO, VALIDACAO, APROVADO, REJEITADO)
-- **Approval Interface**: Complete management system for approving/rejecting timesheet entries
-- **UI Improvements**: Fixed SelectItem empty value errors, optimized loading states
-- **Workflow Actions**: Three distinct save actions (Save Draft, Save, Submit for Approval)
-- **Profile Page**: Complete user profile management with edit capabilities
-- **User Management**: Manual user creation for missing registrations (luciano@tractionfy.com added)
-- **API Consistency**: Fixed client select population issue by standardizing endpoints to Portuguese (/api/clientes)
-- **Authentication Fix**: Corrected corrupted password hash for collaborator user (roberto@cappei.com)
-- **Documentation**: Created comprehensive README.md for project handover and debugging
-- **Validation**: Confirmed API access works for both MASTER and COLABORADOR roles
-- **Post-Login Redirection**: Implemented complete role-based redirection system with Landing page
-- **Security Enhancement**: Updated /api/user endpoint to exclude password from responses
-- **Redirection Fix**: Simplified all users to redirect to /timesheet with 5-second auto-refresh
+### Recent Updates (January 28, 2025)
+- **Validation Workflow**: Implemented complete validation submission system in monthly history
+  - Individual line validation: Send single entries from RASCUNHO to VALIDACAO status
+  - Batch validation: Send all draft entries for validation with one click
+  - Status progression: RASCUNHO → VALIDACAO → APROVADO workflow
+- **Reports Overhaul**: Completely reconfigured reports screen with simplified functionality
+  - Simplified filters: Only month/year, client, and campaign selection
+  - Dynamic filtering: Selecting client shows only that client's campaigns
+  - Correct indicators: Total hours, billable hours, non-billable hours, and clients served
+  - Detailed reports table with all filtered entries
+  - CSV-only download functionality (removed Excel and PDF options)
+- **UI Enhancements**: 
+  - Added send icons and proper button states in monthly history
+  - Batch action button appears only when draft entries exist
+  - Individual send buttons for each RASCUNHO entry
+  - Status indicators for entries in VALIDACAO state
+- **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
+- **Performance**: Optimized query invalidation and real-time data updates across all modules
 
 ### User Interface Components
 - **Dashboard**: Role-specific landing pages with relevant metrics and quick actions

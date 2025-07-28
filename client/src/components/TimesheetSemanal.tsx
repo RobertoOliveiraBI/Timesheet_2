@@ -521,6 +521,77 @@ export function TimesheetSemanal() {
     },
   });
 
+  // Mutation para enviar entrada individual para validação
+  const enviarParaValidacao = useMutation({
+    mutationFn: async (entradaId: number) => {
+      await apiRequest("PATCH", `/api/time-entries/${entradaId}`, {
+        status: "VALIDACAO"
+      });
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Sucesso!",
+        description: "Entrada enviada para validação",
+      });
+      
+      // Atualizar queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchHistorico()
+      ]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível enviar para validação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para envio em lote para validação
+  const enviarLoteParaValidacao = useMutation({
+    mutationFn: async () => {
+      const entradasRascunho = historicoMensal.filter(entrada => entrada.status === 'RASCUNHO');
+      
+      if (entradasRascunho.length === 0) {
+        throw new Error("Nenhuma entrada em rascunho encontrada");
+      }
+      
+      // Enviar todas as entradas em rascunho para validação
+      await Promise.all(
+        entradasRascunho.map(entrada => 
+          apiRequest("PATCH", `/api/time-entries/${entrada.id}`, {
+            status: "VALIDACAO"
+          })
+        )
+      );
+      
+      return entradasRascunho.length;
+    },
+    onSuccess: async (quantidade) => {
+      toast({
+        title: "Sucesso!",
+        description: `${quantidade} entrada(s) enviada(s) para validação`,
+      });
+      
+      // Atualizar queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchHistorico()
+      ]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Não foi possível enviar entradas para validação",
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="space-y-6">
     <Card className="w-full">
@@ -755,6 +826,17 @@ export function TimesheetSemanal() {
             </CardTitle>
             
             <div className="flex items-center gap-2">
+              {historicoMensal.filter(entrada => entrada.status === 'RASCUNHO').length > 0 && (
+                <Button 
+                  size="sm" 
+                  onClick={() => enviarLoteParaValidacao.mutate()}
+                  disabled={enviarLoteParaValidacao.isPending}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <Send className="w-4 h-4 mr-1" />
+                  {enviarLoteParaValidacao.isPending ? "Enviando..." : "Enviar Rascunhos"}
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -844,15 +926,29 @@ export function TimesheetSemanal() {
                                 {entrada.status !== 'APROVADO' && (
                                   <>
                                     {(entrada.status === 'RASCUNHO' || entrada.status === 'REJEITADO') && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => abrirModalEdicao(entrada)}
-                                        className="h-8 w-8 p-0"
-                                        title="Editar"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => abrirModalEdicao(entrada)}
+                                          className="h-8 w-8 p-0"
+                                          title="Editar"
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        {entrada.status === 'RASCUNHO' && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => enviarParaValidacao.mutate(entrada.id)}
+                                            className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                                            title="Enviar para validação"
+                                            disabled={enviarParaValidacao.isPending}
+                                          >
+                                            <Send className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                      </>
                                     )}
                                     <Button
                                       variant="ghost"
@@ -868,6 +964,9 @@ export function TimesheetSemanal() {
                                 )}
                                 {entrada.status === 'APROVADO' && (
                                   <span className="text-xs text-gray-500">Validado</span>
+                                )}
+                                {entrada.status === 'VALIDACAO' && (
+                                  <span className="text-xs text-blue-600">Em validação</span>
                                 )}
                               </div>
                             </td>
