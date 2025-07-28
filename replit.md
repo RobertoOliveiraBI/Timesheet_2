@@ -92,9 +92,12 @@ The application follows a modern full-stack architecture with clear separation b
   - Individual send buttons for each RASCUNHO entry
   - Status indicators for entries in VALIDACAO state
   - Dashboard indicators expanded to 5 cards including "Horas este mês"
-  - Enhanced reports filters now include 4 columns: Month/Year, Client, Campaign, Status
+  - Enhanced reports filters now include 5 columns: Month/Year, Collaborator, Client, Campaign, Status
   - **NEW**: Added comment modal in reports - displays manager comments with click-to-view functionality
   - **NEW**: Comment column in reports table with MessageCircle icon for entries with manager feedback
+  - **NEW**: Added collaborator filter to reports for filtering entries by specific users
+  - **NEW**: Implemented pagination for reports when more than 100 entries (100 entries per page)
+  - **NEW**: Pagination controls with page numbers, navigation buttons, and entry count display
 - **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
 - **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
 - **Performance**: Optimized query invalidation and real-time data updates across all modules

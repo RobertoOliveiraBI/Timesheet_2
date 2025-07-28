@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -12,7 +12,9 @@ import {
   TrendingUp, 
   Users,
   Download,
-  MessageCircle
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { StatusBadge } from "./StatusBadge";
@@ -24,11 +26,26 @@ export function ReportsSection() {
     clientId: "all",
     campaignId: "all",
     status: "all",
+    userId: "all",
+  });
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 100,
   });
 
   // Buscar clientes
   const { data: clientes = [] } = useQuery({
     queryKey: ["/api/clientes"],
+  });
+
+  // Buscar usuários para filtro de colaborador
+  const { data: usuarios = [] } = useQuery({
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/users", { credentials: "include" });
+      return response.ok ? await response.json() : [];
+    },
   });
 
   // Buscar campanhas baseado no cliente selecionado
@@ -45,9 +62,9 @@ export function ReportsSection() {
     },
   });
 
-  // Buscar entradas filtradas
-  const { data: timeEntries = [] } = useQuery({
-    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId, filters.status],
+  // Buscar entradas filtradas com paginação
+  const { data: paginatedData = { entries: [], total: 0, totalPages: 0 } } = useQuery({
+    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId, filters.status, filters.userId, pagination.page, pagination.pageSize],
     queryFn: async () => {
       const [year, month] = filters.month.split("-");
       const startDate = format(startOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
@@ -56,7 +73,7 @@ export function ReportsSection() {
       let url = `/api/time-entries?fromDate=${startDate}&toDate=${endDate}`;
       
       const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) return [];
+      if (!response.ok) return { entries: [], total: 0, totalPages: 0 };
       
       let entries = await response.json();
       
@@ -70,7 +87,7 @@ export function ReportsSection() {
       // Filtrar por campanha se especificado
       if (filters.campaignId !== "all") {
         entries = entries.filter((entry: any) => 
-          entry.campaignId?.toString() === filters.campaignId
+          entry.campaign?.id?.toString() === filters.campaignId
         );
       }
       
@@ -80,10 +97,30 @@ export function ReportsSection() {
           entry.status === filters.status
         );
       }
+
+      // Filtrar por usuário se especificado
+      if (filters.userId !== "all") {
+        entries = entries.filter((entry: any) => 
+          entry.user?.id?.toString() === filters.userId
+        );
+      }
       
-      return entries;
+      // Implementar paginação
+      const total = entries.length;
+      const totalPages = Math.ceil(total / pagination.pageSize);
+      const startIndex = (pagination.page - 1) * pagination.pageSize;
+      const endIndex = startIndex + pagination.pageSize;
+      const paginatedEntries = entries.slice(startIndex, endIndex);
+      
+      return {
+        entries: paginatedEntries,
+        total,
+        totalPages
+      };
     },
   });
+
+  const timeEntries = paginatedData.entries;
 
   // Calcular estatísticas
   const stats = useMemo(() => {
@@ -166,21 +203,49 @@ export function ReportsSection() {
           <CardTitle>Filtros do Relatório</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Mês/Ano</label>
               <input
                 type="month"
                 value={filters.month}
-                onChange={(e) => setFilters({ ...filters, month: e.target.value, campaignId: "all" })}
+                onChange={(e) => {
+                  setFilters({ ...filters, month: e.target.value, campaignId: "all" });
+                  setPagination({ ...pagination, page: 1 });
+                }}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Colaborador</label>
+              <Select
+                value={filters.userId}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, userId: value });
+                  setPagination({ ...pagination, page: 1 });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os colaboradores" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os colaboradores</SelectItem>
+                  {(usuarios as any[]).map((usuario: any) => (
+                    <SelectItem key={usuario.id} value={usuario.id.toString()}>
+                      {usuario.firstName} {usuario.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Cliente</label>
               <Select
                 value={filters.clientId}
-                onValueChange={(value) => setFilters({ ...filters, clientId: value, campaignId: "all" })}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, clientId: value, campaignId: "all" });
+                  setPagination({ ...pagination, page: 1 });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos os clientes" />
@@ -199,7 +264,10 @@ export function ReportsSection() {
               <label className="block text-sm font-medium mb-2">Campanha</label>
               <Select
                 value={filters.campaignId}
-                onValueChange={(value) => setFilters({ ...filters, campaignId: value })}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, campaignId: value });
+                  setPagination({ ...pagination, page: 1 });
+                }}
                 disabled={filters.clientId === "all"}
               >
                 <SelectTrigger>
@@ -219,7 +287,10 @@ export function ReportsSection() {
               <label className="block text-sm font-medium mb-2">Status</label>
               <Select
                 value={filters.status}
-                onValueChange={(value) => setFilters({ ...filters, status: value })}
+                onValueChange={(value) => {
+                  setFilters({ ...filters, status: value });
+                  setPagination({ ...pagination, page: 1 });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos os status" />
@@ -377,6 +448,9 @@ export function ReportsSection() {
                             <DialogContent className="max-w-md">
                               <DialogHeader>
                                 <DialogTitle>Comentário do Gestor</DialogTitle>
+                                <DialogDescription>
+                                  Visualize o comentário feito pelo gestor sobre esta entrada de tempo.
+                                </DialogDescription>
                               </DialogHeader>
                               <div className="space-y-4">
                                 <div className="text-sm text-gray-600">
@@ -407,6 +481,66 @@ export function ReportsSection() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+          
+          {/* Controles de Paginação */}
+          {paginatedData.total > pagination.pageSize && (
+            <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                Mostrando {((pagination.page - 1) * pagination.pageSize) + 1} a {Math.min(pagination.page * pagination.pageSize, paginatedData.total)} de {paginatedData.total} entradas
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                  disabled={pagination.page === 1}
+                  className="flex items-center gap-1"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, paginatedData.totalPages) }, (_, i) => {
+                    const page = i + 1;
+                    return (
+                      <Button
+                        key={page}
+                        variant={pagination.page === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPagination({ ...pagination, page })}
+                        className="w-8 h-8 p-0"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                  {paginatedData.totalPages > 5 && (
+                    <>
+                      <span className="px-2 text-gray-500">...</span>
+                      <Button
+                        variant={pagination.page === paginatedData.totalPages ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPagination({ ...pagination, page: paginatedData.totalPages })}
+                        className="w-8 h-8 p-0"
+                      >
+                        {paginatedData.totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                  disabled={pagination.page === paginatedData.totalPages}
+                  className="flex items-center gap-1"
+                >
+                  Próxima
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
