@@ -42,12 +42,23 @@ export function ApprovalSection() {
   });
 
   // Get team stats for indicators
-  const teamStatsKey = selectedDate 
-    ? `/api/reports/team-stats?date=${formatDateForAPI(selectedDate)}`
-    : "/api/reports/team-stats";
-  
   const { data: teamStats, isLoading: loadingTeamStats } = useQuery({
-    queryKey: [teamStatsKey],
+    queryKey: ["/api/reports/team-stats", selectedDate ? formatDateForAPI(selectedDate) : null],
+    queryFn: async ({ queryKey }) => {
+      let url = queryKey[0] as string;
+      if (queryKey[1]) {
+        url += `?date=${queryKey[1]}`;
+      }
+      console.log('Fetching team stats from:', url);
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) {
+        console.error('Team stats API failed:', response.status, response.statusText);
+        throw new Error(`Failed to fetch team stats: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('Team stats received:', data);
+      return data;
+    },
   });
 
   // Get validation count
