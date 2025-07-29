@@ -2,18 +2,41 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users } from "lucide-react";
+import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users, CalendarIcon } from "lucide-react";
 import { StatsCard } from "./StatsCard";
+import { useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export function ApprovalSection() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+  // Format date for API call
+  const formatDateForAPI = (date: Date) => {
+    return format(date, 'yyyy-MM-dd');
+  };
 
   const { data: pendingEntries = [], isLoading } = useQuery({
-    queryKey: ["/api/approvals/pending"],
+    queryKey: ["/api/approvals/pending", selectedDate ? formatDateForAPI(selectedDate) : null],
+    queryFn: async () => {
+      const url = selectedDate 
+        ? `/api/approvals/pending?date=${formatDateForAPI(selectedDate)}`
+        : "/api/approvals/pending";
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch pending entries');
+      }
+      return response.json();
+    },
   });
 
   const approveEntry = useMutation({
@@ -79,6 +102,61 @@ export function ApprovalSection() {
 
   return (
     <div className="space-y-8">
+      {/* Date Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Data:</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? (
+                      format(selectedDate, "PPP", { locale: ptBR })
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                    defaultMonth={new Date()}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedDate(new Date())}
+              className="text-sm"
+            >
+              Hoje
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedDate(undefined as any)}
+              className="text-sm"
+            >
+              Limpar Filtro
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Approval stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard

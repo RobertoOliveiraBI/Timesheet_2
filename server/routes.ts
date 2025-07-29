@@ -349,14 +349,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
+      const { date } = req.query; // Get date filter from query params
       
       if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const pendingEntries = user.isManager 
-        ? await storage.getPendingTimeEntries(userId)
-        : await storage.getPendingTimeEntries();
+      let whereCondition;
+      if (date) {
+        // Filter by specific date
+        whereCondition = and(
+          eq(timeEntries.status, "VALIDACAO"),
+          eq(timeEntries.date, date as string)
+        );
+      } else {
+        // No date filter, show all pending
+        whereCondition = eq(timeEntries.status, "VALIDACAO");
+      }
+
+      let pendingEntries;
+      if (user.role === 'GESTOR' && user.isManager) {
+        // Gestor sees only their team entries
+        const entries = await db.query.timeEntries.findMany({
+          where: whereCondition,
+          with: {
+            user: true,
+            campaign: {
+              with: {
+                client: true,
+              },
+            },
+            campaignTask: {
+              with: {
+                taskType: true,
+              },
+            },
+          },
+        });
+        
+        // Filter to only managed users
+        pendingEntries = entries.filter(entry => entry.user.managerId === user.id);
+      } else {
+        // MASTER and ADMIN see all entries
+        pendingEntries = await db.query.timeEntries.findMany({
+          where: whereCondition,
+          with: {
+            user: true,
+            campaign: {
+              with: {
+                client: true,
+              },
+            },
+            campaignTask: {
+              with: {
+                taskType: true,
+              },
+            },
+          },
+        });
+      }
       
       res.json(pendingEntries);
     } catch (error) {
