@@ -31,7 +31,9 @@ export function ApprovalSection() {
         ? `/api/approvals/pending?date=${formatDateForAPI(selectedDate)}`
         : "/api/approvals/pending";
       
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: "include"
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch pending entries');
       }
@@ -40,20 +42,41 @@ export function ApprovalSection() {
   });
 
   // Get team stats for indicators
-  const { data: teamStats } = useQuery({
+  const { data: teamStats, isLoading: loadingTeamStats, error: teamStatsError } = useQuery({
     queryKey: ["/api/reports/team-stats", selectedDate ? formatDateForAPI(selectedDate) : null],
     queryFn: async () => {
-      const dateParam = selectedDate ? `?date=${formatDateForAPI(selectedDate)}` : '';
-      const response = await fetch(`/api/reports/team-stats${dateParam}`, {
-        credentials: "include"
-      });
-      if (!response.ok) return null;
-      return response.json();
+      let url = "/api/reports/team-stats";
+      if (selectedDate) {
+        url += `?date=${formatDateForAPI(selectedDate)}`;
+      }
+      console.log('Fetching team stats from:', url);
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) {
+        console.error('Team stats error:', response.status, response.statusText);
+        if (response.status === 401) {
+          throw new Error('Not authenticated');
+        }
+        if (response.status === 403) {
+          console.log('Access denied - user may not have manager permissions');
+          return {
+            totalHours: 0,
+            billableHours: 0,
+            nonBillableHours: 0,
+            activeCollaborators: 0,
+            utilization: 0
+          };
+        }
+        throw new Error('Failed to fetch team stats');
+      }
+      const data = await response.json();
+      console.log('Team stats loaded:', data);
+      return data;
     },
+    retry: false,
   });
 
   // Get validation count
-  const { data: validationCount } = useQuery({
+  const { data: validationCount, isLoading: loadingValidationCount } = useQuery({
     queryKey: ["/api/time-entries/validation-count"],
   });
 
@@ -206,8 +229,8 @@ export function ApprovalSection() {
         />
         <StatsCard
           title="Pendentes"
-          value={((validationCount as any)?.count || 0).toString()}
-          subtitle="Aguardando validação"
+          value={validationCount?.count?.toString() || "0"}
+          subtitle="Aguardando validação" 
           icon={AlertCircle}
           iconColor="text-amber-600"
           iconBgColor="bg-amber-100"
