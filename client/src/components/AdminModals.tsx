@@ -90,11 +90,19 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
       managerId: formData.isManager ? null : formData.managerId,
     };
     
-    // Remove password if empty (for updates)
+    // Remove password if empty (for updates), but ensure password is present for new users
     let finalData = dataToSend;
     if (user && !dataToSend.password) {
       const { password, ...dataWithoutPassword } = dataToSend;
       finalData = dataWithoutPassword;
+    } else if (!user && !dataToSend.password) {
+      // For new users, password is required
+      toast({
+        title: "Erro",
+        description: "Senha é obrigatória para novos usuários",
+        variant: "destructive",
+      });
+      return;
     }
     
     saveMutation.mutate(finalData);

@@ -74,8 +74,8 @@ async function seed() {
             name: "Campanha Digital 2025",
             description: "Campanha de marketing digital para o ano de 2025",
             clientId: client.id,
-            startDate: "2025-01-01",
-            endDate: "2025-12-31",
+            contractStartDate: "2025-01-01",
+            contractEndDate: "2025-12-31",
             isActive: true,
           })
           .onConflictDoNothing();

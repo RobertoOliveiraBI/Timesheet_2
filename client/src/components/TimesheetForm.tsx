@@ -141,7 +141,7 @@ export function TimesheetForm() {
     });
   };
 
-  const selectedCampaign = campaigns?.find((c: any) => c.id === parseInt(formData.campaignId));
+  const selectedCampaign = Array.isArray(campaigns) ? campaigns.find((c: any) => c.id === parseInt(formData.campaignId)) : null;
 
   return (
     <Card>
@@ -187,7 +187,7 @@ export function TimesheetForm() {
                 <SelectValue placeholder="Selecione uma campanha" />
               </SelectTrigger>
               <SelectContent>
-                {campaigns?.map((campaign: any) => (
+                {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
                   <SelectItem key={campaign.id} value={campaign.id.toString()}>
                     {campaign.name}
                   </SelectItem>
@@ -203,7 +203,7 @@ export function TimesheetForm() {
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
-                {taskTypes?.map((taskType: any) => (
+                {Array.isArray(taskTypes) && taskTypes.map((taskType: any) => (
                   <SelectItem key={taskType.id} value={taskType.id.toString()}>
                     <div className="flex items-center">
                       <div 

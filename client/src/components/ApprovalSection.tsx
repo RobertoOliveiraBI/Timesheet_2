@@ -83,7 +83,7 @@ export function ApprovalSection() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
           title="Pendentes"
-          value={pendingEntries.length.toString()}
+          value={Array.isArray(pendingEntries) ? pendingEntries.length.toString() : "0"}
           subtitle="Pendentes aprovação"
           icon={HourglassIcon}
           iconColor="text-amber-600"
@@ -125,7 +125,7 @@ export function ApprovalSection() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {pendingEntries.length === 0 ? (
+          {!Array.isArray(pendingEntries) || pendingEntries.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               Nenhum lançamento pendente de aprovação.
             </div>
@@ -158,7 +158,7 @@ export function ApprovalSection() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {pendingEntries.map((entry: any) => (
+                  {Array.isArray(pendingEntries) && pendingEntries.map((entry: any) => (
                     <tr key={entry.id}>
                       <td className="px-6 py-4">
                         <Checkbox />
