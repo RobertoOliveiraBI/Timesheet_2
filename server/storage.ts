@@ -600,19 +600,78 @@ export class DatabaseStorage implements IStorage {
     activeCollaborators: number;
     utilization: number;
   }> {
-    let userIds: number[] = [];
-    
-    if (managerId === 0) {
-      // For MASTER/ADMIN - get all users
-      const allUsers = await db.select().from(users);
-      userIds = allUsers.map(u => u.id);
-    } else {
-      // Get subordinates for managers
-      const subordinates = await db.select().from(users).where(eq(users.managerId, managerId));
-      userIds = subordinates.map(u => u.id);
-    }
-    
-    if (userIds.length === 0) {
+    try {
+      let userIds: number[] = [];
+      
+      if (managerId === 0) {
+        // For MASTER/ADMIN - get all users
+        const allUsers = await db.select().from(users);
+        userIds = allUsers.map(u => u.id);
+      } else {
+        // Get subordinates for managers
+        const subordinates = await db.select().from(users).where(eq(users.managerId, managerId));
+        userIds = subordinates.map(u => u.id);
+      }
+      
+      if (userIds.length === 0) {
+        return {
+          totalHours: 0,
+          billableHours: 0,
+          nonBillableHours: 0,
+          activeCollaborators: 0,
+          utilization: 0,
+        };
+      }
+
+      const conditions = [inArray(timeEntries.userId, userIds)];
+      
+      if (fromDate) {
+        conditions.push(gte(timeEntries.date, fromDate));
+      }
+      
+      if (toDate) {
+        conditions.push(lte(timeEntries.date, toDate));
+      }
+
+      const entries = await db.query.timeEntries.findMany({
+        where: and(...conditions),
+        with: {
+          campaignTask: {
+            with: {
+              taskType: true,
+            },
+          },
+        },
+      });
+
+      const activeCollaborators = new Set(entries.map(e => e.userId)).size;
+      
+      const stats = entries.reduce((acc, entry) => {
+        const hours = parseFloat(entry.hours);
+        acc.totalHours += hours;
+        
+        if (entry.campaignTask?.taskType?.isBillable) {
+          acc.billableHours += hours;
+        } else {
+          acc.nonBillableHours += hours;
+        }
+        
+        return acc;
+      }, {
+        totalHours: 0,
+        billableHours: 0,
+        nonBillableHours: 0,
+      });
+
+      const utilization = stats.totalHours > 0 ? (stats.billableHours / stats.totalHours) * 100 : 0;
+
+      return {
+        ...stats,
+        activeCollaborators,
+        utilization: Math.round(utilization),
+      };
+    } catch (error) {
+      console.error('Error in getTeamTimeStats:', error);
       return {
         totalHours: 0,
         billableHours: 0,
@@ -621,54 +680,6 @@ export class DatabaseStorage implements IStorage {
         utilization: 0,
       };
     }
-
-    const conditions = [inArray(timeEntries.userId, userIds)];
-    
-    if (fromDate) {
-      conditions.push(gte(timeEntries.date, fromDate));
-    }
-    
-    if (toDate) {
-      conditions.push(lte(timeEntries.date, toDate));
-    }
-
-    const entries = await db.query.timeEntries.findMany({
-      where: and(...conditions),
-      with: {
-        campaignTask: {
-          with: {
-            taskType: true,
-          },
-        },
-      },
-    });
-
-    const activeCollaborators = new Set(entries.map(e => e.userId)).size;
-    
-    const stats = entries.reduce((acc, entry) => {
-      const hours = parseFloat(entry.hours);
-      acc.totalHours += hours;
-      
-      if (entry.campaignTask.taskType.isBillable) {
-        acc.billableHours += hours;
-      } else {
-        acc.nonBillableHours += hours;
-      }
-      
-      return acc;
-    }, {
-      totalHours: 0,
-      billableHours: 0,
-      nonBillableHours: 0,
-    });
-
-    const utilization = stats.totalHours > 0 ? (stats.billableHours / stats.totalHours) * 100 : 0;
-
-    return {
-      ...stats,
-      activeCollaborators,
-      utilization: Math.round(utilization),
-    };
   }
 
   // System configuration operations

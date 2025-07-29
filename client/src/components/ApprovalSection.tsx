@@ -42,37 +42,12 @@ export function ApprovalSection() {
   });
 
   // Get team stats for indicators
-  const { data: teamStats, isLoading: loadingTeamStats, error: teamStatsError } = useQuery({
-    queryKey: ["/api/reports/team-stats", selectedDate ? formatDateForAPI(selectedDate) : null],
-    queryFn: async () => {
-      let url = "/api/reports/team-stats";
-      if (selectedDate) {
-        url += `?date=${formatDateForAPI(selectedDate)}`;
-      }
-      console.log('Fetching team stats from:', url);
-      const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) {
-        console.error('Team stats error:', response.status, response.statusText);
-        if (response.status === 401) {
-          throw new Error('Not authenticated');
-        }
-        if (response.status === 403) {
-          console.log('Access denied - user may not have manager permissions');
-          return {
-            totalHours: 0,
-            billableHours: 0,
-            nonBillableHours: 0,
-            activeCollaborators: 0,
-            utilization: 0
-          };
-        }
-        throw new Error('Failed to fetch team stats');
-      }
-      const data = await response.json();
-      console.log('Team stats loaded:', data);
-      return data;
-    },
-    retry: false,
+  const teamStatsKey = selectedDate 
+    ? `/api/reports/team-stats?date=${formatDateForAPI(selectedDate)}`
+    : "/api/reports/team-stats";
+  
+  const { data: teamStats, isLoading: loadingTeamStats } = useQuery({
+    queryKey: [teamStatsKey],
   });
 
   // Get validation count
@@ -229,7 +204,7 @@ export function ApprovalSection() {
         />
         <StatsCard
           title="Pendentes"
-          value={validationCount?.count?.toString() || "0"}
+          value={(validationCount as any)?.count?.toString() || "0"}
           subtitle="Aguardando validação" 
           icon={AlertCircle}
           iconColor="text-amber-600"
