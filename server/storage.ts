@@ -93,8 +93,9 @@ export interface IStorage {
   getTeamTimeStats(managerId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
+    nonBillableHours: number;
+    activeCollaborators: number;
     utilization: number;
-    activeUsers: number;
   }>;
 
   // System configuration operations
@@ -595,19 +596,29 @@ export class DatabaseStorage implements IStorage {
   async getTeamTimeStats(managerId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
+    nonBillableHours: number;
+    activeCollaborators: number;
     utilization: number;
-    activeUsers: number;
   }> {
-    // Get subordinates
-    const subordinates = await db.select().from(users).where(eq(users.managerId, managerId));
-    const userIds = subordinates.map(u => u.id);
+    let userIds: number[] = [];
+    
+    if (managerId === 0) {
+      // For MASTER/ADMIN - get all users
+      const allUsers = await db.select().from(users);
+      userIds = allUsers.map(u => u.id);
+    } else {
+      // Get subordinates for managers
+      const subordinates = await db.select().from(users).where(eq(users.managerId, managerId));
+      userIds = subordinates.map(u => u.id);
+    }
     
     if (userIds.length === 0) {
       return {
         totalHours: 0,
         billableHours: 0,
+        nonBillableHours: 0,
+        activeCollaborators: 0,
         utilization: 0,
-        activeUsers: 0,
       };
     }
 
@@ -632,7 +643,7 @@ export class DatabaseStorage implements IStorage {
       },
     });
 
-    const activeUsers = new Set(entries.map(e => e.userId)).size;
+    const activeCollaborators = new Set(entries.map(e => e.userId)).size;
     
     const stats = entries.reduce((acc, entry) => {
       const hours = parseFloat(entry.hours);
@@ -640,20 +651,23 @@ export class DatabaseStorage implements IStorage {
       
       if (entry.campaignTask.taskType.isBillable) {
         acc.billableHours += hours;
+      } else {
+        acc.nonBillableHours += hours;
       }
       
       return acc;
     }, {
       totalHours: 0,
       billableHours: 0,
+      nonBillableHours: 0,
     });
 
     const utilization = stats.totalHours > 0 ? (stats.billableHours / stats.totalHours) * 100 : 0;
 
     return {
       ...stats,
+      activeCollaborators,
       utilization: Math.round(utilization),
-      activeUsers,
     };
   }
 
