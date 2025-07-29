@@ -36,10 +36,10 @@ export default function LoginPage() {
       // Use setTimeout to ensure the user state is updated before redirect
       setTimeout(() => {
         setLocation(defaultRoute);
-        // Force page refresh after 5 seconds to ensure proper loading
+        // Force page refresh after 1 seconds to ensure proper loading
         setTimeout(() => {
           window.location.reload();
-        }, 5000);
+        }, 1000);
       }, 100);
     }
   }, [loginMutation.isSuccess, loginMutation.data, setLocation]);
