@@ -599,6 +599,8 @@ export class DatabaseStorage implements IStorage {
     nonBillableHours: number;
     activeCollaborators: number;
     utilization: number;
+    validationHours: number;
+    validationCount: number;
   }> {
     try {
       let userIds: number[] = [];
@@ -620,10 +622,16 @@ export class DatabaseStorage implements IStorage {
           nonBillableHours: 0,
           activeCollaborators: 0,
           utilization: 0,
+          validationHours: 0,
+          validationCount: 0,
         };
       }
 
-      const conditions = [inArray(timeEntries.userId, userIds)];
+      // Focus on validation entries for approval management
+      const conditions = [
+        inArray(timeEntries.userId, userIds),
+        eq(timeEntries.status, 'VALIDACAO')
+      ];
       
       if (fromDate) {
         conditions.push(gte(timeEntries.date, fromDate));
@@ -656,11 +664,17 @@ export class DatabaseStorage implements IStorage {
           acc.nonBillableHours += hours;
         }
         
+        // All entries are validation entries now
+        acc.validationHours += hours;
+        acc.validationCount += 1;
+        
         return acc;
       }, {
         totalHours: 0,
         billableHours: 0,
         nonBillableHours: 0,
+        validationHours: 0,
+        validationCount: 0,
       });
 
       const utilization = stats.totalHours > 0 ? (stats.billableHours / stats.totalHours) * 100 : 0;
@@ -678,6 +692,8 @@ export class DatabaseStorage implements IStorage {
         nonBillableHours: 0,
         activeCollaborators: 0,
         utilization: 0,
+        validationHours: 0,
+        validationCount: 0,
       };
     }
   }

@@ -179,9 +179,9 @@ export function ApprovalSection() {
       {/* Team Performance Indicators */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <StatsCard
-          title="Total"
-          value={teamStats ? formatHours(teamStats.totalHours || 0) : "0:00"}
-          subtitle="Horas totais da equipe"
+          title="Total em Validação"
+          value={teamStats ? formatHours((teamStats as any).validationHours || 0) : "0:00"}
+          subtitle="Horas aguardando aprovação"
           icon={Clock}
           iconColor="text-blue-600"
           iconBgColor="bg-blue-100"
@@ -189,7 +189,7 @@ export function ApprovalSection() {
         <StatsCard
           title="Faturáveis"
           value={teamStats ? formatHours(teamStats.billableHours || 0) : "0:00"}
-          subtitle="Horas faturáveis"
+          subtitle="Horas faturáveis pendentes"
           icon={DollarSign}
           iconColor="text-green-600"
           iconBgColor="bg-green-100"
@@ -197,15 +197,15 @@ export function ApprovalSection() {
         <StatsCard
           title="Não Faturáveis"
           value={teamStats ? formatHours(teamStats.nonBillableHours || 0) : "0:00"}
-          subtitle="Horas não faturáveis"
+          subtitle="Horas não faturáveis pendentes"
           icon={TrendingUp}
           iconColor="text-purple-600"
           iconBgColor="bg-purple-100"
         />
         <StatsCard
-          title="Pendentes"
-          value={(validationCount as any)?.count?.toString() || "0"}
-          subtitle="Aguardando validação" 
+          title="Lançamentos"
+          value={(teamStats as any)?.validationCount?.toString() || "0"}
+          subtitle="Entradas em validação"
           icon={AlertCircle}
           iconColor="text-amber-600"
           iconBgColor="bg-amber-100"
@@ -213,7 +213,7 @@ export function ApprovalSection() {
         <StatsCard
           title="Colaboradores"
           value={(teamStats?.activeCollaborators || 0).toString()}
-          subtitle="Colaboradores ativos"
+          subtitle="Colaboradores com lançamentos"
           icon={Users}
           iconColor="text-indigo-600"
           iconBgColor="bg-indigo-100"
