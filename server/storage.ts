@@ -93,9 +93,8 @@ export interface IStorage {
   getTeamTimeStats(managerId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
-    nonBillableHours: number;
-    activeCollaborators: number;
     utilization: number;
+    activeUsers: number;
   }>;
 
   // System configuration operations
@@ -596,106 +595,66 @@ export class DatabaseStorage implements IStorage {
   async getTeamTimeStats(managerId: number, fromDate?: string, toDate?: string): Promise<{
     totalHours: number;
     billableHours: number;
-    nonBillableHours: number;
-    activeCollaborators: number;
     utilization: number;
-    validationHours: number;
-    validationCount: number;
+    activeUsers: number;
   }> {
-    try {
-      let userIds: number[] = [];
-      
-      if (managerId === 0) {
-        // For MASTER/ADMIN - get all users
-        const allUsers = await db.select().from(users);
-        userIds = allUsers.map(u => u.id);
-      } else {
-        // Get subordinates for managers
-        const subordinates = await db.select().from(users).where(eq(users.managerId, managerId));
-        userIds = subordinates.map(u => u.id);
-      }
-      
-      if (userIds.length === 0) {
-        return {
-          totalHours: 0,
-          billableHours: 0,
-          nonBillableHours: 0,
-          activeCollaborators: 0,
-          utilization: 0,
-          validationHours: 0,
-          validationCount: 0,
-        };
-      }
-
-      // Focus on validation entries for approval management
-      const conditions = [
-        inArray(timeEntries.userId, userIds),
-        eq(timeEntries.status, 'VALIDACAO')
-      ];
-      
-      if (fromDate) {
-        conditions.push(gte(timeEntries.date, fromDate));
-      }
-      
-      if (toDate) {
-        conditions.push(lte(timeEntries.date, toDate));
-      }
-
-      const entries = await db.query.timeEntries.findMany({
-        where: and(...conditions),
-        with: {
-          campaignTask: {
-            with: {
-              taskType: true,
-            },
-          },
-        },
-      });
-
-      const activeCollaborators = new Set(entries.map(e => e.userId)).size;
-      
-      const stats = entries.reduce((acc, entry) => {
-        const hours = parseFloat(entry.hours);
-        acc.totalHours += hours;
-        
-        if (entry.campaignTask?.taskType?.isBillable) {
-          acc.billableHours += hours;
-        } else {
-          acc.nonBillableHours += hours;
-        }
-        
-        // All entries are validation entries now
-        acc.validationHours += hours;
-        acc.validationCount += 1;
-        
-        return acc;
-      }, {
-        totalHours: 0,
-        billableHours: 0,
-        nonBillableHours: 0,
-        validationHours: 0,
-        validationCount: 0,
-      });
-
-      const utilization = stats.totalHours > 0 ? (stats.billableHours / stats.totalHours) * 100 : 0;
-
-      return {
-        ...stats,
-        activeCollaborators,
-        utilization: Math.round(utilization),
-      };
-    } catch (error) {
-      console.error('Error in getTeamTimeStats:', error);
+    // Get subordinates
+    const subordinates = await db.select().from(users).where(eq(users.managerId, managerId));
+    const userIds = subordinates.map(u => u.id);
+    
+    if (userIds.length === 0) {
       return {
         totalHours: 0,
         billableHours: 0,
-        nonBillableHours: 0,
-        activeCollaborators: 0,
         utilization: 0,
-        validationHours: 0,
-        validationCount: 0,
+        activeUsers: 0,
       };
     }
+
+    const conditions = [inArray(timeEntries.userId, userIds)];
+    
+    if (fromDate) {
+      conditions.push(gte(timeEntries.date, fromDate));
+    }
+    
+    if (toDate) {
+      conditions.push(lte(timeEntries.date, toDate));
+    }
+
+    const entries = await db.query.timeEntries.findMany({
+      where: and(...conditions),
+      with: {
+        campaignTask: {
+          with: {
+            taskType: true,
+          },
+        },
+      },
+    });
+
+    const activeUsers = new Set(entries.map(e => e.userId)).size;
+    
+    const stats = entries.reduce((acc, entry) => {
+      const hours = parseFloat(entry.hours);
+      acc.totalHours += hours;
+      
+      if (entry.campaignTask.taskType.isBillable) {
+        acc.billableHours += hours;
+      }
+      
+      return acc;
+    }, {
+      totalHours: 0,
+      billableHours: 0,
+    });
+
+    const utilization = stats.totalHours > 0 ? (stats.billableHours / stats.totalHours) * 100 : 0;
+
+    return {
+      ...stats,
+      utilization: Math.round(utilization),
+      activeUsers,
+    };
   }
 
   // System configuration operations

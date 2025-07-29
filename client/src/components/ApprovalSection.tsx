@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users, CalendarIcon, Clock, DollarSign, TrendingUp, AlertCircle, Target } from "lucide-react";
+import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users, CalendarIcon } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { useState } from "react";
 import { format } from "date-fns";
@@ -31,39 +31,12 @@ export function ApprovalSection() {
         ? `/api/approvals/pending?date=${formatDateForAPI(selectedDate)}`
         : "/api/approvals/pending";
       
-      const response = await fetch(url, {
-        credentials: "include"
-      });
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch pending entries');
       }
       return response.json();
     },
-  });
-
-  // Get team stats for indicators
-  const { data: teamStats, isLoading: loadingTeamStats } = useQuery({
-    queryKey: ["/api/reports/team-stats", selectedDate ? formatDateForAPI(selectedDate) : null],
-    queryFn: async ({ queryKey }) => {
-      let url = queryKey[0] as string;
-      if (queryKey[1]) {
-        url += `?date=${queryKey[1]}`;
-      }
-      console.log('Fetching team stats from:', url);
-      const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) {
-        console.error('Team stats API failed:', response.status, response.statusText);
-        throw new Error(`Failed to fetch team stats: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('Team stats received:', data);
-      return data;
-    },
-  });
-
-  // Get validation count
-  const { data: validationCount, isLoading: loadingValidationCount } = useQuery({
-    queryKey: ["/api/time-entries/validation-count"],
   });
 
   const approveEntry = useMutation({
@@ -108,7 +81,12 @@ export function ApprovalSection() {
     },
   });
 
-
+  const formatHours = (hours: string | number) => {
+    const h = parseFloat(hours.toString());
+    const wholeHours = Math.floor(h);
+    const minutes = Math.round((h - wholeHours) * 60);
+    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString + 'T00:00:00').toLocaleDateString('pt-BR');
@@ -116,14 +94,6 @@ export function ApprovalSection() {
 
   const getUserInitials = (user: any) => {
     return `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase();
-  };
-
-  // Function to format hours like the other components  
-  const formatHours = (hours: string | number) => {
-    const h = parseFloat(hours.toString()) || 0;
-    const wholeHours = Math.floor(h);
-    const minutes = Math.round((h - wholeHours) * 60);
-    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
   };
 
   if (isLoading) {
@@ -187,47 +157,31 @@ export function ApprovalSection() {
         </CardContent>
       </Card>
 
-      {/* Team Performance Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+      {/* Approval stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
-          title="Total em Validação"
-          value={teamStats ? formatHours((teamStats as any).validationHours || 0) : "0:00"}
-          subtitle="Horas aguardando aprovação"
-          icon={Clock}
-          iconColor="text-blue-600"
-          iconBgColor="bg-blue-100"
-        />
-        <StatsCard
-          title="Faturáveis"
-          value={teamStats ? formatHours(teamStats.billableHours || 0) : "0:00"}
-          subtitle="Horas faturáveis pendentes"
-          icon={DollarSign}
-          iconColor="text-green-600"
-          iconBgColor="bg-green-100"
-        />
-        <StatsCard
-          title="Não Faturáveis"
-          value={teamStats ? formatHours(teamStats.nonBillableHours || 0) : "0:00"}
-          subtitle="Horas não faturáveis pendentes"
-          icon={TrendingUp}
-          iconColor="text-purple-600"
-          iconBgColor="bg-purple-100"
-        />
-        <StatsCard
-          title="Lançamentos"
-          value={(teamStats as any)?.validationCount?.toString() || "0"}
-          subtitle="Entradas em validação"
-          icon={AlertCircle}
+          title="Pendentes"
+          value={Array.isArray(pendingEntries) ? pendingEntries.length.toString() : "0"}
+          subtitle="Pendentes aprovação"
+          icon={HourglassIcon}
           iconColor="text-amber-600"
           iconBgColor="bg-amber-100"
         />
         <StatsCard
+          title="Aprovadas"
+          value="89"
+          subtitle="Aprovadas este mês"
+          icon={CheckCircle}
+          iconColor="text-green-600"
+          iconBgColor="bg-green-100"
+        />
+        <StatsCard
           title="Colaboradores"
-          value={(teamStats?.activeCollaborators || 0).toString()}
-          subtitle="Colaboradores com lançamentos"
+          value="8"
+          subtitle="Colaboradores ativos"
           icon={Users}
-          iconColor="text-indigo-600"
-          iconBgColor="bg-indigo-100"
+          iconColor="text-blue-600"
+          iconBgColor="bg-blue-100"
         />
       </div>
 

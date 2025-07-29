@@ -9,11 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, Filter, CheckCircle2, Clock, DollarSign, TrendingUp, AlertCircle, Users } from "lucide-react";
+import { Check, X, Filter, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge } from "./StatusBadge";
-import { StatsCard } from "./StatsCard";
 
 interface TimeEntry {
   id: number;
@@ -87,16 +86,6 @@ export function ApprovalManagement() {
       return response.json();
     },
     staleTime: 5 * 60 * 1000,
-  });
-
-  // Get team stats for indicators
-  const { data: teamStats, isLoading: loadingTeamStats } = useQuery({
-    queryKey: ["/api/reports/team-stats"],
-  });
-
-  // Get validation count
-  const { data: validationCount, isLoading: loadingValidationCount } = useQuery({
-    queryKey: ["/api/time-entries/validation-count"],
   });
 
 
@@ -231,11 +220,8 @@ export function ApprovalManagement() {
     return format(new Date(dateString + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR });
   };
 
-  const formatHours = (hours: string | number) => {
-    const h = parseFloat(hours.toString()) || 0;
-    const wholeHours = Math.floor(h);
-    const minutes = Math.round((h - wholeHours) * 60);
-    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
+  const formatHours = (hours: string) => {
+    return `${hours}h`;
   };
 
   // Gerar opções de mês (últimos 12 meses)
@@ -253,50 +239,6 @@ export function ApprovalManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Team Performance Indicators */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <StatsCard
-          title="Total"
-          value={teamStats ? formatHours(teamStats.totalHours || 0) : "0:00"}
-          subtitle="Horas totais da equipe"
-          icon={Clock}
-          iconColor="text-blue-600"
-          iconBgColor="bg-blue-100"
-        />
-        <StatsCard
-          title="Faturáveis"
-          value={teamStats ? formatHours(teamStats.billableHours || 0) : "0:00"}
-          subtitle="Horas faturáveis"
-          icon={DollarSign}
-          iconColor="text-green-600"
-          iconBgColor="bg-green-100"
-        />
-        <StatsCard
-          title="Não Faturáveis"
-          value={teamStats ? formatHours(teamStats.nonBillableHours || 0) : "0:00"}
-          subtitle="Horas não faturáveis"
-          icon={TrendingUp}
-          iconColor="text-purple-600"
-          iconBgColor="bg-purple-100"
-        />
-        <StatsCard
-          title="Pendentes"
-          value={(validationCount as any)?.count?.toString() || "0"}
-          subtitle="Aguardando validação" 
-          icon={AlertCircle}
-          iconColor="text-amber-600"
-          iconBgColor="bg-amber-100"
-        />
-        <StatsCard
-          title="Colaboradores"
-          value={(teamStats?.activeCollaborators || 0).toString()}
-          subtitle="Colaboradores ativos"
-          icon={Users}
-          iconColor="text-indigo-600"
-          iconBgColor="bg-indigo-100"
-        />
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

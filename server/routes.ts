@@ -566,31 +566,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const { fromDate, toDate, date } = req.query;
+      const { fromDate, toDate } = req.query;
       
-      console.log('Team stats request from user:', userId, 'role:', user?.role);
-      
-      // Allow MASTER, ADMIN, and GESTOR roles
-      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
-        console.log('Access denied for user:', userId, 'role:', user?.role);
+      if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      // If date is provided, use it for single day stats
-      let startDate = fromDate;
-      let endDate = toDate;
-      if (date) {
-        startDate = date;
-        endDate = date;
-      }
-
-      console.log('Fetching team stats with dates:', { startDate, endDate });
-
-      const stats = (user.role === 'GESTOR' && user.isManager)
-        ? await storage.getTeamTimeStats(parseInt(userId), startDate as string, endDate as string)
-        : await storage.getTeamTimeStats(0, startDate as string, endDate as string); // All team stats for admins
+      const stats = user.isManager 
+        ? await storage.getTeamTimeStats(parseInt(userId), fromDate as string, toDate as string)
+        : await storage.getTeamTimeStats(0, fromDate as string, toDate as string); // All team stats for admins
       
-      console.log('Team stats result:', stats);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching team stats:", error);
