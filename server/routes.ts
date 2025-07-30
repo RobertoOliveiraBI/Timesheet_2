@@ -12,11 +12,15 @@ import {
   insertTimeEntrySchema,
   insertCampaignUserSchema,
   insertUserSchema,
+  insertDepartmentSchema,
+  insertCostCenterSchema,
   clients as clientsTable,
   campaigns as campaignsTable,
   campaignTasks as campaignTasksTable,
   campaignUsers as campaignUsersTable,
   timeEntries,
+  departments,
+  costCenters,
 } from "@shared/schema";
 import { z } from "zod";
 import { eq, and, asc, desc, gte, lte, inArray } from "drizzle-orm";
@@ -1495,6 +1499,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting campaign task:", error);
       res.status(500).json({ message: "Failed to delete campaign task" });
+    }
+  });
+
+  // Departments routes
+  app.get("/api/departments", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const departments = await storage.getDepartments();
+      res.json(departments);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+      res.status(500).json({ message: "Failed to fetch departments" });
+    }
+  });
+
+  app.post("/api/departments", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const data = insertDepartmentSchema.parse(req.body);
+      const department = await storage.createDepartment(data);
+      res.status(201).json(department);
+    } catch (error) {
+      console.error("Error creating department:", error);
+      res.status(400).json({ message: "Failed to create department" });
+    }
+  });
+
+  app.patch("/api/departments/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const id = parseInt(req.params.id);
+      const data = insertDepartmentSchema.partial().parse(req.body);
+      const updatedDepartment = await storage.updateDepartment(id, data);
+      res.json(updatedDepartment);
+    } catch (error) {
+      console.error("Error updating department:", error);
+      res.status(400).json({ message: "Failed to update department" });
+    }
+  });
+
+  app.delete("/api/departments/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteDepartment(id);
+      res.json({ message: "Department deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      res.status(500).json({ message: "Failed to delete department" });
+    }
+  });
+
+  // Cost Centers routes
+  app.get("/api/cost-centers", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const costCenters = await storage.getCostCenters();
+      res.json(costCenters);
+    } catch (error) {
+      console.error("Error fetching cost centers:", error);
+      res.status(500).json({ message: "Failed to fetch cost centers" });
+    }
+  });
+
+  app.post("/api/cost-centers", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const data = insertCostCenterSchema.parse(req.body);
+      const costCenter = await storage.createCostCenter(data);
+      res.status(201).json(costCenter);
+    } catch (error) {
+      console.error("Error creating cost center:", error);
+      res.status(400).json({ message: "Failed to create cost center" });
+    }
+  });
+
+  app.patch("/api/cost-centers/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const id = parseInt(req.params.id);
+      const data = insertCostCenterSchema.partial().parse(req.body);
+      const updatedCostCenter = await storage.updateCostCenter(id, data);
+      res.json(updatedCostCenter);
+    } catch (error) {
+      console.error("Error updating cost center:", error);
+      res.status(400).json({ message: "Failed to update cost center" });
+    }
+  });
+
+  app.delete("/api/cost-centers/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteCostCenter(id);
+      res.json({ message: "Cost center deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting cost center:", error);
+      res.status(500).json({ message: "Failed to delete cost center" });
     }
   });
 

@@ -924,3 +924,220 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
     </DialogContent>
   );
 }
+
+// Modal para Departamentos
+export function DepartmentModal({ department, onClose }: { department?: any; onClose: () => void }) {
+  const [formData, setFormData] = useState({
+    name: department?.name || "",
+    description: department?.description || "",
+    isActive: department?.isActive ?? true,
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!data.name?.trim()) {
+        throw new Error("Nome do departamento é obrigatório");
+      }
+      
+      const cleanData = {
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        isActive: data.isActive,
+      };
+      
+      const url = department ? `/api/departments/${department.id}` : "/api/departments";
+      const method = department ? "PATCH" : "POST";
+      return await apiRequest(method, url, cleanData);
+    },
+    onSuccess: () => {
+      toast({ 
+        title: department ? "Departamento atualizado!" : "Departamento criado!",
+        description: "Operação realizada com sucesso."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao processar operação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>{department ? "Editar Departamento" : "Novo Departamento"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <Label htmlFor="departmentName">Nome do Departamento</Label>
+          <Input
+            id="departmentName"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            required
+            placeholder="Ex: Criação, Design, Mídia"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="departmentDescription">Descrição</Label>
+          <Textarea
+            id="departmentDescription"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Descrição detalhada do departamento"
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="departmentActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+          />
+          <Label htmlFor="departmentActive">Departamento ativo</Label>
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
+  );
+}
+
+// Modal para Centros de Custo
+export function CostCenterModal({ costCenter, onClose }: { costCenter?: any; onClose: () => void }) {
+  const [formData, setFormData] = useState({
+    name: costCenter?.name || "",
+    code: costCenter?.code || "",
+    description: costCenter?.description || "",
+    isActive: costCenter?.isActive ?? true,
+  });
+
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!data.name?.trim()) {
+        throw new Error("Nome do centro de custos é obrigatório");
+      }
+      if (!data.code?.trim()) {
+        throw new Error("Código do centro de custos é obrigatório");
+      }
+      
+      const cleanData = {
+        name: data.name.trim(),
+        code: data.code.trim().toUpperCase(),
+        description: data.description?.trim() || null,
+        isActive: data.isActive,
+      };
+      
+      const url = costCenter ? `/api/cost-centers/${costCenter.id}` : "/api/cost-centers";
+      const method = costCenter ? "PATCH" : "POST";
+      return await apiRequest(method, url, cleanData);
+    },
+    onSuccess: () => {
+      toast({ 
+        title: costCenter ? "Centro de custos atualizado!" : "Centro de custos criado!",
+        description: "Operação realizada com sucesso."
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/cost-centers"] });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao processar operação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate(formData);
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle>{costCenter ? "Editar Centro de Custos" : "Novo Centro de Custos"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="costCenterName">Nome</Label>
+            <Input
+              id="costCenterName"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+              placeholder="Ex: GBrasil, GTodos"
+            />
+          </div>
+          <div>
+            <Label htmlFor="costCenterCode">Código</Label>
+            <Input
+              id="costCenterCode"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+              required
+              placeholder="Ex: GBR, GTD"
+              maxLength={10}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Máximo 10 caracteres, será convertido para maiúsculas
+            </p>
+          </div>
+        </div>
+        
+        <div>
+          <Label htmlFor="costCenterDescription">Descrição</Label>
+          <Textarea
+            id="costCenterDescription"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Descrição detalhada do centro de custos"
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="costCenterActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+          />
+          <Label htmlFor="costCenterActive">Centro de custos ativo</Label>
+        </div>
+
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
+  );
+}

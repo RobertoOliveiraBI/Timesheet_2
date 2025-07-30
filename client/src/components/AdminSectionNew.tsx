@@ -28,7 +28,7 @@ import {
   Search,
   Copy
 } from "lucide-react";
-import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal } from "./AdminModals";
+import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal, DepartmentModal, CostCenterModal } from "./AdminModals";
 import { CampaignAccessModal } from "./CampaignAccessModal";
 
 export function AdminSection() {
@@ -41,7 +41,9 @@ export function AdminSection() {
     clients: "",
     campaigns: "",
     taskTypes: "",
-    campaignTasks: ""
+    campaignTasks: "",
+    departments: "",
+    costCenters: ""
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -159,6 +161,36 @@ export function AdminSection() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: departments = [], error: departmentsError, isLoading: departmentsLoading } = useQuery<any[]>({
+    queryKey: ["/api/departments"],
+    queryFn: async () => {
+      const response = await fetch("/api/departments", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: costCenters = [], error: costCentersError, isLoading: costCentersLoading } = useQuery<any[]>({
+    queryKey: ["/api/cost-centers"],
+    queryFn: async () => {
+      const response = await fetch("/api/cost-centers", {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+      return response.json();
+    },
+    retry: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
   const updateConfigMutation = useMutation({
     mutationFn: async (config: Record<string, any>) => {
       await apiRequest("PATCH", "/api/config", config);
@@ -178,6 +210,8 @@ export function AdminSection() {
         campaign: `/api/campanhas/${id}`,
         taskType: `/api/tipos-tarefa/${id}`,
         campaignTask: `/api/campaign-tasks/${id}`,
+        department: `/api/departments/${id}`,
+        costCenter: `/api/cost-centers/${id}`,
       };
       await apiRequest("DELETE", endpoints[type as keyof typeof endpoints]);
     },
@@ -188,6 +222,8 @@ export function AdminSection() {
         client: ["/api/clientes"],
         campaign: ["/api/campaigns"],
         taskType: ["/api/task-types"],
+        department: ["/api/departments"],
+        costCenter: ["/api/cost-centers"],
       };
       queryClient.invalidateQueries({ queryKey: queries[variables.type as keyof typeof queries] });
       toast({ title: "Item removido com sucesso!" });
@@ -243,6 +279,17 @@ export function AdminSection() {
     task.description?.toLowerCase().includes(searchTerms.campaignTasks.toLowerCase()) ||
     task.campaign?.name?.toLowerCase().includes(searchTerms.campaignTasks.toLowerCase()) ||
     task.taskType?.name?.toLowerCase().includes(searchTerms.campaignTasks.toLowerCase())
+  );
+
+  const filteredDepartments = departments.filter(department =>
+    department.name?.toLowerCase().includes(searchTerms.departments.toLowerCase()) ||
+    department.description?.toLowerCase().includes(searchTerms.departments.toLowerCase())
+  );
+
+  const filteredCostCenters = costCenters.filter(costCenter =>
+    costCenter.name?.toLowerCase().includes(searchTerms.costCenters.toLowerCase()) ||
+    costCenter.code?.toLowerCase().includes(searchTerms.costCenters.toLowerCase()) ||
+    costCenter.description?.toLowerCase().includes(searchTerms.costCenters.toLowerCase())
   );
 
   const handleConfigChange = (key: string, value: boolean) => {
@@ -866,6 +913,133 @@ export function AdminSection() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Departments */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Departamentos ({filteredDepartments.length} de {departments.length})</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => openModal("department")}>
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar departamentos..."
+                value={searchTerms.departments}
+                onChange={(e) => setSearchTerms({...searchTerms, departments: e.target.value})}
+                className="pl-10"
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {departmentsLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : departmentsError ? (
+              <div className="text-center py-4 text-red-600">
+                Erro ao carregar departamentos: {departmentsError.message}
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Array.isArray(filteredDepartments) && filteredDepartments.length > 0 ? filteredDepartments.map((department: any) => (
+                  <div key={department.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium">{department.name}</p>
+                        {!department.isActive && (
+                          <Badge variant="secondary" className="text-xs">Inativo</Badge>
+                        )}
+                      </div>
+                      {department.description && (
+                        <p className="text-sm text-slate-500">{department.description}</p>
+                      )}
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openModal("department", department)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "department", id: department.id })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-4 text-slate-500">
+                    {searchTerms.departments ? 'Nenhum departamento encontrado para esta busca' : 'Nenhum departamento cadastrado'}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Cost Centers */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Centros de Custo ({filteredCostCenters.length} de {costCenters.length})</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => openModal("costCenter")}>
+                <Plus className="w-4 h-4 mr-1" />
+                Novo
+              </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar centros de custo..."
+                value={searchTerms.costCenters}
+                onChange={(e) => setSearchTerms({...searchTerms, costCenters: e.target.value})}
+                className="pl-10"
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {costCentersLoading ? (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              </div>
+            ) : costCentersError ? (
+              <div className="text-center py-4 text-red-600">
+                Erro ao carregar centros de custo: {costCentersError.message}
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {Array.isArray(filteredCostCenters) && filteredCostCenters.length > 0 ? filteredCostCenters.map((costCenter: any) => (
+                  <div key={costCenter.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <p className="font-medium">{costCenter.name}</p>
+                        <Badge variant="outline" className="text-xs">{costCenter.code}</Badge>
+                        {!costCenter.isActive && (
+                          <Badge variant="secondary" className="text-xs">Inativo</Badge>
+                        )}
+                      </div>
+                      {costCenter.description && (
+                        <p className="text-sm text-slate-500">{costCenter.description}</p>
+                      )}
+                    </div>
+                    <div className="flex space-x-1">
+                      <Button variant="ghost" size="sm" onClick={() => openModal("costCenter", costCenter)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "costCenter", id: costCenter.id })}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="text-center py-4 text-slate-500">
+                    {searchTerms.costCenters ? 'Nenhum centro de custo encontrado para esta busca' : 'Nenhum centro de custo cadastrado'}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Modals */}
@@ -892,6 +1066,12 @@ export function AdminSection() {
             taskTypes={taskTypes}
             onClose={closeModal} 
           />
+        )}
+        {selectedModal === "department" && (
+          <DepartmentModal department={selectedItem} onClose={closeModal} />
+        )}
+        {selectedModal === "costCenter" && (
+          <CostCenterModal costCenter={selectedItem} onClose={closeModal} />
         )}
       </Dialog>
 

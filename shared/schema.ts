@@ -27,6 +27,27 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Departments
+export const departments = pgTable("departments", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).unique().notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Cost Centers
+export const costCenters = pgTable("cost_centers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).unique().notNull(),
+  code: varchar("code", { length: 20 }).unique().notNull(),
+  description: text("description"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // User storage table with password authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -40,8 +61,8 @@ export const users = pgTable("users", {
   isManager: boolean("is_manager").default(false),
   managerId: integer("manager_id"),
   contractType: varchar("contract_type", { enum: ["CLT", "PJ"] }),
-  costCenter: varchar("cost_center", { enum: ["GBrasil", "GTodos", "PPR"] }),
-  department: varchar("department", { enum: ["Criação", "Conteúdo", "Design", "Mídia"] }),
+  costCenterId: integer("cost_center_id").references(() => costCenters.id),
+  departmentId: integer("department_id").references(() => departments.id),
   contractStartDate: date("contract_start_date"),
   contractEndDate: date("contract_end_date"),
   contractValue: decimal("contract_value", { precision: 10, scale: 2 }),
@@ -142,6 +163,22 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   timeEntries: many(timeEntries),
   reviewedEntries: many(timeEntries),
   campaignAccess: many(campaignUsers),
+  department: one(departments, {
+    fields: [users.departmentId],
+    references: [departments.id],
+  }),
+  costCenter: one(costCenters, {
+    fields: [users.costCenterId],
+    references: [costCenters.id],
+  }),
+}));
+
+export const departmentsRelations = relations(departments, ({ many }) => ({
+  users: many(users),
+}));
+
+export const costCentersRelations = relations(costCenters, ({ many }) => ({
+  users: many(users),
 }));
 
 export const economicGroupsRelations = relations(economicGroups, ({ many }) => ({
@@ -289,9 +326,27 @@ export const insertSystemConfigSchema = createInsertSchema(systemConfig).omit({
   updatedAt: true,
 });
 
+export const insertDepartmentSchema = createInsertSchema(departments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCostCenterSchema = createInsertSchema(costCenters).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type for system config
 export type InsertSystemConfig = z.infer<typeof insertSystemConfigSchema>;
 export type SystemConfig = typeof systemConfig.$inferSelect;
+
+// Types for departments and cost centers
+export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
+export type Department = typeof departments.$inferSelect;
+export type InsertCostCenter = z.infer<typeof insertCostCenterSchema>;
+export type CostCenter = typeof costCenters.$inferSelect;
 
 // Extended types with relations
 export type TimeEntryWithRelations = TimeEntry & {

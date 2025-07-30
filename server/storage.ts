@@ -7,6 +7,8 @@ import {
   taskTypes,
   campaignTasks,
   timeEntries,
+  departments,
+  costCenters,
   type User,
   type InsertUser,
   type InsertEconomicGroup,
@@ -29,6 +31,10 @@ import {
   systemConfig,
   type SystemConfig,
   type InsertSystemConfig,
+  type Department,
+  type InsertDepartment,
+  type CostCenter,
+  type InsertCostCenter,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, gte, lte, inArray } from "drizzle-orm";
@@ -108,6 +114,18 @@ export interface IStorage {
   deleteClient(id: number): Promise<void>;
   deleteCampaign(id: number): Promise<void>;
   deleteTaskType(id: number): Promise<void>;
+  
+  // Departments
+  getDepartments(): Promise<Department[]>;
+  createDepartment(department: InsertDepartment): Promise<Department>;
+  updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department>;
+  deleteDepartment(id: number): Promise<void>;
+  
+  // Cost Centers
+  getCostCenters(): Promise<CostCenter[]>;
+  createCostCenter(costCenter: InsertCostCenter): Promise<CostCenter>;
+  updateCostCenter(id: number, costCenter: Partial<InsertCostCenter>): Promise<CostCenter>;
+  deleteCostCenter(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -745,6 +763,94 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTimeEntry(id: number): Promise<void> {
     await db.delete(timeEntries).where(eq(timeEntries.id, id));
+  }
+
+  // Departments
+  async getDepartments(): Promise<Department[]> {
+    return await db.select().from(departments).orderBy(asc(departments.name));
+  }
+
+  async createDepartment(departmentData: InsertDepartment): Promise<Department> {
+    const [department] = await db
+      .insert(departments)
+      .values(departmentData)
+      .returning();
+    return department;
+  }
+
+  async updateDepartment(id: number, departmentData: Partial<InsertDepartment>): Promise<Department> {
+    const [updatedDepartment] = await db
+      .update(departments)
+      .set({
+        ...departmentData,
+        updatedAt: new Date(),
+      })
+      .where(eq(departments.id, id))
+      .returning();
+    return updatedDepartment;
+  }
+
+  async deleteDepartment(id: number): Promise<void> {
+    // Check if department has users
+    const userCount = await db
+      .select({ count: sql`count(*)` })
+      .from(users)
+      .where(eq(users.departmentId, id));
+    
+    if (Number(userCount[0].count) > 0) {
+      // Soft delete by setting isActive to false
+      await db
+        .update(departments)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(departments.id, id));
+    } else {
+      // Hard delete if no users assigned
+      await db.delete(departments).where(eq(departments.id, id));
+    }
+  }
+
+  // Cost Centers
+  async getCostCenters(): Promise<CostCenter[]> {
+    return await db.select().from(costCenters).orderBy(asc(costCenters.name));
+  }
+
+  async createCostCenter(costCenterData: InsertCostCenter): Promise<CostCenter> {
+    const [costCenter] = await db
+      .insert(costCenters)
+      .values(costCenterData)
+      .returning();
+    return costCenter;
+  }
+
+  async updateCostCenter(id: number, costCenterData: Partial<InsertCostCenter>): Promise<CostCenter> {
+    const [updatedCostCenter] = await db
+      .update(costCenters)
+      .set({
+        ...costCenterData,
+        updatedAt: new Date(),
+      })
+      .where(eq(costCenters.id, id))
+      .returning();
+    return updatedCostCenter;
+  }
+
+  async deleteCostCenter(id: number): Promise<void> {
+    // Check if cost center has users
+    const userCount = await db
+      .select({ count: sql`count(*)` })
+      .from(users)
+      .where(eq(users.costCenterId, id));
+    
+    if (Number(userCount[0].count) > 0) {
+      // Soft delete by setting isActive to false
+      await db
+        .update(costCenters)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(costCenters.id, id));
+    } else {
+      // Hard delete if no users assigned
+      await db.delete(costCenters).where(eq(costCenters.id, id));
+    }
   }
 }
 
