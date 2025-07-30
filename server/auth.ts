@@ -2,8 +2,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import ConnectPgSimple from "connect-pg-simple";
@@ -15,19 +14,12 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
-
 async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  return bcrypt.hash(password, 10);
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  return bcrypt.compare(supplied, stored);
 }
 
 const PgSession = ConnectPgSimple(session);
@@ -119,64 +111,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Login endpoint
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: any, user: any, info: any) => {
-      if (err) {
-        return res.status(500).json({ message: "Erro interno do servidor" });
-      }
-      if (!user) {
-        return res.status(401).json({ message: "Email ou senha inválidos" });
-      }
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          return res.status(500).json({ message: "Erro ao fazer login" });
-        }
-        res.json({ 
-          id: user.id, 
-          email: user.email, 
-          firstName: user.firstName, 
-          lastName: user.lastName,
-          role: user.role 
-        });
-      });
-    })(req, res, next);
-  });
 
-  // Logout endpoint (POST)
-  app.post("/api/logout", (req, res, next) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Erro no logout:", err);
-        return next(err);
-      }
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Erro ao destruir sessão:", err);
-          return res.status(500).json({ message: "Erro ao fazer logout" });
-        }
-        res.clearCookie('connect.sid');
-        res.json({ message: "Logout realizado com sucesso" });
-      });
-    });
-  });
 
-  // Logout endpoint (GET) - for compatibility when accessing via browser
-  app.get("/api/logout", (req, res, next) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Erro no logout:", err);
-        return next(err);
-      }
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Erro ao destruir sessão:", err);
-        }
-        res.clearCookie('connect.sid');
-        res.redirect('/');
-      });
-    });
-  });
+
 
   // Login endpoint with email/password
   app.post("/api/login", async (req, res, next) => {
@@ -217,7 +154,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Logout endpoint (POST) for API
+  // Logout endpoints
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) {
@@ -230,6 +167,22 @@ export function setupAuth(app: Express) {
         }
         res.clearCookie('connect.sid');
         res.json({ message: "Logout realizado com sucesso" });
+      });
+    });
+  });
+
+  app.get("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Erro no logout:", err);
+        return next(err);
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Erro ao destruir sessão:", err);
+        }
+        res.clearCookie('connect.sid');
+        res.redirect('/');
       });
     });
   });
