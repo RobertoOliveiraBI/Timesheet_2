@@ -422,8 +422,9 @@ export class DatabaseStorage implements IStorage {
       });
     } catch (error) {
       console.error("Error in getTimeEntriesByUser:", error);
-      // Fallback para query simples se a relação falhar
-      return await db.select().from(timeEntries).where(and(...conditions));
+      // Fallback to simple query if relations fail
+      const simpleEntries = await db.select().from(timeEntries).where(and(...conditions));
+      return simpleEntries as TimeEntryWithRelations[];
     }
   }
 
