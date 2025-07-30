@@ -58,22 +58,7 @@ export default function Dashboard() {
     }
   }, [user, isLoading, location, setLocation]);
 
-  // Calcular datas da semana atual (segunda a sexta)
-  const getCurrentWeekDates = () => {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - currentDay + 1); // Segunda-feira
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 4); // Sexta-feira
-    
-    return {
-      fromDate: startOfWeek.toISOString().split('T')[0],
-      endDate: endOfWeek.toISOString().split('T')[0]
-    };
-  };
 
-  const weekDates = getCurrentWeekDates();
   
   // Função para obter as datas do mês atual
   const getCurrentMonthDates = () => {
@@ -89,17 +74,7 @@ export default function Dashboard() {
   
   const monthDates = getCurrentMonthDates();
 
-  const { data: userStats } = useQuery<any>({
-    queryKey: ["/api/reports/user-stats", weekDates.fromDate, weekDates.endDate],
-    queryFn: async () => {
-      const response = await fetch(`/api/reports/user-stats?fromDate=${weekDates.fromDate}&toDate=${weekDates.endDate}`, {
-        credentials: "include"
-      });
-      if (!response.ok) return null;
-      return response.json();
-    },
-    retry: false,
-  });
+
 
   const { data: monthStats } = useQuery<any>({
     queryKey: ["/api/reports/user-stats", monthDates.fromDate, monthDates.endDate, "month"],
@@ -187,15 +162,7 @@ export default function Dashboard() {
         return (
           <div className="space-y-8">
             {/* Quick stats */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <StatsCard
-                title="Esta semana"
-                value={userStats?.totalHours ? formatHours(userStats.totalHours) : "0:00"}
-                subtitle="Horas esta semana"
-                icon={Clock}
-                iconColor="text-blue-600"
-                iconBgColor="bg-blue-100"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <StatsCard
                 title="Este mês"
                 value={monthStats?.totalHours ? formatHours(monthStats.totalHours) : "0:00"}
@@ -206,7 +173,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Aprovadas"
-                value={userStats?.approvedHours ? formatHours(userStats.approvedHours) : "0:00"}
+                value={monthStats?.approvedHours ? formatHours(monthStats.approvedHours) : "0:00"}
                 subtitle="Horas aprovadas"
                 icon={CheckCircle}
                 iconColor="text-green-600"
@@ -214,7 +181,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Pendentes"
-                value={userStats?.pendingHours ? formatHours(userStats.pendingHours) : "0:00"}
+                value={monthStats?.pendingHours ? formatHours(monthStats.pendingHours) : "0:00"}
                 subtitle="Pendente aprovação"
                 icon={HourglassIcon}
                 iconColor="text-amber-600"
@@ -222,7 +189,7 @@ export default function Dashboard() {
               />
               <StatsCard
                 title="Faturáveis"
-                value={userStats?.billableHours && userStats?.totalHours ? `${Math.round((userStats.billableHours / userStats.totalHours) * 100)}%` : "0%"}
+                value={monthStats?.billableHours && monthStats?.totalHours ? `${Math.round((monthStats.billableHours / monthStats.totalHours) * 100)}%` : "0%"}
                 subtitle="Horas faturáveis"
                 icon={TrendingUp}
                 iconColor="text-primary"
