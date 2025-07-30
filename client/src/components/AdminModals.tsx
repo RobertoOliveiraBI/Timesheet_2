@@ -885,7 +885,7 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
         </div>
 
         <div>
-          <Label htmlFor="contractValue">Valor do Contrato (R$)</Label>
+          <Label htmlFor="contractValue">Valor Mensal do Contrato (R$)</Label>
           <Input
             id="contractValue"
             type="text"
