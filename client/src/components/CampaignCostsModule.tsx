@@ -231,10 +231,12 @@ const CampaignCostsModule = () => {
     }
 
     createOrUpdateMutation.mutate({
-      ...formData,
-      client_id: parseInt(formData.client_id),
-      campaign_id: parseInt(formData.campaign_id),
-      amount
+      campaignId: parseInt(formData.campaign_id),
+      subject: formData.subject,
+      description: formData.description,
+      referenceMonth: formData.reference_month,
+      amount,
+      status: formData.status
     });
   };
 
@@ -513,6 +515,7 @@ const CampaignCostsModule = () => {
             <DialogTitle>
               {editingCost ? "Editar Custo" : "Novo Custo"}
             </DialogTitle>
+
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
