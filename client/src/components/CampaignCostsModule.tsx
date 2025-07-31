@@ -264,6 +264,14 @@ const CampaignCostsModule = () => {
     return matchesSearch && matchesMonth && matchesClient && matchesStatus;
   });
 
+  // Calcular indicadores dos custos filtrados
+  const filteredTotals = {
+    total: filteredCosts.reduce((sum: number, cost: any) => sum + parseFloat(cost.amount || 0), 0),
+    count: filteredCosts.length,
+    activeCosts: filteredCosts.filter((cost: any) => cost.status === "ATIVO").length,
+    uniqueCampaigns: new Set(filteredCosts.map((cost: any) => cost.campaignId)).size
+  };
+
   // Gerar opções de mês
   const generateMonthOptions = () => {
     const options = [];
@@ -317,10 +325,10 @@ const CampaignCostsModule = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              R$ {totals?.total?.toLocaleString("pt-BR", { minimumFractionDigits: 2 }) || "0,00"}
+              R$ {filteredTotals.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Soma de todos os custos ativos
+              {filteredTotals.count} custos filtrados
             </p>
           </CardContent>
         </Card>
@@ -331,22 +339,22 @@ const CampaignCostsModule = () => {
             <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totals?.active || 0}</div>
+            <div className="text-2xl font-bold">{filteredTotals.activeCosts}</div>
             <p className="text-xs text-muted-foreground">
-              Custos com status ativo
+              custos ativos filtrados
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Custos Inativos</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Campanhas</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totals?.inactive || 0}</div>
+            <div className="text-2xl font-bold">{filteredTotals.uniqueCampaigns}</div>
             <p className="text-xs text-muted-foreground">
-              Custos com status inativo
+              campanhas diferentes
             </p>
           </CardContent>
         </Card>
