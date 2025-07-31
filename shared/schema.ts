@@ -155,6 +155,29 @@ export const timeEntries = pgTable("time_entries", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Campaign costs (custos de campanha)
+export const campaignCosts = pgTable("campaign_costs", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").references(() => campaigns.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(), // Quem lançou o custo
+  subject: varchar("subject", { length: 255 }).notNull(), // Assunto obrigatório
+  description: text("description"), // Descrição opcional
+  referenceMonth: varchar("reference_month", { length: 7 }).notNull(), // YYYY-MM format
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(), // Valor obrigatório
+  notes: text("notes"), // Observações opcionais
+  status: varchar("status", { enum: ["ATIVO", "INATIVO"] }).default("ATIVO"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  inactivatedAt: timestamp("inactivated_at"),
+  inactivatedBy: integer("inactivated_by").references(() => users.id),
+}, (table) => [
+  // Índices para performance em filtros frequentes
+  index("idx_campaign_costs_campaign").on(table.campaignId),
+  index("idx_campaign_costs_month").on(table.referenceMonth),
+  index("idx_campaign_costs_status").on(table.status),
+  index("idx_campaign_costs_user").on(table.userId),
+]);
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   manager: one(users, {
@@ -165,6 +188,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   timeEntries: many(timeEntries),
   reviewedEntries: many(timeEntries),
   campaignAccess: many(campaignUsers),
+  campaignCosts: many(campaignCosts),
   department: one(departments, {
     fields: [users.departmentId],
     references: [departments.id],
@@ -203,6 +227,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   timeEntries: many(timeEntries),
   userAccess: many(campaignUsers),
   tasks: many(campaignTasks),
+  costs: many(campaignCosts),
 }));
 
 export const campaignUsersRelations = relations(campaignUsers, ({ one }) => ({
@@ -247,6 +272,21 @@ export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
   }),
   reviewer: one(users, {
     fields: [timeEntries.reviewedBy],
+    references: [users.id],
+  }),
+}));
+
+export const campaignCostsRelations = relations(campaignCosts, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [campaignCosts.campaignId],
+    references: [campaigns.id],
+  }),
+  user: one(users, {
+    fields: [campaignCosts.userId],
+    references: [users.id],
+  }),
+  inactivatedByUser: one(users, {
+    fields: [campaignCosts.inactivatedBy],
     references: [users.id],
   }),
 }));
@@ -296,6 +336,32 @@ export const insertCampaignUserSchema = createInsertSchema(campaignUsers).omit({
   createdAt: true,
 });
 
+export const insertCampaignCostSchema = createInsertSchema(campaignCosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  inactivatedAt: true,
+  inactivatedBy: true,
+}).extend({
+  // Validações customizadas
+  subject: z.string().min(1, "Assunto é obrigatório").max(255, "Assunto muito longo"),
+  referenceMonth: z.string().regex(/^\d{4}-\d{2}$/, "Formato do mês deve ser YYYY-MM"),
+  amount: z.union([
+    z.string().transform((val) => {
+      // Aceita entrada com vírgula ou ponto decimal
+      const cleaned = val.replace(/[^\d.,]/g, '').replace(',', '.');
+      const num = parseFloat(cleaned);
+      if (isNaN(num) || num <= 0) {
+        throw new Error("Valor deve ser um número positivo");
+      }
+      return num.toString();
+    }),
+    z.number().positive("Valor deve ser positivo").transform(String)
+  ]),
+  description: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -313,6 +379,8 @@ export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertCampaignUser = z.infer<typeof insertCampaignUserSchema>;
 export type CampaignUser = typeof campaignUsers.$inferSelect;
+export type InsertCampaignCost = z.infer<typeof insertCampaignCostSchema>;
+export type CampaignCost = typeof campaignCosts.$inferSelect;
 
 // System configuration
 export const systemConfig = pgTable("system_config", {
@@ -372,4 +440,10 @@ export type CampaignTaskWithRelations = CampaignTask & {
 export type UserWithRelations = User & {
   manager?: User;
   subordinates: User[];
+};
+
+export type CampaignCostWithRelations = CampaignCost & {
+  campaign: Campaign & { client: Client };
+  user: User;
+  inactivatedByUser?: User;
 };

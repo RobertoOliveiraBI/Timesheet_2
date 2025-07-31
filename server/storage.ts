@@ -7,6 +7,7 @@ import {
   taskTypes,
   campaignTasks,
   timeEntries,
+  campaignCosts,
   departments,
   costCenters,
   type User,
@@ -28,6 +29,9 @@ import {
   type CampaignUser,
   type TimeEntryWithRelations,
   type CampaignWithRelations,
+  type InsertCampaignCost,
+  type CampaignCost,
+  type CampaignCostWithRelations,
   systemConfig,
   type SystemConfig,
   type InsertSystemConfig,
@@ -126,6 +130,24 @@ export interface IStorage {
   createCostCenter(costCenter: InsertCostCenter): Promise<CostCenter>;
   updateCostCenter(id: number, costCenter: Partial<InsertCostCenter>): Promise<CostCenter>;
   deleteCostCenter(id: number): Promise<void>;
+  
+  // Campaign Costs
+  getCampaignCosts(filters?: {
+    campaignId?: number;
+    referenceMonth?: string;
+    status?: string;
+    userId?: number;
+  }): Promise<CampaignCostWithRelations[]>;
+  createCampaignCost(campaignCost: InsertCampaignCost): Promise<CampaignCost>;
+  updateCampaignCost(id: number, campaignCost: Partial<InsertCampaignCost>): Promise<CampaignCost>;
+  inactivateCampaignCost(id: number, userId: number): Promise<CampaignCost>;
+  reactivateCampaignCost(id: number): Promise<CampaignCost>;
+  getCampaignCostsTotals(filters?: {
+    campaignId?: number;
+    referenceMonth?: string;
+    status?: string;
+    userId?: number;
+  }): Promise<{ total: number; count: number; }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -872,6 +894,173 @@ export class DatabaseStorage implements IStorage {
       // Hard delete if no users assigned
       await db.delete(costCenters).where(eq(costCenters.id, id));
     }
+  }
+
+  // Campaign Costs
+  async getCampaignCosts(filters?: {
+    campaignId?: number;
+    referenceMonth?: string;
+    status?: string;
+    userId?: number;
+  }): Promise<CampaignCostWithRelations[]> {
+    const conditions = [];
+    
+    if (filters?.campaignId) {
+      conditions.push(eq(campaignCosts.campaignId, filters.campaignId));
+    }
+    if (filters?.referenceMonth) {
+      conditions.push(eq(campaignCosts.referenceMonth, filters.referenceMonth));
+    }
+    if (filters?.status) {
+      conditions.push(eq(campaignCosts.status, filters.status as any));
+    }
+    if (filters?.userId) {
+      conditions.push(eq(campaignCosts.userId, filters.userId));
+    }
+
+    const costs = await db.query.campaignCosts.findMany({
+      where: conditions.length > 0 ? and(...conditions) : undefined,
+      with: {
+        campaign: {
+          with: {
+            client: true,
+          },
+        },
+        user: true,
+        inactivatedByUser: true,
+      },
+      orderBy: [desc(campaignCosts.createdAt)],
+    });
+
+    return costs as CampaignCostWithRelations[];
+  }
+
+  async createCampaignCost(campaignCostData: InsertCampaignCost): Promise<CampaignCost> {
+    // Validação para prevenir duplicações óbvias
+    const existingCost = await db.query.campaignCosts.findFirst({
+      where: and(
+        eq(campaignCosts.campaignId, campaignCostData.campaignId),
+        eq(campaignCosts.subject, campaignCostData.subject),
+        eq(campaignCosts.referenceMonth, campaignCostData.referenceMonth),
+        eq(campaignCosts.status, "ATIVO")
+      ),
+    });
+
+    if (existingCost) {
+      throw new Error("Já existe um custo ativo com o mesmo assunto para esta campanha no mesmo mês");
+    }
+
+    const [campaignCost] = await db
+      .insert(campaignCosts)
+      .values({
+        ...campaignCostData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    
+    return campaignCost;
+  }
+
+  async updateCampaignCost(id: number, campaignCostData: Partial<InsertCampaignCost>): Promise<CampaignCost> {
+    // Se atualizando assunto, verificar duplicação
+    if (campaignCostData.subject || campaignCostData.campaignId || campaignCostData.referenceMonth) {
+      const currentCost = await db.query.campaignCosts.findFirst({
+        where: eq(campaignCosts.id, id),
+      });
+
+      if (currentCost) {
+        const existingCost = await db.query.campaignCosts.findFirst({
+          where: and(
+            eq(campaignCosts.campaignId, campaignCostData.campaignId || currentCost.campaignId),
+            eq(campaignCosts.subject, campaignCostData.subject || currentCost.subject),
+            eq(campaignCosts.referenceMonth, campaignCostData.referenceMonth || currentCost.referenceMonth),
+            eq(campaignCosts.status, "ATIVO"),
+            sql`${campaignCosts.id} != ${id}` // Excluir o próprio registro
+          ),
+        });
+
+        if (existingCost) {
+          throw new Error("Já existe um custo ativo com o mesmo assunto para esta campanha no mesmo mês");
+        }
+      }
+    }
+
+    const [updatedCost] = await db
+      .update(campaignCosts)
+      .set({
+        ...campaignCostData,
+        updatedAt: new Date(),
+      })
+      .where(eq(campaignCosts.id, id))
+      .returning();
+    
+    return updatedCost;
+  }
+
+  async inactivateCampaignCost(id: number, userId: number): Promise<CampaignCost> {
+    const [inactivatedCost] = await db
+      .update(campaignCosts)
+      .set({
+        status: "INATIVO",
+        inactivatedAt: new Date(),
+        inactivatedBy: userId,
+        updatedAt: new Date(),
+      })
+      .where(eq(campaignCosts.id, id))
+      .returning();
+    
+    return inactivatedCost;
+  }
+
+  async reactivateCampaignCost(id: number): Promise<CampaignCost> {
+    const [reactivatedCost] = await db
+      .update(campaignCosts)
+      .set({
+        status: "ATIVO",
+        inactivatedAt: null,
+        inactivatedBy: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(campaignCosts.id, id))
+      .returning();
+    
+    return reactivatedCost;
+  }
+
+  async getCampaignCostsTotals(filters?: {
+    campaignId?: number;
+    referenceMonth?: string;
+    status?: string;
+    userId?: number;
+  }): Promise<{ total: number; count: number; }> {
+    const conditions = [];
+    
+    if (filters?.campaignId) {
+      conditions.push(eq(campaignCosts.campaignId, filters.campaignId));
+    }
+    if (filters?.referenceMonth) {
+      conditions.push(eq(campaignCosts.referenceMonth, filters.referenceMonth));
+    }
+    if (filters?.status) {
+      conditions.push(eq(campaignCosts.status, filters.status as any));
+    }
+    if (filters?.userId) {
+      conditions.push(eq(campaignCosts.userId, filters.userId));
+    }
+
+    const result = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(CAST(${campaignCosts.amount} AS DECIMAL)), 0)`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(campaignCosts)
+      .where(conditions.length > 0 ? and(...conditions) : undefined);
+
+    return {
+      total: Number(result[0].total) || 0,
+      count: Number(result[0].count) || 0,
+    };
   }
 }
 

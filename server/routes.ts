@@ -14,6 +14,7 @@ import {
   insertUserSchema,
   insertDepartmentSchema,
   insertCostCenterSchema,
+  insertCampaignCostSchema,
   clients as clientsTable,
   campaigns as campaignsTable,
   campaignTasks as campaignTasksTable,
@@ -21,6 +22,7 @@ import {
   timeEntries,
   departments,
   costCenters,
+  campaignCosts,
 } from "@shared/schema";
 import { z } from "zod";
 import { eq, and, asc, desc, gte, lte, inArray } from "drizzle-orm";
@@ -1629,6 +1631,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting cost center:", error);
       res.status(500).json({ message: "Failed to delete cost center" });
+    }
+  });
+
+  // Campaign Costs routes
+  app.get("/api/campaign-costs", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Função insuficiente." });
+      }
+
+      const { campaignId, referenceMonth, status, userId } = req.query;
+      
+      const filters: any = {};
+      if (campaignId) filters.campaignId = parseInt(campaignId);
+      if (referenceMonth) filters.referenceMonth = referenceMonth;
+      if (status) filters.status = status;
+      if (userId) filters.userId = parseInt(userId);
+
+      const costs = await storage.getCampaignCosts(filters);
+      res.json(costs);
+    } catch (error) {
+      console.error("Error fetching campaign costs:", error);
+      res.status(500).json({ message: "Erro ao buscar custos de campanha" });
+    }
+  });
+
+  app.post("/api/campaign-costs", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Função insuficiente." });
+      }
+
+      // Validar dados de entrada e adicionar userId automaticamente
+      const data = insertCampaignCostSchema.parse({
+        ...req.body,
+        userId: req.user.id,
+      });
+
+      const cost = await storage.createCampaignCost(data);
+      res.status(201).json(cost);
+    } catch (error) {
+      console.error("Error creating campaign cost:", error);
+      if (error instanceof Error && error.message.includes("Já existe")) {
+        res.status(409).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: "Erro ao criar custo de campanha" });
+      }
+    }
+  });
+
+  app.patch("/api/campaign-costs/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Função insuficiente." });
+      }
+
+      const id = parseInt(req.params.id);
+      
+      // Validar se o custo existe e se o usuário pode editá-lo
+      const existingCosts = await storage.getCampaignCosts();
+      const existingCost = existingCosts.find(c => c.id === id);
+      
+      if (!existingCost) {
+        return res.status(404).json({ message: "Custo não encontrado" });
+      }
+
+      // Apenas o criador ou MASTER/ADMIN podem editar
+      if (existingCost.userId !== req.user.id && !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Apenas o autor ou administradores podem editar este custo" });
+      }
+
+      const data = insertCampaignCostSchema.partial().parse(req.body);
+      const updatedCost = await storage.updateCampaignCost(id, data);
+      res.json(updatedCost);
+    } catch (error) {
+      console.error("Error updating campaign cost:", error);
+      if (error instanceof Error && error.message.includes("Já existe")) {
+        res.status(409).json({ message: error.message });
+      } else {
+        res.status(400).json({ message: "Erro ao atualizar custo de campanha" });
+      }
+    }
+  });
+
+  app.patch("/api/campaign-costs/:id/inactivate", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Função insuficiente." });
+      }
+
+      const id = parseInt(req.params.id);
+      
+      // Validar se o custo existe e se o usuário pode inativá-lo
+      const existingCosts = await storage.getCampaignCosts();
+      const existingCost = existingCosts.find(c => c.id === id);
+      
+      if (!existingCost) {
+        return res.status(404).json({ message: "Custo não encontrado" });
+      }
+
+      // Apenas o criador ou MASTER/ADMIN podem inativar
+      if (existingCost.userId !== req.user.id && !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Apenas o autor ou administradores podem inativar este custo" });
+      }
+
+      const inactivatedCost = await storage.inactivateCampaignCost(id, req.user.id);
+      res.json(inactivatedCost);
+    } catch (error) {
+      console.error("Error inactivating campaign cost:", error);
+      res.status(500).json({ message: "Erro ao inativar custo de campanha" });
+    }
+  });
+
+  app.patch("/api/campaign-costs/:id/reactivate", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Apenas administradores podem reativar custos." });
+      }
+
+      const id = parseInt(req.params.id);
+      const reactivatedCost = await storage.reactivateCampaignCost(id);
+      res.json(reactivatedCost);
+    } catch (error) {
+      console.error("Error reactivating campaign cost:", error);
+      res.status(500).json({ message: "Erro ao reativar custo de campanha" });
+    }
+  });
+
+  app.get("/api/campaign-costs/totals", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Função insuficiente." });
+      }
+
+      const { campaignId, referenceMonth, status, userId } = req.query;
+      
+      const filters: any = {};
+      if (campaignId) filters.campaignId = parseInt(campaignId);
+      if (referenceMonth) filters.referenceMonth = referenceMonth;
+      if (status) filters.status = status;
+      if (userId) filters.userId = parseInt(userId);
+
+      const totals = await storage.getCampaignCostsTotals(filters);
+      res.json(totals);
+    } catch (error) {
+      console.error("Error fetching campaign costs totals:", error);
+      res.status(500).json({ message: "Erro ao buscar totais de custos" });
     }
   });
 
