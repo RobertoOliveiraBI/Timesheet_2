@@ -251,13 +251,14 @@ const CampaignCostsModule = () => {
   // Filtrar custos
   const filteredCosts = costs.filter((cost: any) => {
     const matchesSearch = !searchTerm || 
-      cost.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cost.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cost.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cost.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cost.campaign?.client?.companyName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cost.campaign?.client?.tradeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cost.campaign?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesMonth = selectedMonth === "all" || cost.reference_month === selectedMonth;
-    const matchesClient = selectedClient === "all" || cost.client_id.toString() === selectedClient;
+    const matchesMonth = selectedMonth === "all" || cost.referenceMonth === selectedMonth;
+    const matchesClient = selectedClient === "all" || cost.campaign?.clientId?.toString() === selectedClient;
     const matchesStatus = selectedStatus === "all" || cost.status === selectedStatus;
     
     return matchesSearch && matchesMonth && matchesClient && matchesStatus;
@@ -397,7 +398,7 @@ const CampaignCostsModule = () => {
                 <SelectItem value="all">Todos os clientes</SelectItem>
                 {clients.map((client: any) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
-                    {client.companyName || client.name}
+                    {client.companyName || client.tradeName}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -464,13 +465,13 @@ const CampaignCostsModule = () => {
                         {cost.description || "-"}
                       </TableCell>
                       <TableCell>
-                        {new Date(cost.referenceMonth + "-01T00:00:00").toLocaleDateString("pt-BR", {
+                        {cost.referenceMonth ? new Date(cost.referenceMonth + "-01T00:00:00").toLocaleDateString("pt-BR", {
                           month: "long",
                           year: "numeric"
-                        })}
+                        }) : "N/A"}
                       </TableCell>
                       <TableCell className="font-mono">
-                        R$ {cost.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        R$ {parseFloat(cost.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
                       <TableCell>
                         <Badge variant={cost.status === "ATIVO" ? "default" : "secondary"}>
@@ -478,7 +479,7 @@ const CampaignCostsModule = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {cost.user?.firstName || cost.user?.email} {cost.user?.lastName || ""}
+                        {cost.user?.firstName || cost.user?.email || "N/A"} {cost.user?.lastName || ""}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
