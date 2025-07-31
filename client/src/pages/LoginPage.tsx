@@ -3,7 +3,13 @@ import { useAuth } from "@/hooks/useSimpleAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Clock, Users, BarChart3 } from "lucide-react";
 import { Redirect, useLocation } from "wouter";
@@ -47,7 +53,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     if (!email || !password) {
       setError("Por favor, preencha todos os campos");
       return;
@@ -74,8 +80,12 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900">Tractionfy Timesheet</h1>
-            <p className="text-gray-600 mt-2">Sistema de gestão de horas para agências</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Tractionfy Timesheet
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Sistema de gestão de horas para agências
+            </p>
           </div>
 
           <Card>
@@ -117,9 +127,9 @@ export default function LoginPage() {
                   />
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={loginMutation.isPending}
                 >
                   {loginMutation.isPending ? (
@@ -135,13 +145,7 @@ export default function LoginPage() {
             </CardContent>
           </Card>
 
-          <div className="text-center text-sm text-gray-600">
-            <p>Usuários de teste:</p>
-            <div className="mt-2 space-y-1">
-              <p><strong>Master:</strong> roberto@tractionfy.com / 123mudar</p>
-              <p><strong>Colaborador:</strong> roberto@cappei.com / 123mudar</p>
-            </div>
-          </div>
+          
         </div>
       </div>
 
@@ -164,7 +168,9 @@ export default function LoginPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Registro de Horas</h3>
-                <p className="text-indigo-100">Acompanhamento em tempo real das atividades</p>
+                <p className="text-indigo-100">
+                  Acompanhamento em tempo real das atividades
+                </p>
               </div>
             </div>
 
@@ -174,7 +180,9 @@ export default function LoginPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Gestão de Equipes</h3>
-                <p className="text-indigo-100">Controle de acesso por papéis e aprovações</p>
+                <p className="text-indigo-100">
+                  Controle de acesso por papéis e aprovações
+                </p>
               </div>
             </div>
 
@@ -184,7 +192,9 @@ export default function LoginPage() {
               </div>
               <div className="text-left">
                 <h3 className="font-semibold">Relatórios Detalhados</h3>
-                <p className="text-indigo-100">Análises completas para tomada de decisão</p>
+                <p className="text-indigo-100">
+                  Análises completas para tomada de decisão
+                </p>
               </div>
             </div>
           </div>
