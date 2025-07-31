@@ -430,7 +430,7 @@ export function AdminSection() {
                         {user.role}
                       </Badge>
                     </td>
-                    <td className="p-3">{user.department}</td>
+                    <td className="p-3">{user.department?.name || '-'}</td>
                     <td className="p-3">
                       {user.managerId ? (
                         <span className="text-sm text-slate-600">
