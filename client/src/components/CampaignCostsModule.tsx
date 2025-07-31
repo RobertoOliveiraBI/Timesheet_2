@@ -187,13 +187,13 @@ const CampaignCostsModule = () => {
   const handleEdit = (cost: any) => {
     setEditingCost(cost);
     setFormData({
-      client_id: cost.client_id.toString(),
-      campaign_id: cost.campaign_id.toString(),
-      subject: cost.subject,
+      client_id: cost.client_id ? cost.client_id.toString() : "",
+      campaign_id: cost.campaign_id ? cost.campaign_id.toString() : "",
+      subject: cost.subject || "",
       description: cost.description || "",
-      reference_month: cost.reference_month,
-      amount: cost.amount.toString(),
-      status: cost.status
+      reference_month: cost.reference_month || "",
+      amount: cost.amount ? cost.amount.toString() : "",
+      status: cost.status || "ATIVO"
     });
     setShowForm(true);
   };
