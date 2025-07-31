@@ -30,6 +30,14 @@ const CampaignCostsModule = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Função para obter mês atual no formato YYYY-MM
+  const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  };
+  
   // Estados locais
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("all");
@@ -44,7 +52,7 @@ const CampaignCostsModule = () => {
     campaign_id: "",
     subject: "",
     description: "",
-    reference_month: "",
+    reference_month: getCurrentMonth(),
     amount: "",
     status: "ATIVO" as "ATIVO" | "INATIVO"
   });
@@ -183,7 +191,7 @@ const CampaignCostsModule = () => {
       campaign_id: "",
       subject: "",
       description: "",
-      reference_month: "",
+      reference_month: getCurrentMonth(),
       amount: "",
       status: "ATIVO"
     });
