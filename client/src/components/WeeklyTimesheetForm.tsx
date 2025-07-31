@@ -53,21 +53,12 @@ export function WeeklyTimesheetForm() {
     enabled: !!user,
   });
 
-  const { data: costCenters = [], isLoading: costCentersLoading } = useQuery<any[]>({
-    queryKey: ["/api/cost-centers"],
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    refetchOnWindowFocus: false,
-    retry: 1,
-    enabled: !!user,
-  });
-
   // Prefetch data as soon as the user is available so dropdowns are ready
   useEffect(() => {
     if (user) {
       queryClient.prefetchQuery({ queryKey: ["/api/clientes"] });
       queryClient.prefetchQuery({ queryKey: ["/api/campaigns"] });
       queryClient.prefetchQuery({ queryKey: ["/api/campaign-tasks"] });
-      queryClient.prefetchQuery({ queryKey: ["/api/cost-centers"] });
     }
   }, [user, queryClient]);
 
@@ -77,14 +68,9 @@ export function WeeklyTimesheetForm() {
     clients: clients?.length || 0,
     campaigns: campaigns?.length || 0,
     campaignTasks: campaignTasks?.length || 0,
-    costCenters: costCenters?.length || 0,
     clientsLoading,
-    clientsError,
-    costCentersLoading
+    clientsError
   });
-
-  // Debug específico para cost centers
-  console.log('Cost Centers Debug:', { costCenters, costCentersLoading, user: !!user });
 
   // Calcular os dias da semana
   const getWeekDays = () => {
@@ -414,27 +400,9 @@ export function WeeklyTimesheetForm() {
                     </Select>
                   </td>
                   <td className="p-2">
-                    <Select 
-                      value={entry.resultCenter || (user as any)?.costCenter?.name || ""} 
-                      onValueChange={(value) => updateTimeEntry(index, 'resultCenter', value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Centro de Resultado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {costCentersLoading ? (
-                          <SelectItem value="loading" disabled>Carregando...</SelectItem>
-                        ) : Array.isArray(costCenters) && costCenters.length > 0 ? (
-                          costCenters.map((center: any) => (
-                            <SelectItem key={center.id} value={center.name}>
-                              {center.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="Todos">Todos</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <div className="px-3 py-2 text-sm bg-slate-50 border rounded-md">
+                      {entry.resultCenter || (user as any)?.costCenter?.name || "Todos"}
+                    </div>
                   </td>
                   {weekDays.map((_, dayIndex) => (
                     <td key={dayIndex} className="p-2">

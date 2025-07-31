@@ -41,7 +41,6 @@ interface LinhaTimesheet {
   campanhaNome: string;
   tarefaId: string;
   tarefaNome: string;
-  centroResultado: string;
   horas: {
     [dia: string]: string; // seg: "2.5", ter: "3.0", etc.
   };
@@ -99,23 +98,6 @@ export function TimesheetSemanal() {
       }
       const data = await response.json();
       console.log("Clientes carregados:", data);
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-    retry: 3,
-  });
-
-  // Buscar centros de custo
-  const { data: centrosCusto = [], isLoading: centrosCustoLoading } = useQuery({
-    queryKey: ["/api/cost-centers"],
-    queryFn: async () => {
-      const response = await fetch("/api/cost-centers", { credentials: "include" });
-      if (!response.ok) {
-        console.error("Erro ao buscar centros de custo:", response.status);
-        return [];
-      }
-      const data = await response.json();
-      console.log("Centros de custo carregados:", data);
       return data;
     },
     staleTime: 5 * 60 * 1000,
@@ -202,7 +184,6 @@ export function TimesheetSemanal() {
           campanhaNome,
           tarefaId: entrada.campaignTaskId.toString(),
           tarefaNome,
-          centroResultado: entrada.resultCenter || "GBrasil",
           horas: {
             seg: "0",
             ter: "0",
@@ -258,9 +239,6 @@ export function TimesheetSemanal() {
 
   // Adicionar nova linha
   const adicionarLinha = () => {
-    // Pegar centro de custo do usuário como padrão
-    const centroPadrao = centrosCusto.find((centro: any) => centro.id === 1)?.name || "GBrasil";
-    
     const novaLinha: LinhaTimesheet = {
       id: `linha-${Date.now()}`,
       clienteId: "",
@@ -269,7 +247,6 @@ export function TimesheetSemanal() {
       campanhaNome: "",
       tarefaId: "",
       tarefaNome: "",
-      centroResultado: centroPadrao,
       horas: {
         seg: "0",
         ter: "0", 
@@ -410,7 +387,6 @@ export function TimesheetSemanal() {
               date: format(diasSemana[i], "yyyy-MM-dd"),
               hours: horas,
               description: null,
-              resultCenter: linha.centroResultado,
               status
             });
           }
@@ -683,7 +659,6 @@ export function TimesheetSemanal() {
                 <th className="border border-gray-300 p-3 text-left text-sm font-medium w-48">Cliente</th>
                 <th className="border border-gray-300 p-3 text-left text-sm font-medium w-48">Campanha</th>
                 <th className="border border-gray-300 p-3 text-left text-sm font-medium w-48">Tarefa</th>
-                <th className="border border-gray-300 p-3 text-left text-sm font-medium w-32">Centro de Resultado</th>
                 {diasSemana.map((dia, index) => (
                   <th key={index} className="border border-gray-300 p-3 text-center text-sm font-medium w-24">
                     <div>{format(dia, "EEE", { locale: ptBR })}</div>
@@ -770,31 +745,6 @@ export function TimesheetSemanal() {
                     </Select>
                   </td>
 
-                  {/* Centro de Resultado */}
-                  <td className="border border-gray-300 p-2">
-                    <Select 
-                      value={linha.centroResultado} 
-                      onValueChange={(value) => atualizarLinha(linha.id, 'centroResultado', value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Centro de Resultado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {centrosCustoLoading ? (
-                          <SelectItem value="loading-cost-centers" disabled>Carregando...</SelectItem>
-                        ) : centrosCusto.length > 0 ? (
-                          centrosCusto.map((centro: any) => (
-                            <SelectItem key={centro.id} value={centro.name}>
-                              {centro.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="Todos">Todos</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </td>
-
                   {/* Horas por dia */}
                   {['seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map((dia) => (
                     <td key={dia} className="border border-gray-300 p-2">
@@ -838,7 +788,7 @@ export function TimesheetSemanal() {
               {/* Linha de totais */}
               {linhas.length > 0 && (
                 <tr className="bg-gray-100 font-semibold">
-                  <td colSpan={4} className="border border-gray-300 p-3 text-right">
+                  <td colSpan={3} className="border border-gray-300 p-3 text-right">
                     Total Geral:
                   </td>
                   {['seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map((dia) => (

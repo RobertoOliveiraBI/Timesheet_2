@@ -832,7 +832,7 @@ export class DatabaseStorage implements IStorage {
 
   // Cost Centers
   async getCostCenters(): Promise<CostCenter[]> {
-    return await db.select().from(costCenters).where(eq(costCenters.isActive, true)).orderBy(asc(costCenters.name));
+    return await db.select().from(costCenters).orderBy(asc(costCenters.name));
   }
 
   async createCostCenter(costCenterData: InsertCostCenter): Promise<CostCenter> {
