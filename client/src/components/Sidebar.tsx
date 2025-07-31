@@ -6,7 +6,8 @@ import {
   CheckCircle,
   Settings,
   User,
-  LogOut
+  LogOut,
+  DollarSign
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useValidationCount } from "@/hooks/useValidationCount";
@@ -16,6 +17,7 @@ const navigation = [
   { name: "Lançar Horas", href: "/timesheet", icon: Clock, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
   { name: "Relatórios", href: "/reports", icon: BarChart3, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
   { name: "Área do Gestor", href: "/approvals", icon: CheckCircle, roles: ["MASTER", "ADMIN", "GESTOR"] },
+  { name: "Custos de Campanha", href: "/campaign-costs", icon: DollarSign, roles: ["MASTER", "ADMIN", "GESTOR"] },
   { name: "Administração", href: "/admin", icon: Settings, roles: ["MASTER", "ADMIN"] },
 ];
 

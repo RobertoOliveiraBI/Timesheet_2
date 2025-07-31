@@ -38,6 +38,7 @@ function Router() {
           <Route path="/reports" component={Dashboard} />
           <Route path="/approvals" component={Dashboard} />
           <Route path="/admin" component={Dashboard} />
+          <Route path="/campaign-costs" component={Dashboard} />
           <Route path="/profile" component={ProfilePage} />
         </>
       )}

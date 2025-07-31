@@ -10,6 +10,7 @@ import { ApprovalSection } from "@/components/ApprovalSection";
 import { AdminSection } from "@/components/AdminSectionNew";
 import { ApprovalManagement } from "@/components/ApprovalManagement";
 import { ReportsSection } from "@/components/ReportsSection";
+import CampaignCostsModule from "@/components/CampaignCostsModule";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -107,6 +108,7 @@ export default function Dashboard() {
     if (location === "/approvals") return "approvals";
     if (location === "/admin") return "admin";
     if (location === "/reports") return "reports";
+    if (location === "/campaign-costs") return "campaign-costs";
     if (location === "/timesheet" || location === "/") return "timesheet";
     return "timesheet";
   };
@@ -118,6 +120,7 @@ export default function Dashboard() {
       reports: { title: "Relatórios", subtitle: "Analise a produtividade e rentabilidade" },
       approvals: { title: "Área do Gestor", subtitle: "Aprove ou rejeite lançamentos de horas" },
       admin: { title: "Administração", subtitle: "Gerencie usuários e configurações do sistema" },
+      "campaign-costs": { title: "Custos de Campanha", subtitle: "Gerencie custos e despesas das campanhas" },
     };
     return titles[section] || titles.timesheet;
   };
@@ -130,6 +133,7 @@ export default function Dashboard() {
       reports: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"],
       approvals: ["MASTER", "ADMIN", "GESTOR"],
       admin: ["MASTER", "ADMIN"],
+      "campaign-costs": ["MASTER", "ADMIN", "GESTOR"],
     };
     
     return permissions[section]?.includes(user.role) || false;
@@ -158,6 +162,8 @@ export default function Dashboard() {
         return <AdminSection />;
       case "reports":
         return <ReportsSection />;
+      case "campaign-costs":
+        return <CampaignCostsModule />;
       default:
         return (
           <div className="space-y-8">
