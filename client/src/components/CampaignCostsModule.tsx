@@ -202,11 +202,11 @@ const CampaignCostsModule = () => {
   const handleEdit = (cost: any) => {
     setEditingCost(cost);
     setFormData({
-      client_id: cost.client_id ? cost.client_id.toString() : "",
-      campaign_id: cost.campaign_id ? cost.campaign_id.toString() : "",
+      client_id: cost.campaign?.clientId ? cost.campaign.clientId.toString() : "",
+      campaign_id: cost.campaignId ? cost.campaignId.toString() : "",
       subject: cost.subject || "",
       description: cost.description || "",
-      reference_month: cost.reference_month || "",
+      reference_month: cost.referenceMonth || "",
       amount: cost.amount ? cost.amount.toString() : "",
       status: cost.status || "ATIVO"
     });
