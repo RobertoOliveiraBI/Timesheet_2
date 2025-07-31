@@ -562,49 +562,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Acesso negado" });
       }
 
-      // Buscar entradas APROVADAS que o gestor pode gerenciar
-      let entries;
+      const { userId, fromDate, toDate, page, pageSize } = req.query;
+
+      // Construir condições de filtro
+      const conditions = [eq(timeEntries.status, "APROVADO")];
+      
+      // Filtro por usuário específico
+      if (userId && userId !== "all") {
+        conditions.push(eq(timeEntries.userId, parseInt(userId)));
+      }
+      
+      // Filtro por data
+      if (fromDate) {
+        conditions.push(gte(timeEntries.date, fromDate));
+      }
+      if (toDate) {
+        conditions.push(lte(timeEntries.date, toDate));
+      }
+
+      // Buscar entradas APROVADAS com filtros aplicados
+      let entries = await db.query.timeEntries.findMany({
+        where: and(...conditions),
+        with: {
+          user: true,
+          campaign: {
+            with: {
+              client: true,
+            },
+          },
+          campaignTask: {
+            with: {
+              taskType: true,
+            },
+          },
+        },
+        orderBy: [desc(timeEntries.reviewedAt), desc(timeEntries.date)],
+      });
+
+      // Para GESTOR, filtrar apenas membros da equipe
       if (user.role === 'GESTOR' && user.isManager) {
-        // Gestor vê apenas entradas de sua equipe
-        entries = await db.query.timeEntries.findMany({
-          where: eq(timeEntries.status, "APROVADO"),
-          with: {
-            user: true,
-            campaign: {
-              with: {
-                client: true,
-              },
-            },
-            campaignTask: {
-              with: {
-                taskType: true,
-              },
-            },
-          },
-          orderBy: [desc(timeEntries.reviewedAt), desc(timeEntries.date)],
-        });
-        
-        // Filtrar apenas membros da equipe
         entries = entries.filter(entry => entry.user.managerId === user.id);
-      } else {
-        // MASTER e ADMIN veem todas as entradas aprovadas
-        entries = await db.query.timeEntries.findMany({
-          where: eq(timeEntries.status, "APROVADO"),
-          with: {
-            user: true,
-            campaign: {
-              with: {
-                client: true,
-              },
-            },
-            campaignTask: {
-              with: {
-                taskType: true,
-              },
-            },
-          },
-          orderBy: [desc(timeEntries.reviewedAt), desc(timeEntries.date)],
-        });
       }
 
       res.json(entries);

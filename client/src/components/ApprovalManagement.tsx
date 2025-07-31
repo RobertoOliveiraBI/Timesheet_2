@@ -205,7 +205,13 @@ export function ApprovalManagement() {
     );
   }, [campaigns, approvedFilters.client]);
 
-  // Obter colaboradores únicos
+  // Buscar todos os usuários para filtros
+  const { data: allUsers = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Obter colaboradores únicos das entradas de validação
   const collaborators = useMemo(() => {
     const unique = new Map();
     timeEntries.forEach(entry => {
@@ -219,6 +225,15 @@ export function ApprovalManagement() {
     });
     return Array.from(unique.values());
   }, [timeEntries]);
+
+  // Obter colaboradores para filtro de aprovados (todos os usuários colaboradores)
+  const approvedCollaborators = useMemo(() => {
+    return allUsers.filter(user => user.role === 'COLABORADOR').map(user => ({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName
+    }));
+  }, [allUsers]);
 
   const approveEntry = useMutation({
     mutationFn: async ({ id, comment }: { id: number; comment?: string }) => {
@@ -660,7 +675,7 @@ export function ApprovalManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os colaboradores</SelectItem>
-                      {collaborators.map((user: any) => (
+                      {approvedCollaborators.map((user: any) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.firstName} {user.lastName}
                         </SelectItem>
