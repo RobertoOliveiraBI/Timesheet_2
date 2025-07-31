@@ -1579,20 +1579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cost Centers routes
-  app.get("/api/cost-centers", requireAuth, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.id);
-      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
-        return res.status(403).json({ message: "Insufficient permissions" });
-      }
 
-      const costCenters = await storage.getCostCenters();
-      res.json(costCenters);
-    } catch (error) {
-      console.error("Error fetching cost centers:", error);
-      res.status(500).json({ message: "Failed to fetch cost centers" });
-    }
-  });
 
   app.post("/api/cost-centers", requireAuth, async (req: any, res) => {
     try {

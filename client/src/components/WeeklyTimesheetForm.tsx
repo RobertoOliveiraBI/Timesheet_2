@@ -67,6 +67,7 @@ export function WeeklyTimesheetForm() {
       queryClient.prefetchQuery({ queryKey: ["/api/clientes"] });
       queryClient.prefetchQuery({ queryKey: ["/api/campaigns"] });
       queryClient.prefetchQuery({ queryKey: ["/api/campaign-tasks"] });
+      queryClient.prefetchQuery({ queryKey: ["/api/cost-centers"] });
     }
   }, [user, queryClient]);
 
@@ -76,9 +77,14 @@ export function WeeklyTimesheetForm() {
     clients: clients?.length || 0,
     campaigns: campaigns?.length || 0,
     campaignTasks: campaignTasks?.length || 0,
+    costCenters: costCenters?.length || 0,
     clientsLoading,
-    clientsError
+    clientsError,
+    costCentersLoading
   });
+
+  // Debug específico para cost centers
+  console.log('Cost Centers Debug:', { costCenters, costCentersLoading, user: !!user });
 
   // Calcular os dias da semana
   const getWeekDays = () => {
