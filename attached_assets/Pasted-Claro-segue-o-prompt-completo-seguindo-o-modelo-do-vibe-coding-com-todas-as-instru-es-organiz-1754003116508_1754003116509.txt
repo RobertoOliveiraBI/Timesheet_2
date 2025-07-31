@@ -1,0 +1,130 @@
+Claro, segue o prompt completo seguindo o modelo do **vibe coding**, com todas as instruções organizadas e detalhadas para que o desenvolvedor do Replit entenda exatamente o que fazer sem margem para erro:
+
+---
+
+# Regras do vibe coding
+
+1. Primeiro, pense no problema, leia a documentação e crie um plano
+2. O plano deve ter uma lista de tarefas que você pode marcar como concluídas
+3. Antes de começar a trabalhar, entre em contato comigo e eu verificarei o plano
+4. Em seguida, comece a trabalhar nas tarefas, marcando-as como concluídas conforme você avança
+5. Por favor, a cada passo do caminho, apenas me dê uma explicação detalhada das alterações que você fez
+6. Torne cada tarefa e alteração de código o mais simples possível. Queremos evitar alterações massivas ou complexas. Cada alteração deve impactar o mínimo possível no código. Tudo se resume à simplicidade
+7. Aviso de segurança: Verifique todo o código que você acabou de escrever e certifique-se de que ele segue as práticas recomendadas de segurança
+8. Certifique-se de que não haja informações confidenciais no início e vulnerabilidades que possam ser exploradas
+9. Explique a funcionalidade e o código que você acabou de criar em detalhes. Explique o que você alterou e como funciona. Aja como se fosse um engenheiro sênior me ensinando a programar
+
+---
+
+### ✅ Requisitos Funcionais:
+
+1. Criar uma nova aba dentro da tela de aprovação onde o **Gestor** poderá visualizar todos os lançamentos **já aprovados**
+2. Permitir que o gestor **edite** qualquer lançamento aprovado, caso deseje revisar algum item
+
+---
+
+### 📌 Contexto:
+
+Atualmente, após a aprovação de um lançamento pelo gestor, não há como editá-lo facilmente, o que limita o controle e correção de informações após a aprovação
+
+---
+
+### 🧠 Lógica:
+
+Ao criar uma nova aba com os lançamentos já aprovados, damos ao gestor a liberdade de revisar e alterar registros, garantindo mais controle e correção sem quebrar o fluxo de aprovação
+
+---
+
+### 🚀 Ação:
+
+Criar um **novo módulo** com uma aba adicional na interface de aprovação para exibir lançamentos aprovados, com funcionalidade de edição completa dos campos já existentes
+
+---
+
+### 🎯 Resultados:
+
+O gestor poderá, mesmo após a aprovação, revisar e editar lançamentos anteriores com total rastreabilidade e controle
+
+---
+
+### 🧾 Entradas:
+
+* Lançamentos já aprovados (filtro com `status = "aprovado"` no banco de dados)
+* Campos do lançamento: cliente, campanha, tipo de tarefa, data, horas, observações, centro de resultado etc
+
+---
+
+### 🧱 Formato:
+
+Resposta deve seguir a estrutura passo a passo, com plano de tarefas, explicações técnicas de cada etapa e testes de validação incluídos
+
+---
+
+### ℹ️ Informações Adicionais:
+
+* O backend atual já possui os endpoints para atualização de lançamentos
+* Verifique se o endpoint de edição está habilitado para status "aprovado"
+* Se necessário, adicione uma flag de controle para evitar edições indevidas ou restrinja por cargo/usuário
+* Toda alteração precisa de log ou timestamp de quem fez a edição
+
+---
+
+### 👨‍💻 Papel:
+
+Você atuará como um desenvolvedor backend + frontend com foco em UX e segurança, responsável por adicionar essa funcionalidade respeitando toda a arquitetura atual
+
+---
+
+### 🗃️ Banco de Dados:
+
+1. Não é necessário criar nova tabela, os lançamentos já existem na base
+2. Use a tabela atual de lançamentos (ex: `timesheet_entries` ou similar)
+3. Pode ser necessário adicionar campo `last_modified_by` ou `editado_em` caso não exista ainda
+4. Siga o padrão atual de uso de `updated_at` e `updated_by` para rastreabilidade
+
+---
+
+### 💾 Persistência:
+
+* Dados devem ser salvos:
+
+  * Manualmente via botão "Salvar alterações"
+  * Com feedback visual ("Alterações salvas com sucesso", loading, erros de validação etc)
+* Valide campos obrigatórios como data, horas e tarefa antes de permitir o envio
+
+---
+
+### 🔐 Controle de Acesso:
+
+* Apenas usuários com papel "Gestor", "Admin" ou "Master" poderão acessar essa aba e editar lançamentos aprovados
+* Use a verificação de sessão já existente no sistema
+* Se possível, registre o ID do usuário que alterou o lançamento após aprovado
+
+---
+
+### 🎨 Frontend:
+
+1. Criar uma nova aba na página de aprovação com o título “Lançamentos Aprovados”
+2. Listar todos os registros aprovados com botão "Editar" ao lado de cada um
+3. Ao clicar em “Editar”, abrir os campos em modo edição (inline ou modal, conforme padrão do sistema)
+4. Adicionar botão “Salvar alterações” com feedback visual
+5. Exibir campos em modo somente leitura por padrão e liberar a edição somente após o clique no botão “Editar”
+6. Exibir mensagem de sucesso ou erro após salvar
+
+---
+
+⚠️ **Important:**
+**Do not make changes to any other part of the system** — only work on este novo módulo da aba de revisão de lançamentos aprovados. Deixe os outros módulos intactos.
+
+---
+
+### 🧪 Testes:
+
+1. Teste e trate todas as funções de criação, edição e atualização com foco em valores nulos e tipos de dados (numéricos e strings)
+2. Certifique-se de que os lançamentos aprovados são realmente listados corretamente
+3. Confirme que os dados alterados são persistidos corretamente no banco
+4. Valide o acesso apenas para usuários autorizados
+
+---
+
+Pode seguir esse prompt como base para o planejamento inicial do módulo, se quiser posso te ajudar a montar agora o plano de tarefas ou o esqueleto do código no Replit também. Só avisar.

@@ -324,8 +324,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      // Don't allow editing approved entries
-      if (timeEntry.status === 'APROVADO' && !['MASTER', 'ADMIN'].includes(user?.role || '')) {
+      // Don't allow editing approved entries unless user is GESTOR, ADMIN, or MASTER
+      if (timeEntry.status === 'APROVADO' && !['MASTER', 'ADMIN', 'GESTOR'].includes(user?.role || '')) {
         return res.status(400).json({ message: "Cannot edit approved entries" });
       }
 
@@ -551,6 +551,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error counting validation entries:", error);
       res.json({ count: 0 });
+    }
+  });
+
+  // Get approved time entries (manager/admin only)
+  app.get('/api/time-entries/approved', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      // Buscar entradas APROVADAS que o gestor pode gerenciar
+      let entries;
+      if (user.role === 'GESTOR' && user.isManager) {
+        // Gestor vê apenas entradas de sua equipe
+        entries = await db.query.timeEntries.findMany({
+          where: eq(timeEntries.status, "APROVADO"),
+          with: {
+            user: true,
+            campaign: {
+              with: {
+                client: true,
+              },
+            },
+            campaignTask: {
+              with: {
+                taskType: true,
+              },
+            },
+          },
+          orderBy: [desc(timeEntries.reviewedAt), desc(timeEntries.date)],
+        });
+        
+        // Filtrar apenas membros da equipe
+        entries = entries.filter(entry => entry.user.managerId === user.id);
+      } else {
+        // MASTER e ADMIN veem todas as entradas aprovadas
+        entries = await db.query.timeEntries.findMany({
+          where: eq(timeEntries.status, "APROVADO"),
+          with: {
+            user: true,
+            campaign: {
+              with: {
+                client: true,
+              },
+            },
+            campaignTask: {
+              with: {
+                taskType: true,
+              },
+            },
+          },
+          orderBy: [desc(timeEntries.reviewedAt), desc(timeEntries.date)],
+        });
+      }
+
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching approved entries:", error);
+      res.status(500).json({ message: "Failed to fetch approved entries" });
     }
   });
 

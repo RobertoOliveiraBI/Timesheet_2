@@ -6,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, Filter, CheckCircle2 } from "lucide-react";
+import { Check, X, Filter, CheckCircle2, Edit, Save } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge } from "./StatusBadge";
@@ -53,6 +54,8 @@ export function ApprovalManagement() {
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
   const [reviewComment, setReviewComment] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<number | null>(null);
+  const [editData, setEditData] = useState<any>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -61,6 +64,19 @@ export function ApprovalManagement() {
     queryKey: ["/api/time-entries/validation"],
     queryFn: async () => {
       const response = await fetch("/api/time-entries/validation", {
+        credentials: "include"
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Buscar entradas de tempo aprovadas
+  const { data: approvedEntries = [], isLoading: loadingApproved } = useQuery<TimeEntry[]>({
+    queryKey: ["/api/time-entries/approved"],
+    queryFn: async () => {
+      const response = await fetch("/api/time-entries/approved", {
         credentials: "include"
       });
       if (!response.ok) return [];
@@ -216,6 +232,41 @@ export function ApprovalManagement() {
     },
   });
 
+  // Mutation para editar lançamento aprovado
+  const editApprovedEntry = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      return apiRequest("PATCH", `/api/time-entries/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Lançamento editado com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/approved"] });
+      setEditingEntry(null);
+      setEditData({});
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao editar lançamento",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEdit = (entry: TimeEntry) => {
+    setEditingEntry(entry.id);
+    setEditData({
+      hours: entry.hours,
+      description: entry.description || "",
+    });
+  };
+
+  const handleSaveEdit = (entryId: number) => {
+    editApprovedEntry.mutate({ id: entryId, data: editData });
+  };
+
   const formatDate = (dateString: string) => {
     return format(new Date(dateString + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR });
   };
@@ -239,6 +290,19 @@ export function ApprovalManagement() {
 
   return (
     <div className="space-y-6">
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pending" className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            Pendentes de Validação
+          </TabsTrigger>
+          <TabsTrigger value="approved" className="flex items-center gap-2">
+            <Edit className="w-4 h-4" />
+            Lançamentos Aprovados
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pending" className="space-y-6 mt-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -448,6 +512,116 @@ export function ApprovalManagement() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="approved" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Edit className="h-5 w-5" />
+                Lançamentos Aprovados
+              </CardTitle>
+              <CardDescription>
+                Edite lançamentos já aprovados da sua equipe - {approvedEntries.length} entrada(s) aprovadas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingApproved ? (
+                <div className="text-center py-8">Carregando lançamentos aprovados...</div>
+              ) : approvedEntries.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  Nenhum lançamento aprovado encontrado
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Colaborador</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Campanha</TableHead>
+                      <TableHead>Tarefa</TableHead>
+                      <TableHead>Horas</TableHead>
+                      <TableHead>Observações</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {approvedEntries.map((entry) => (
+                      <TableRow key={entry.id}>
+                        <TableCell>{formatDate(entry.date)}</TableCell>
+                        <TableCell>{entry.user.firstName} {entry.user.lastName}</TableCell>
+                        <TableCell>{entry.campaign.client.companyName}</TableCell>
+                        <TableCell>{entry.campaign.name}</TableCell>
+                        <TableCell>{entry.campaignTask.description}</TableCell>
+                        <TableCell>
+                          {editingEntry === entry.id ? (
+                            <input
+                              type="text"
+                              value={editData.hours || ""}
+                              onChange={(e) => setEditData({ ...editData, hours: e.target.value })}
+                              className="w-16 px-2 py-1 border rounded"
+                            />
+                          ) : (
+                            formatHours(entry.hours)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {editingEntry === entry.id ? (
+                            <textarea
+                              value={editData.description || ""}
+                              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                              className="w-full px-2 py-1 border rounded resize-none"
+                              rows={2}
+                            />
+                          ) : (
+                            entry.description || "-"
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={entry.status} />
+                        </TableCell>
+                        <TableCell>
+                          {editingEntry === entry.id ? (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSaveEdit(entry.id)}
+                                disabled={editApprovedEntry.isPending}
+                              >
+                                <Save className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingEntry(null);
+                                  setEditData({});
+                                }}
+                              >
+                                Cancelar
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(entry)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
