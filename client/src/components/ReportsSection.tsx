@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -14,11 +15,14 @@ import {
   Download,
   MessageCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  BarChart3
 } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { StatusBadge } from "./StatusBadge";
 import { getStatusLabel } from "@/lib/statusUtils";
+import { DailyReportSection } from "./DailyReportSection";
 
 export function ReportsSection() {
   const [filters, setFilters] = useState({
@@ -27,6 +31,8 @@ export function ReportsSection() {
     campaignId: "all",
     status: "all",
     userId: "all",
+    dateFrom: "",
+    dateTo: "",
   });
 
   const [pagination, setPagination] = useState({
@@ -70,11 +76,19 @@ export function ReportsSection() {
 
   // Buscar entradas filtradas com paginação
   const { data: paginatedData = { entries: [], total: 0, totalPages: 0 } } = useQuery({
-    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId, filters.status, filters.userId, pagination.page, pagination.pageSize],
+    queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId, filters.status, filters.userId, filters.dateFrom, filters.dateTo, pagination.page, pagination.pageSize],
     queryFn: async () => {
-      const [year, month] = filters.month.split("-");
-      const startDate = format(startOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
-      const endDate = format(endOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
+      let startDate, endDate;
+      
+      // Usar filtro de data personalizado se fornecido, senão usar o mês
+      if (filters.dateFrom && filters.dateTo) {
+        startDate = filters.dateFrom;
+        endDate = filters.dateTo;
+      } else {
+        const [year, month] = filters.month.split("-");
+        startDate = format(startOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
+        endDate = format(endOfMonth(new Date(parseInt(year), parseInt(month) - 1)), "yyyy-MM-dd");
+      }
       
       let url = `/api/time-entries?fromDate=${startDate}&toDate=${endDate}`;
       
@@ -203,20 +217,58 @@ export function ReportsSection() {
 
   return (
     <div className="space-y-8">
+      <Tabs defaultValue="detailed" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="detailed" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Relatório Detalhado
+          </TabsTrigger>
+          <TabsTrigger value="daily" className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            Relatório Diário
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="detailed" className="space-y-8 mt-6">
       {/* Filtros do Relatório */}
       <Card>
         <CardHeader>
           <CardTitle>Filtros do Relatório</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Mês/Ano</label>
               <input
                 type="month"
                 value={filters.month}
                 onChange={(e) => {
-                  setFilters({ ...filters, month: e.target.value, campaignId: "all" });
+                  setFilters({ ...filters, month: e.target.value, campaignId: "all", dateFrom: "", dateTo: "" });
+                  setPagination({ ...pagination, page: 1 });
+                }}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                disabled={!!(filters.dateFrom || filters.dateTo)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Data Inicial</label>
+              <input
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => {
+                  setFilters({ ...filters, dateFrom: e.target.value, month: "" });
+                  setPagination({ ...pagination, page: 1 });
+                }}
+                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Data Final</label>
+              <input
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => {
+                  setFilters({ ...filters, dateTo: e.target.value, month: "" });
                   setPagination({ ...pagination, page: 1 });
                 }}
                 className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
@@ -552,6 +604,12 @@ export function ReportsSection() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+        
+        <TabsContent value="daily" className="space-y-8 mt-6">
+          <DailyReportSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
