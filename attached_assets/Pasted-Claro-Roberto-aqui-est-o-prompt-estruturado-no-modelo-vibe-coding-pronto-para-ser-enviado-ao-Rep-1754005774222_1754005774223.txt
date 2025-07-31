@@ -1,0 +1,121 @@
+Claro, Roberto, aqui está o prompt estruturado no modelo vibe coding, pronto para ser enviado ao Replit ou ao desenvolvedor responsável:
+
+---
+
+## Prompt para Desenvolvimento no Replit – Comentários em Validações de Pendentes
+
+### ✅ Contexto:
+
+Hoje, quando um gestor devolve um lançamento para rascunho com um comentário, o colaborador não tem como responder ou complementar essa troca com novos comentários diretamente, o que dificulta o acompanhamento da comunicação e entendimento do histórico de validações
+
+### 🔍 Lógica:
+
+Queremos permitir que o colaborador, ao visualizar um lançamento que foi devolvido, possa adicionar novos comentários no mesmo campo de comentários, criando um apêndice visível e cronológico, preservando o histórico de interações entre gestor e colaborador de forma legível, simples e prática
+
+### 🎯 Ação:
+
+Criar um mecanismo na tela de validação dos pendentes que permita ao colaborador adicionar um comentário adicional sempre que o status do lançamento for "Rascunho com comentário do gestor", mantendo os comentários anteriores e apenas adicionando o novo conteúdo com data, hora e nome do usuário
+
+### 🧭 Resultados:
+
+* Facilitar a comunicação entre gestor e colaborador no fluxo de validação
+* Criar um histórico claro e ordenado dos comentários
+* Evitar retrabalho e perda de contexto nas validações
+
+### 📥 Entradas:
+
+* ID do lançamento
+* Comentário do colaborador
+* Nome do usuário autenticado
+* Data e hora atual
+
+### 🧾 Formato:
+
+* Texto contínuo, exibido no campo de comentários da validação
+* Cada nova entrada deve ser precedida por:
+  `-- comentário de [NOME] em [DATA HORA] --`
+* Exemplo:
+
+  ```
+  -- comentário de João em 31/07/2025 10:32 --
+  Refiz a atividade e revisei os valores conforme sugerido
+  ```
+
+### 🧩 Informações Adicionais:
+
+* Essa funcionalidade será usada somente por colaboradores após a devolução do lançamento
+* Os gestores não devem sobrescrever os comentários dos colaboradores, apenas adicionar os seus
+* O campo deve ter rolagem e limite de 1000 caracteres por comentário novo
+
+### 🧠 Papel:
+
+Você é um desenvolvedor experiente responsável por implementar essa funcionalidade no Replit com foco em simplicidade, legibilidade e segurança
+
+---
+
+### ✅ Requisitos Funcionais:
+
+1. Permitir que o colaborador adicione comentários em lançamentos devolvidos com status de rascunho
+2. Registrar data, hora e nome do autor do comentário
+3. Exibir todos os comentários acumulados no mesmo campo de forma ordenada
+
+---
+
+### 🗃️ Banco de Dados:
+
+1. **Alterar o campo de comentários existente** para aceitar múltiplas entradas concatenadas em texto contínuo, mantendo o histórico
+2. **Sem necessidade de criar nova tabela** por enquanto, se a estrutura atual comportar o armazenamento completo em um campo `TEXT`
+3. Verificar se há **relacionamento correto com a tabela de lançamentos** e se o campo aceita append sem sobrescrever dados anteriores
+4. Se necessário, padronizar o campo como `LONGTEXT` ou similar conforme limite da tecnologia do Replit
+
+---
+
+### 💾 Persistência:
+
+* Comentário deve ser salvo **manualmente** via botão “Adicionar Comentário”
+* Após salvar, feedback visual de “Comentário salvo com sucesso”
+* Validar:
+
+  * Campo obrigatório
+  * Limite de caracteres
+  * Não permitir envio em branco
+
+---
+
+### 🔐 Controle de Acesso:
+
+* Somente usuários com papel “Colaborador” podem comentar em lançamentos com status “Rascunho”
+* Gestores não poderão apagar ou editar comentários já feitos por colaboradores
+
+---
+
+### 🎨 Frontend:
+
+1. Adicionar abaixo do campo de comentários atual:
+
+   * Um `textarea` para digitar o novo comentário
+   * Um botão “Adicionar Comentário”
+   * Mostrar visualmente o histórico de forma legível, com quebras de linha entre entradas
+2. Validar que o textarea só aparece quando:
+
+   * Status do lançamento = "Rascunho"
+   * Usuário logado tem papel de colaborador
+3. Design limpo, sem poluição visual, com foco em legibilidade e usabilidade
+
+---
+
+⚠️ **Important:**
+**Do not make changes to any other part of the system** — only work on este módulo de validação de pendentes. Deixe todos os outros módulos intocados
+
+---
+
+**Checklist de Qualidade Técnica:**
+
+* [ ] Testar todos os fluxos de gravação e exibição de comentários
+* [ ] Garantir que os registros anteriores não sejam perdidos
+* [ ] Tratar `null` e conversão de tipo (string, número, data)
+* [ ] Validar que o campo de comentários realmente aparece com os registros esperados
+* [ ] Confirmar que a lógica de controle de acesso está funcionando
+* [ ] Não interferir em outros cadastros ou tabelas
+
+Se quiser, posso criar o código inicial do backend ou do frontend, é só me chamar!

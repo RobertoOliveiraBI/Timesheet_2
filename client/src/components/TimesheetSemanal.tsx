@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X, RefreshCw, MessageCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,6 +63,7 @@ interface EntradaSalva {
   clienteNome: string;
   campanhaNome: string;
   tarefaNome: string;
+  reviewComment?: string;
 }
 
 export function TimesheetSemanal() {
@@ -79,6 +82,11 @@ export function TimesheetSemanal() {
   // Estados para confirmação de exclusão
   const [entradaParaExcluir, setEntradaParaExcluir] = useState<EntradaSalva | null>(null);
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
+  
+  // Estados para comentários
+  const [entradaComentando, setEntradaComentando] = useState<EntradaSalva | null>(null);
+  const [modalComentarioAberto, setModalComentarioAberto] = useState(false);
+  const [novoComentario, setNovoComentario] = useState("");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -149,7 +157,8 @@ export function TimesheetSemanal() {
         status: entrada.status,
         clienteNome: entrada.campaign?.client?.tradeName || entrada.campaign?.client?.companyName || 'Cliente não informado',
         campanhaNome: entrada.campaign?.name || 'Campanha não informada',
-        tarefaNome: entrada.campaignTask?.description || 'Tarefa não informada'
+        tarefaNome: entrada.campaignTask?.description || 'Tarefa não informada',
+        reviewComment: entrada.reviewComment
       }));
     },
     staleTime: 2 * 60 * 1000,
@@ -415,6 +424,51 @@ export function TimesheetSemanal() {
       toast({
         title: "Erro",
         description: error.message || "Erro ao salvar timesheet",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Funções para comentários
+  const abrirModalComentario = (entrada: EntradaSalva) => {
+    setEntradaComentando(entrada);
+    setNovoComentario("");
+    setModalComentarioAberto(true);
+  };
+
+  const fecharModalComentario = () => {
+    setEntradaComentando(null);
+    setNovoComentario("");
+    setModalComentarioAberto(false);
+  };
+
+  // Mutation para adicionar comentário
+  const adicionarComentario = useMutation({
+    mutationFn: async () => {
+      if (!entradaComentando || !novoComentario.trim()) return;
+      
+      await apiRequest("POST", `/api/time-entries/${entradaComentando.id}/comment`, {
+        comment: novoComentario.trim()
+      });
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Sucesso!",
+        description: "Comentário adicionado com sucesso",
+      });
+      
+      fecharModalComentario();
+      
+      // Atualizar queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchHistorico()
+      ]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao adicionar comentário",
         variant: "destructive",
       });
     },
@@ -944,6 +998,17 @@ export function TimesheetSemanal() {
                                             <Send className="h-4 w-4" />
                                           </Button>
                                         )}
+                                        {entrada.status === 'RASCUNHO' && entrada.reviewComment && (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => abrirModalComentario(entrada)}
+                                            className="h-8 w-8 p-0 text-orange-600 hover:bg-orange-50"
+                                            title="Responder comentário do gestor"
+                                          >
+                                            <MessageCircle className="h-4 w-4" />
+                                          </Button>
+                                        )}
                                       </>
                                     )}
                                     <Button
@@ -1097,6 +1162,78 @@ export function TimesheetSemanal() {
                 disabled={excluirEntrada.isPending}
               >
                 {excluirEntrada.isPending ? "Excluindo..." : "Excluir"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+
+    {/* Modal de Comentários */}
+    <Dialog open={modalComentarioAberto} onOpenChange={setModalComentarioAberto}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Responder Comentário do Gestor</DialogTitle>
+        </DialogHeader>
+        
+        {entradaComentando && (
+          <div className="space-y-4">
+            {/* Informações da entrada */}
+            <div className="bg-gray-50 p-4 rounded">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Data:</span>
+                  <p>{format(new Date(entradaComentando.date + 'T00:00:00'), "dd/MM/yyyy")}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Horas:</span>
+                  <p>{entradaComentando.hours}h</p>
+                </div>
+                <div>
+                  <span className="font-medium">Cliente:</span>
+                  <p>{entradaComentando.clienteNome}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Campanha:</span>
+                  <p>{entradaComentando.campanhaNome}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium">Tarefa:</span>
+                  <p>{entradaComentando.tarefaNome}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Comentário do gestor */}
+            {entradaComentando.reviewComment && (
+              <div className="border border-yellow-200 bg-yellow-50 p-4 rounded">
+                <Label className="font-medium text-yellow-800">Comentário do Gestor:</Label>
+                <p className="mt-2 text-sm text-yellow-700">{entradaComentando.reviewComment}</p>
+              </div>
+            )}
+            
+            {/* Campo para resposta */}
+            <div>
+              <Label htmlFor="novoComentario">Sua Resposta:</Label>
+              <Textarea
+                id="novoComentario"
+                value={novoComentario}
+                onChange={(e) => setNovoComentario(e.target.value)}
+                placeholder="Digite sua resposta ao comentário do gestor..."
+                rows={4}
+                className="mt-2"
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={fecharModalComentario}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => adicionarComentario.mutate()}
+                disabled={adicionarComentario.isPending || !novoComentario.trim()}
+              >
+                {adicionarComentario.isPending ? "Enviando..." : "Enviar Resposta"}
               </Button>
             </div>
           </div>

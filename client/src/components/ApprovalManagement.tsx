@@ -220,14 +220,11 @@ export function ApprovalManagement() {
 
   // Obter todos os colaboradores (usuários com role COLABORADOR)
   const collaborators = useMemo(() => {
-    console.log("AllUsers loaded:", allUsers);
-    const colaboradores = allUsers.filter(user => user.role === 'COLABORADOR').map(user => ({
+    return allUsers.filter(user => user.role === 'COLABORADOR').map(user => ({
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName
     }));
-    console.log("Collaborators filtered:", colaboradores);
-    return colaboradores;
   }, [allUsers]);
 
   const approveEntry = useMutation({
