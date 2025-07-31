@@ -32,9 +32,9 @@ const CampaignCostsModule = () => {
   
   // Estados locais
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("");
-  const [selectedClient, setSelectedClient] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedClient, setSelectedClient] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [showForm, setShowForm] = useState(false);
   const [editingCost, setEditingCost] = useState<any>(null);
   
@@ -187,8 +187,8 @@ const CampaignCostsModule = () => {
   const handleEdit = (cost: any) => {
     setEditingCost(cost);
     setFormData({
-      client_id: cost.client_id,
-      campaign_id: cost.campaign_id,
+      client_id: cost.client_id.toString(),
+      campaign_id: cost.campaign_id.toString(),
       subject: cost.subject,
       description: cost.description || "",
       reference_month: cost.reference_month,
@@ -225,6 +225,8 @@ const CampaignCostsModule = () => {
 
     createOrUpdateMutation.mutate({
       ...formData,
+      client_id: parseInt(formData.client_id),
+      campaign_id: parseInt(formData.campaign_id),
       amount
     });
   };
@@ -234,12 +236,12 @@ const CampaignCostsModule = () => {
     const matchesSearch = !searchTerm || 
       cost.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
       cost.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cost.client?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cost.campaign?.name.toLowerCase().includes(searchTerm.toLowerCase());
+      cost.client?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cost.campaign?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesMonth = !selectedMonth || cost.reference_month === selectedMonth;
-    const matchesClient = !selectedClient || cost.client_id === selectedClient;
-    const matchesStatus = !selectedStatus || cost.status === selectedStatus;
+    const matchesMonth = selectedMonth === "all" || cost.reference_month === selectedMonth;
+    const matchesClient = selectedClient === "all" || cost.client_id.toString() === selectedClient;
+    const matchesStatus = selectedStatus === "all" || cost.status === selectedStatus;
     
     return matchesSearch && matchesMonth && matchesClient && matchesStatus;
   });
@@ -361,7 +363,7 @@ const CampaignCostsModule = () => {
                 <SelectValue placeholder="Filtrar por mês" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os meses</SelectItem>
+                <SelectItem value="all">Todos os meses</SelectItem>
                 {generateMonthOptions().map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -375,10 +377,10 @@ const CampaignCostsModule = () => {
                 <SelectValue placeholder="Filtrar por cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os clientes</SelectItem>
+                <SelectItem value="all">Todos os clientes</SelectItem>
                 {clients.map((client: any) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
+                  <SelectItem key={client.id} value={client.id.toString()}>
+                    {client.companyName || client.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -389,7 +391,7 @@ const CampaignCostsModule = () => {
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="ATIVO">Ativo</SelectItem>
                 <SelectItem value="INATIVO">Inativo</SelectItem>
               </SelectContent>
@@ -399,9 +401,9 @@ const CampaignCostsModule = () => {
               variant="outline" 
               onClick={() => {
                 setSearchTerm("");
-                setSelectedMonth("");
-                setSelectedClient("");
-                setSelectedStatus("");
+                setSelectedMonth("all");
+                setSelectedClient("all");
+                setSelectedStatus("all");
               }}
             >
               Limpar Filtros
@@ -522,8 +524,8 @@ const CampaignCostsModule = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {clients.map((client: any) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
+                      <SelectItem key={client.id} value={client.id.toString()}>
+                        {client.companyName || client.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -544,7 +546,7 @@ const CampaignCostsModule = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {campaigns.map((campaign: any) => (
-                      <SelectItem key={campaign.id} value={campaign.id}>
+                      <SelectItem key={campaign.id} value={campaign.id.toString()}>
                         {campaign.name}
                       </SelectItem>
                     ))}
