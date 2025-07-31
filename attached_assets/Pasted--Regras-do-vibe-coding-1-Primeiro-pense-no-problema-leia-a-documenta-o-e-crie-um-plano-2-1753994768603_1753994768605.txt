@@ -1,0 +1,87 @@
+# Regras do vibe coding 
+
+1. Primeiro, pense no problema, leia a documentação e crie um plano, 
+2. O plano deve ter uma lista de tarefas que você pode marcar como concluídas, 
+3. Antes de começar a trabalhar, entre em contato comigo e eu verificarei o plano, 
+4. Em seguida, comece a trabalhar nas tarefas, marcando-as como concluídas conforme você avança, 
+5. Por favor, a cada passo do caminho, apenas me dê uma explicação detalhada das alterações que você fez, 
+6. Torne cada tarefa e alteração de código o mais simples possível, queremos evitar alterações massivas ou complexas, cada alteração deve impactar o mínimo possível no código, tudo se resume à simplicidade, 
+7. Aviso de segurança: verifique todo o código que você acabou de escrever e certifique-se de que ele segue as práticas recomendadas de segurança, 
+8. Certifique-se de que não haja informações confidenciais no início e vulnerabilidades que possam ser exploradas, 
+9. Explique a funcionalidade e o código que você acabou de criar em detalhes, explique o que você alterou e como funciona, aja como se fosse um engenheiro sênior me ensinando a programar
+
+Contexto: o sistema já tem usuários com papéis MASTER, ADMIN e GESTOR, campanhas e timesheets, e agora precisa de um módulo novo onde os gestores, admins e master, principalmente o gestor, possam lançar custos vinculados às campanhas para controle financeiro e análise de investimento, esse módulo deve conviver sem afetar outras partes do sistema, nenhuma outra área pode ser alterada além desta
+
+Lógica: os gestores precisam registrar múltiplos custos por campanha por mês com assunto, descrição, mês de referência, valor e observações, para depois agregar, auditar e relacionar com performance da campanha e orçamento, esses lançamentos devem ser editáveis, inativáveis, versionados na prática via status e ter validação forte para evitar dados sujos ou nulos
+
+Ação: criar o módulo completo de lançamento de custos de campanha incluindo banco de dados, backend (API/serviços), controle de acesso, frontend (formulário e listagem), persistência com autosave e botão salvar com feedback, validações, tratamento de formatos numéricos e strings, e interface de gerenciamento para gestores poderem criar, editar, listar e inativar custos, sem tocar em nenhuma outra parte do sistema
+
+Resultados: tabela persistente de custos de campanha funcionando, interface para gestão desses custos, acessível apenas para MASTER, ADMIN e GESTOR conforme regras de permissão, com criação, edição, inativação, filtros por mês e campanha, feedback visual de salvamento, e código claro, seguro, testado contra nulos e formatos errados
+
+Entradas: nenhum dado adicional fora o que já existe no sistema, usar campanhas existentes, usuários autenticados e suas roles, e os campos que serão preenchidos pelo gestor: assunto, descrição, mês, valor, observações
+
+Formato: resposta inicial deve conter o plano de tarefas com checklists, depois que eu validar o plano você executa tarefa por tarefa, cada uma com explicação técnica detalhada antes e depois, incluindo trechos de código alterado, o que foi adicionado, os motivos, e como testar
+
+Informações Adicionais: seguir os padrões de nomenclatura do projeto (usar convenções existentes para nomes de tabelas e campos), evitar mudanças em outras áreas, garantir que o módulo trate corretamente valores numéricos com separador decimal, campos obrigatórios não deixem dados incompletos, e que listagens não quebrem por valores nulos ou tipos inesperados
+
+Papel: atuar como engenheiro sênior de software orientando o desenvolvimento, explicando cada decisão, apontando riscos e como mitigá-los, e deixando o código didático para que eu aprenda
+
+### ✅ Requisitos Funcionais:
+
+1. criar, editar, listar, inativar (soft delete ou status) lançamentos de custo para campanhas, permitindo múltiplos lançamentos por campanha e por mês, com os campos: assunto, descrição, mês de referência (dropdown), valor, observações, autor do lançamento e data
+2. permitir filtro na listagem por campanha, mês e status, mostrar soma total por combinação
+3. autosave incremental enquanto o gestor preenche o formulário e botão "Salvar" explícito com feedback visual de progresso e erro
+4. validação: assunto obrigatório, mês obrigatório, valor obrigatório e numérico positivo, descrição opcional, observações opcionais, impedir duplicações óbvias (ex: mesmo assunto no mesmo mês e campanha sem edição explícita)
+5. controle de acesso: apenas usuários com papel MASTER, ADMIN e GESTOR podem ver e usar o módulo, o gestor só lança para campanhas que está autorizado a gerenciar conforme regra atual do sistema, todas as checagens de permissão devem reutilizar a lógica existente de autorização
+
+### 🗃️ Banco de Dados:
+
+1. é necessário criar uma nova tabela de custos de campanha (ex: campaign_costs ou conforme padrão), com colunas mínimas: id, campaign_id (FK), user_id (quem lançou), subject, description, reference_month (mês/ano), amount (decimal), notes, status (ativo/inativo), created_at, updated_at, inactivated_at se aplicável
+2. relacionar com a tabela de campanhas usando foreign key e com a tabela de usuários para audit trail, garantir índices para filtros frequentes (campaign_id, reference_month, status)
+3. seguir padrões do projeto para nomes, tipos e constraints, usar transações nos updates críticos, usar validação no banco e no app para consistência
+
+---
+
+### 💾 Persistência:
+
+* Dados devem ser salvos:
+
+	* automaticamente após edição com debounce curto para não sobrecarregar, mostrando indicador sutil de "salvo automaticamente" quando concluído, 
+	* manualmente via botão "Salvar" com feedback visual claro de progresso e sucesso/erro, 
+	* validação de campos obrigatórios antes do envio final, bloqueando submit e destacando erros, 
+	* tratar formatos numéricos e locais (ex: entrada de valor com vírgula ou ponto) convertendo para decimal padrão do backend, 
+	* garantir que os dados não fiquem inconsistentes em caso de falha parcial (uso de rollback quando necessário)
+
+---
+
+### 🔐 Controle de Acesso:
+
+* explicar como será o acesso: verificar sessão do usuário, checar papel (MASTER, ADMIN, GESTOR), aplicar middleware existente de autorização para garantir que apenas os permitidos acessem endpoints e frontend, para gestores validar também se a campanha está dentro do escopo deles, retornar 403 quando não autorizado, logar tentativas suspeitas sem expor dados sensíveis
+
+---
+
+### 🎨 Frontend:
+
+1. adicionar no menu uma entrada clara para "Custos de Campanha" visível para os papéis permitidos, criar tela de listagem com colunas: campanha, assunto, mês, valor, status, autor, ações (editar, inativar), filtros acima (campanha, mês, status) e totalizador dinâmico
+2. criar formulário de lançamento/edição com os campos especificados, dropdown de mês/ano, máscara/normalização de valor, suporte a salvar rascunho via autosave, botão salvar com feedback, botão cancelar revertendo rascunho
+3. indicar erros inline, e permitir reativação de custos inativados via ação específica
+4. garantir responsividade mínima e usabilidade sem afetar outras partes da interface
+
+---
+
+⚠️ **Important:**  
+**Do not make changes to any other part of the system** — only work on esta seção de custos de campanha, leave all other modules untouched, verificar e tratar todas as funções de criação, edição e inativação de registros na parte de tratamento de nulos e formato de campos numéricos ou strings para evitar erros, testar e garantir que as tabelas onde devem listar registros não quebrem (como usuários, categorias, clientes e demais cadastros), validar que todos os CRUDs necessários existem e que as tabelas necessárias para este módulo estão presentes ou são criadas corretamente
+
+### Plano de tarefas inicial (aguardando sua aprovação antes de executar):
+
+- [ ] 1) analisar o schema atual e decidir nome padrão da nova tabela, criar migration da tabela de custos de campanha com relações e constraints
+- [ ] 2) implementar validações de modelo/backend para garantir obrigatoriedade e formatos corretos
+- [ ] 3) criar endpoints API mínimos: listar com filtros, criar, editar, inativar/reactivar
+- [ ] 4) adicionar controle de acesso em backend usando middleware existente e regras de campanha do gestor
+- [ ] 5) criar frontend: listagem com filtros, totalizadores e ações, sem quebrar outras telas
+- [ ] 6) criar frontend: formulário de criação/edição com autosave, validações inline, dropdown de mês, máscara de valor, botão salvar com feedback
+- [ ] 7) testes manuais e automáticos: inserir, editar, inativar, reativar, filtros, checar erros de nulos e formatos, permissões negadas, somas corretas
+- [ ] 8) revisão de segurança, sanitização de entrada, prevenção de injection, validação server-side reforçada
+- [ ] 9) documentação mínima do módulo (README interno ou comentário explicando uso, permissões, e como estender)
+
+peça autorização antes de cada item, depois execute e explique detalhadamente o que foi feito, inclua instruções claras de como eu posso testar cada parte e quais comandos/URLs usar
