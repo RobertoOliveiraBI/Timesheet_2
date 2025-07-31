@@ -104,6 +104,7 @@ export function WeeklyTimesheetForm() {
   };
 
   const addTimeEntry = () => {
+    const userCostCenter = (user as any)?.costCenter?.name || "Todos";
     const newEntry: TimeEntry = {
       clientId: "",
       clientName: "",
@@ -111,7 +112,7 @@ export function WeeklyTimesheetForm() {
       campaignName: "",
       campaignTaskId: "",
       taskName: "",
-      resultCenter: "Todos", // Valor padrão
+      resultCenter: userCostCenter, // Puxar do centro de custo do usuário
       hours: {},
       total: 0
     };
@@ -213,7 +214,7 @@ export function WeeklyTimesheetForm() {
               campaignTaskId: parseInt(entry.campaignTaskId),
               hours: hours.toString(),
               description: `${entry.campaignName} - ${entry.taskName}`,
-              resultCenter: entry.resultCenter || "Todos",
+              resultCenter: entry.resultCenter || (user as any)?.costCenter?.name || "Todos",
               status,
               submittedAt: status === 'VALIDACAO' ? new Date().toISOString() : null
             });
@@ -399,20 +400,9 @@ export function WeeklyTimesheetForm() {
                     </Select>
                   </td>
                   <td className="p-2">
-                    <Select 
-                      value={entry.resultCenter || "Todos"} 
-                      onValueChange={(value) => updateTimeEntry(index, 'resultCenter', value)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Centro de Resultado" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Todos">Todos</SelectItem>
-                        <SelectItem value="GBrasil">GBrasil</SelectItem>
-                        <SelectItem value="GTodos">GTodos</SelectItem>
-                        <SelectItem value="PPR">PPR</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="px-3 py-2 text-sm bg-slate-50 border rounded-md">
+                      {entry.resultCenter || (user as any)?.costCenter?.name || "Todos"}
+                    </div>
                   </td>
                   {weekDays.map((_, dayIndex) => (
                     <td key={dayIndex} className="p-2">

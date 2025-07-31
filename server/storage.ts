@@ -131,12 +131,26 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations (mandatory for Replit Auth)
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, id),
+      with: {
+        costCenter: true,
+        department: true,
+        manager: true,
+      },
+    });
     return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+      with: {
+        costCenter: true,
+        department: true,
+        manager: true,
+      },
+    });
     return user;
   }
 
@@ -708,7 +722,14 @@ export class DatabaseStorage implements IStorage {
 
   // Admin operations
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users).orderBy(asc(users.firstName), asc(users.lastName));
+    return await db.query.users.findMany({
+      with: {
+        costCenter: true,
+        department: true,
+        manager: true,
+      },
+      orderBy: [asc(users.firstName), asc(users.lastName)],
+    });
   }
 
   async updateUserAdmin(id: number, userData: Partial<InsertUser>): Promise<User> {
