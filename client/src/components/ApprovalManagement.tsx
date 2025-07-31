@@ -56,6 +56,21 @@ export function ApprovalManagement() {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<number | null>(null);
   const [editData, setEditData] = useState<any>({});
+  
+  // Filtros para aba de aprovados - com mês atual como padrão
+  const [approvedFilters, setApprovedFilters] = useState({
+    collaborator: "all",
+    month: format(new Date(), "yyyy-MM"),
+    client: "all",
+    campaign: "all",
+  });
+  
+  // Paginação para aprovados
+  const [approvedPagination, setApprovedPagination] = useState({
+    page: 1,
+    pageSize: 50,
+  });
+  
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -72,15 +87,61 @@ export function ApprovalManagement() {
     staleTime: 2 * 60 * 1000,
   });
 
-  // Buscar entradas de tempo aprovadas
-  const { data: approvedEntries = [], isLoading: loadingApproved } = useQuery<TimeEntry[]>({
-    queryKey: ["/api/time-entries/approved"],
+  // Buscar entradas de tempo aprovadas com filtros
+  const { data: approvedData = { entries: [], total: 0, totalPages: 0 }, isLoading: loadingApproved } = useQuery({
+    queryKey: ["/api/time-entries/approved", approvedFilters, approvedPagination],
     queryFn: async () => {
-      const response = await fetch("/api/time-entries/approved", {
+      const params = new URLSearchParams();
+      
+      // Adicionar filtros
+      if (approvedFilters.month !== "all-months") {
+        const [year, month] = approvedFilters.month.split("-");
+        const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString().split('T')[0];
+        const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
+        params.append("fromDate", startDate);
+        params.append("toDate", endDate);
+      }
+      
+      if (approvedFilters.collaborator !== "all") {
+        params.append("userId", approvedFilters.collaborator);
+      }
+      
+      // Paginação
+      params.append("page", approvedPagination.page.toString());
+      params.append("pageSize", approvedPagination.pageSize.toString());
+      
+      const response = await fetch(`/api/time-entries/approved?${params}`, {
         credentials: "include"
       });
-      if (!response.ok) return [];
-      return response.json();
+      
+      if (!response.ok) return { entries: [], total: 0, totalPages: 0 };
+      
+      let entries = await response.json();
+      
+      // Aplicar filtros de cliente e campanha no frontend
+      if (approvedFilters.client !== "all") {
+        entries = entries.filter((entry: any) => 
+          entry.campaign?.client?.id?.toString() === approvedFilters.client
+        );
+      }
+      
+      if (approvedFilters.campaign !== "all") {
+        entries = entries.filter((entry: any) => 
+          entry.campaign?.id?.toString() === approvedFilters.campaign
+        );
+      }
+      
+      // Calcular paginação manual para filtros de cliente/campanha
+      const total = entries.length;
+      const totalPages = Math.ceil(total / approvedPagination.pageSize);
+      const startIndex = (approvedPagination.page - 1) * approvedPagination.pageSize;
+      const paginatedEntries = entries.slice(startIndex, startIndex + approvedPagination.pageSize);
+      
+      return {
+        entries: paginatedEntries,
+        total,
+        totalPages
+      };
     },
     staleTime: 2 * 60 * 1000,
   });
@@ -136,6 +197,14 @@ export function ApprovalManagement() {
     });
   }, [timeEntries, selectedCollaborator, selectedMonth, selectedClient, selectedCampaign]);
 
+  // Filtrar campanhas baseado no cliente selecionado (para aprovados)
+  const filteredCampaignsForApproved = useMemo(() => {
+    if (approvedFilters.client === "all") return campaigns;
+    return campaigns.filter((campaign: any) => 
+      campaign.clientId?.toString() === approvedFilters.client
+    );
+  }, [campaigns, approvedFilters.client]);
+
   // Obter colaboradores únicos
   const collaborators = useMemo(() => {
     const unique = new Map();
@@ -143,7 +212,8 @@ export function ApprovalManagement() {
       if (!unique.has(entry.user.id)) {
         unique.set(entry.user.id, {
           id: entry.user.id,
-          name: `${entry.user.firstName} ${entry.user.lastName}`
+          firstName: entry.user.firstName,
+          lastName: entry.user.lastName
         });
       }
     });
@@ -522,13 +592,120 @@ export function ApprovalManagement() {
                 Lançamentos Aprovados
               </CardTitle>
               <CardDescription>
-                Edite lançamentos já aprovados da sua equipe - {approvedEntries.length} entrada(s) aprovadas
+                Edite lançamentos já aprovados da sua equipe - {approvedData.total} entrada(s) aprovadas
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Filtros para aprovados */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Colaborador
+                  </label>
+                  <Select 
+                    value={approvedFilters.collaborator} 
+                    onValueChange={(value) => {
+                      setApprovedFilters(prev => ({ ...prev, collaborator: value }));
+                      setApprovedPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os colaboradores</SelectItem>
+                      {collaborators.map((user: any) => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.firstName} {user.lastName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mês de Referência
+                  </label>
+                  <Select 
+                    value={approvedFilters.month} 
+                    onValueChange={(value) => {
+                      setApprovedFilters(prev => ({ ...prev, month: value }));
+                      setApprovedPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all-months">Todos os meses</SelectItem>
+                      {monthOptions.map((month) => (
+                        <SelectItem key={month.value} value={month.value}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cliente
+                  </label>
+                  <Select 
+                    value={approvedFilters.client} 
+                    onValueChange={(value) => {
+                      setApprovedFilters(prev => ({ 
+                        ...prev, 
+                        client: value,
+                        campaign: "all" // Reset campaign when client changes
+                      }));
+                      setApprovedPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os clientes</SelectItem>
+                      {clients.map((client: any) => (
+                        <SelectItem key={client.id} value={client.id.toString()}>
+                          {client.companyName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campanha
+                  </label>
+                  <Select 
+                    value={approvedFilters.campaign} 
+                    onValueChange={(value) => {
+                      setApprovedFilters(prev => ({ ...prev, campaign: value }));
+                      setApprovedPagination(prev => ({ ...prev, page: 1 }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas as campanhas</SelectItem>
+                      {filteredCampaignsForApproved.map((campaign: any) => (
+                        <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                          {campaign.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {loadingApproved ? (
                 <div className="text-center py-8">Carregando lançamentos aprovados...</div>
-              ) : approvedEntries.length === 0 ? (
+              ) : approvedData.entries.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   Nenhum lançamento aprovado encontrado
                 </div>
@@ -548,7 +725,7 @@ export function ApprovalManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {approvedEntries.map((entry) => (
+                    {approvedData.entries.map((entry: any) => (
                       <TableRow key={entry.id}>
                         <TableCell>{formatDate(entry.date)}</TableCell>
                         <TableCell>{entry.user.firstName} {entry.user.lastName}</TableCell>
@@ -617,6 +794,60 @@ export function ApprovalManagement() {
                     ))}
                   </TableBody>
                 </Table>
+              )}
+
+              {/* Paginação para aprovados */}
+              {approvedData.totalPages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Mostrando {((approvedPagination.page - 1) * approvedPagination.pageSize) + 1}-{Math.min(approvedPagination.page * approvedPagination.pageSize, approvedData.total)} de {approvedData.total} entradas
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setApprovedPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                      disabled={approvedPagination.page === 1}
+                    >
+                      Anterior
+                    </Button>
+                    
+                    <div className="flex space-x-1">
+                      {Array.from({ length: Math.min(5, approvedData.totalPages) }, (_, i) => {
+                        let pageNumber;
+                        if (approvedData.totalPages <= 5) {
+                          pageNumber = i + 1;
+                        } else if (approvedPagination.page <= 3) {
+                          pageNumber = i + 1;
+                        } else if (approvedPagination.page >= approvedData.totalPages - 2) {
+                          pageNumber = approvedData.totalPages - 4 + i;
+                        } else {
+                          pageNumber = approvedPagination.page - 2 + i;
+                        }
+                        
+                        return (
+                          <Button
+                            key={pageNumber}
+                            variant={approvedPagination.page === pageNumber ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setApprovedPagination(prev => ({ ...prev, page: pageNumber }))}
+                          >
+                            {pageNumber}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setApprovedPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                      disabled={approvedPagination.page === approvedData.totalPages}
+                    >
+                      Próxima
+                    </Button>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
