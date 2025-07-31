@@ -16,6 +16,7 @@ interface TimeEntry {
   campaignName: string;
   campaignTaskId: string;
   taskName: string;
+  resultCenter: string; // Centro de resultado
   hours: Record<string, string>; // day of week -> hours
   total: number;
 }
@@ -110,6 +111,7 @@ export function WeeklyTimesheetForm() {
       campaignName: "",
       campaignTaskId: "",
       taskName: "",
+      resultCenter: "Todos", // Valor padrão
       hours: {},
       total: 0
     };
@@ -211,6 +213,7 @@ export function WeeklyTimesheetForm() {
               campaignTaskId: parseInt(entry.campaignTaskId),
               hours: hours.toString(),
               description: `${entry.campaignName} - ${entry.taskName}`,
+              resultCenter: entry.resultCenter || "Todos",
               status,
               submittedAt: status === 'VALIDACAO' ? new Date().toISOString() : null
             });
@@ -312,6 +315,7 @@ export function WeeklyTimesheetForm() {
                 <th className="text-left p-2 font-medium text-sm">Cliente</th>
                 <th className="text-left p-2 font-medium text-sm">Campanha</th>
                 <th className="text-left p-2 font-medium text-sm">Tarefa</th>
+                <th className="text-left p-2 font-medium text-sm">Centro de Resultado</th>
                 {weekDays.map((day, index) => (
                   <th key={index} className="text-center p-2 font-medium text-sm min-w-20">
                     {formatDate(day)}
@@ -394,6 +398,22 @@ export function WeeklyTimesheetForm() {
                       </SelectContent>
                     </Select>
                   </td>
+                  <td className="p-2">
+                    <Select 
+                      value={entry.resultCenter || "Todos"} 
+                      onValueChange={(value) => updateTimeEntry(index, 'resultCenter', value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Centro de Resultado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Todos">Todos</SelectItem>
+                        <SelectItem value="GBrasil">GBrasil</SelectItem>
+                        <SelectItem value="GTodos">GTodos</SelectItem>
+                        <SelectItem value="PPR">PPR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
                   {weekDays.map((_, dayIndex) => (
                     <td key={dayIndex} className="p-2">
                       <Select
@@ -422,7 +442,7 @@ export function WeeklyTimesheetForm() {
               {/* Empty rows for adding new entries */}
               {timeEntries.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center p-8 text-slate-500">
+                  <td colSpan={10} className="text-center p-8 text-slate-500">
                     Clique em "Adicionar linha" para começar a lançar suas horas
                   </td>
                 </tr>
@@ -431,7 +451,7 @@ export function WeeklyTimesheetForm() {
             {timeEntries.length > 0 && (
               <tfoot>
                 <tr className="border-t bg-slate-50 font-medium">
-                  <td className="p-2" colSpan={3}>Total</td>
+                  <td className="p-2" colSpan={4}>Total</td>
                   {weekDays.map((_, dayIndex) => (
                     <td key={dayIndex} className="p-2 text-center">
                       {formatHours(getColumnTotal(dayIndex))}

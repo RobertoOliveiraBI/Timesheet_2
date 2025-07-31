@@ -68,6 +68,7 @@ export const users = pgTable("users", {
   contractValue: decimal("contract_value", { precision: 10, scale: 2 }),
   companyName: varchar("company_name"), // For PJ
   cnpj: varchar("cnpj"), // For PJ
+  monthlyCost: decimal("monthly_cost", { precision: 10, scale: 2 }), // Custo mensal do colaborador
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -144,6 +145,7 @@ export const timeEntries = pgTable("time_entries", {
   campaignTaskId: integer("campaign_task_id").references(() => campaignTasks.id).notNull(),
   hours: varchar("hours").notNull(), // Changed to varchar to accept string format like "2.5"
   description: text("description"),
+  resultCenter: varchar("result_center").default("Todos"), // Centro de resultado
   status: varchar("status", { enum: ["RASCUNHO", "SALVO", "VALIDACAO", "APROVADO", "REJEITADO"] }).default("RASCUNHO"),
   submittedAt: timestamp("submitted_at"),
   reviewedBy: integer("reviewed_by").references(() => users.id),

@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useSimpleAuth";
 import { Plus, Edit, Trash2 } from "lucide-react";
 
 // Modal para Usuários
@@ -30,10 +31,15 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
     contractValue: user?.contractValue || "",
     companyName: user?.companyName || "",
     cnpj: user?.cnpj || "",
+    monthlyCost: user?.monthlyCost || "",
   });
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
+  
+  // Verificar se o usuário atual pode editar custo mensal (apenas ADMIN e MASTER)
+  const canEditMonthlyCost = currentUser && ['ADMIN', 'MASTER'].includes(currentUser.role);
 
   // Buscar lista de gestores
   const { data: allUsers = [] } = useQuery<any[]>({
@@ -91,7 +97,7 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
     };
     
     // Remove password if empty (for updates), but ensure password is present for new users
-    let finalData = dataToSend;
+    let finalData: any = dataToSend;
     if (user && !dataToSend.password) {
       const { password, ...dataWithoutPassword } = dataToSend;
       finalData = dataWithoutPassword;
@@ -183,6 +189,24 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
             />
           </div>
         </div>
+
+        {canEditMonthlyCost && (
+          <div>
+            <Label htmlFor="monthlyCost">Custo Mensal (R$)</Label>
+            <Input
+              id="monthlyCost"
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.monthlyCost}
+              onChange={(e) => setFormData({ ...formData, monthlyCost: e.target.value })}
+              placeholder="0.00"
+            />
+            <p className="text-sm text-slate-500 mt-1">
+              Campo visível apenas para ADMIN e MASTER
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>
