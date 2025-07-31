@@ -952,20 +952,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/campanhas', requireAuth, async (req: any, res) => {
     try {
       console.log('API /api/campanhas chamada - user:', req.user?.id);
+      const { client_id } = req.query;
       
       const user = await storage.getUser(req.user.id);
       if (!user) {
         return res.status(403).json({ message: "Usuário não encontrado" });
       }
       
-      console.log('User role:', user.role);
+      console.log('User role:', user.role, 'Client filter:', client_id);
       
       let campaigns;
       if (['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         // Admins, masters e gestores veem todas as campanhas ativas
-        campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
+        let whereConditions = [eq(campaignsTable.isActive, true)];
+        
+        // Se há filtro por cliente, aplicar
+        if (client_id) {
+          whereConditions.push(eq(campaignsTable.clientId, parseInt(client_id)));
+        }
+        
+        campaigns = await db.select().from(campaignsTable).where(and(...whereConditions));
       } else {
         // Colaboradores veem apenas campanhas às quais têm acesso
+        let whereConditions = [
+          eq(campaignsTable.isActive, true),
+          eq(campaignUsersTable.userId, user.id)
+        ];
+        
+        // Se há filtro por cliente, aplicar
+        if (client_id) {
+          whereConditions.push(eq(campaignsTable.clientId, parseInt(client_id)));
+        }
+        
         campaigns = await db.select({
           id: campaignsTable.id,
           name: campaignsTable.name,
@@ -979,10 +997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .from(campaignsTable)
         .innerJoin(campaignUsersTable, eq(campaignUsersTable.campaignId, campaignsTable.id))
-        .where(and(
-          eq(campaignsTable.isActive, true),
-          eq(campaignUsersTable.userId, user.id)
-        ));
+        .where(and(...whereConditions));
       }
       
       console.log('Campanhas encontradas:', campaigns.length);
