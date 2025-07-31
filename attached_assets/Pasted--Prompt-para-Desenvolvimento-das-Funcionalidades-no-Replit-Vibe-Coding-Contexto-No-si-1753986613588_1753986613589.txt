@@ -1,0 +1,94 @@
+## Prompt para Desenvolvimento das Funcionalidades no Replit (Vibe Coding)
+
+### Contexto:
+
+No sistema Tractionfy Timesheet, atualmente não temos a informação de quanto custa mensalmente cada colaborador nem a possibilidade de direcionar lançamentos por centro de resultado específico. Precisamos ampliar o sistema com esses dois recursos.
+
+### Lógica:
+
+Para aprimorar a análise financeira, precisamos armazenar o custo mensal de cada colaborador, além de permitir a escolha de centro de resultados ao lançar horas, já que colaboradores podem trabalhar em múltiplos centros diferentes.
+
+### Ação:
+
+Realizar duas implementações específicas no sistema:
+
+1. **Adicionar campo "Custo Mensal" ao cadastro de usuários**
+2. **Criar opção de seleção de "Centro de Resultado" nos lançamentos de timesheet, incluindo um centro padrão chamado "Todos"**.
+
+### Resultados:
+
+* O sistema armazenará o custo mensal dos colaboradores.
+* O timesheet permitirá selecionar um centro de resultado específico por lançamento, possibilitando análise detalhada e precisa por área.
+
+### Entradas:
+
+* Cadastro atual de usuários.
+* Formulário existente de lançamento de horas (timesheet semanal).
+
+### Formato:
+
+Siga exatamente este formato nas respostas:
+
+* **✅ Requisitos Funcionais:**
+
+  * Adicionar campo "Custo Mensal" no cadastro de usuários.
+  * Permitir escolha do centro de resultados no timesheet com opção padrão "Todos".
+
+* **🗃️ Banco de Dados:**
+
+  * Não é necessário criar nova tabela.
+  * Acrescente o campo `custo_mensal` (numeric) à tabela existente `users`.
+  * Acrescente o campo `centro_resultado` (varchar/string) à tabela existente `time_entries`.
+  * Utilize padrões do projeto atual (Drizzle ORM e PostgreSQL).
+
+* **💾 Persistência:**
+
+  * Dados devem ser salvos automaticamente após edição (modo autosave).
+  * Validar campo "Custo Mensal" como obrigatório, numérico, não permitindo valor negativo.
+  * Campo "Centro de Resultado" deve permitir valores nulos com "Todos" como valor padrão.
+
+* **🔐 Controle de Acesso:**
+
+  * Campo "Custo Mensal" editável somente por ADMIN e MASTER.
+  * Campo "Centro de Resultado" editável por todos os usuários com acesso ao lançamento de horas.
+
+* **🎨 Frontend:**
+
+  * Acrescente o campo "Custo Mensal" na tela de cadastro/edição de usuários, abaixo do campo atual de cargo.
+  * Acrescente um dropdown para selecionar o "Centro de Resultado" no formulário semanal do timesheet.
+  * Utilize componentes do shadcn/ui e Tailwind CSS já existentes no projeto.
+
+⚠️ **Important:**
+**Do not make changes to any other part of the system** — only work on this section. Leave all other modules untouched.
+
+### ✅ Checklist de Tarefas (Plano de Implementação):
+
+1. Analisar a estrutura atual das tabelas `users` e `time_entries`.
+2. Adicionar coluna `custo_mensal` (numeric) na tabela `users`.
+3. Adicionar coluna `centro_resultado` (varchar) na tabela `time_entries`.
+4. Atualizar schema ORM (Drizzle) com novas colunas e executar migração no PostgreSQL.
+5. Criar validações no backend:
+
+   * Custo Mensal obrigatório e positivo.
+   * Centro de Resultado permite null e padrão "Todos".
+6. Implementar campo "Custo Mensal" na tela do usuário (frontend), restrito a ADMIN e MASTER.
+7. Implementar dropdown "Centro de Resultado" no formulário de timesheet (frontend).
+8. Realizar testes completos:
+
+   * Cadastro e edição de usuários com diferentes roles.
+   * Lançamentos com diferentes centros de resultado.
+9. Revisar código para segurança e evitar vazamento de dados sensíveis.
+
+---
+
+### 🔍 Testes Essenciais:
+
+* Valide todos os CRUDs necessários para usuários e lançamentos de horas.
+* Teste listagem e persistência de dados.
+* Certifique-se de não haver erros relacionados a valores nulos ou formatação de campos numéricos.
+
+---
+
+### Papel:
+
+Você será um engenheiro de software sênior, responsável por implementar estas funcionalidades de maneira simples, eficiente e clara, respeitando rigorosamente as práticas recomendadas de segurança e desempenho.
