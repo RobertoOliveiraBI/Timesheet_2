@@ -34,7 +34,7 @@ const CampaignCostsModule = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedClient, setSelectedClient] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("ATIVO");
   const [showForm, setShowForm] = useState(false);
   const [editingCost, setEditingCost] = useState<any>(null);
   
@@ -96,7 +96,7 @@ const CampaignCostsModule = () => {
       if (!response.ok) throw new Error("Erro ao carregar campanhas");
       return response.json();
     },
-    enabled: !!formData.client_id
+    enabled: !!formData.client_id && showForm
   });
 
   // Mutação para criar/atualizar custo  
@@ -400,9 +400,9 @@ const CampaignCostsModule = () => {
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="ATIVO">Ativo</SelectItem>
-                <SelectItem value="INATIVO">Inativo</SelectItem>
+                <SelectItem value="ATIVO">Somente Ativos</SelectItem>
+                <SelectItem value="INATIVO">Somente Inativos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
               </SelectContent>
             </Select>
 
@@ -412,7 +412,7 @@ const CampaignCostsModule = () => {
                 setSearchTerm("");
                 setSelectedMonth("all");
                 setSelectedClient("all");
-                setSelectedStatus("all");
+                setSelectedStatus("ATIVO");
               }}
             >
               Limpar Filtros
@@ -448,7 +448,7 @@ const CampaignCostsModule = () => {
                   filteredCosts.map((cost: any) => (
                     <TableRow key={cost.id}>
                       <TableCell className="font-medium">
-                        {cost.client?.name || "N/A"}
+                        {cost.campaign?.client?.companyName || cost.campaign?.client?.tradeName || "N/A"}
                       </TableCell>
                       <TableCell>{cost.campaign?.name || "N/A"}</TableCell>
                       <TableCell>{cost.subject}</TableCell>
@@ -456,7 +456,7 @@ const CampaignCostsModule = () => {
                         {cost.description || "-"}
                       </TableCell>
                       <TableCell>
-                        {new Date(cost.reference_month + "-01").toLocaleDateString("pt-BR", {
+                        {new Date(cost.referenceMonth + "-01T00:00:00").toLocaleDateString("pt-BR", {
                           month: "long",
                           year: "numeric"
                         })}
@@ -470,7 +470,7 @@ const CampaignCostsModule = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {cost.created_by?.firstName} {cost.created_by?.lastName}
+                        {cost.user?.firstName || cost.user?.email} {cost.user?.lastName || ""}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
