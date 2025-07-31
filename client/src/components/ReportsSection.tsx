@@ -50,6 +50,16 @@ export function ReportsSection() {
     pageSize: 100,
   });
 
+  // Buscar dados do usuário logado
+  const { data: user } = useQuery({
+    queryKey: ["/api/user"],
+    queryFn: async () => {
+      const response = await fetch("/api/user", { credentials: "include" });
+      if (!response.ok) return null;
+      return response.json();
+    },
+  });
+
   // Buscar clientes
   const { data: clientes = [] } = useQuery({
     queryKey: ["/api/clientes"],
@@ -225,10 +235,13 @@ export function ReportsSection() {
     document.body.removeChild(link);
   };
 
+  // Verificar se o usuário tem permissão para ver custos de campanha
+  const canViewCosts = user && ['MASTER', 'ADMIN', 'GESTOR'].includes(user.role);
+
   return (
     <div className="space-y-8">
       <Tabs defaultValue="detailed" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${canViewCosts ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="detailed" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Relatório Detalhado
@@ -237,10 +250,12 @@ export function ReportsSection() {
             <Calendar className="w-4 h-4" />
             Relatório Diário
           </TabsTrigger>
-          <TabsTrigger value="costs" className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4" />
-            Custos de Campanha
-          </TabsTrigger>
+          {canViewCosts && (
+            <TabsTrigger value="costs" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              Custos de Campanha
+            </TabsTrigger>
+          )}
         </TabsList>
         
         <TabsContent value="detailed" className="space-y-8 mt-6">
@@ -624,14 +639,16 @@ export function ReportsSection() {
           <DailyReportSection />
         </TabsContent>
 
-        <TabsContent value="costs" className="space-y-8 mt-6">
-          <CampaignCostsReportSection 
-            filters={costFilters} 
-            setFilters={setCostFilters}
-            clientes={clientes}
-            campanhas={campanhas}
-          />
-        </TabsContent>
+        {canViewCosts && (
+          <TabsContent value="costs" className="space-y-8 mt-6">
+            <CampaignCostsReportSection 
+              filters={costFilters} 
+              setFilters={setCostFilters}
+              clientes={clientes}
+              campanhas={campanhas}
+            />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

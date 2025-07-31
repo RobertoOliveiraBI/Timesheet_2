@@ -37,6 +37,26 @@ export function CampaignCostsReportSection({
   campanhas 
 }: CampaignCostsReportSectionProps) {
   
+  // Buscar TODOS os clientes para o filtro (independente do filtro principal de relatórios)
+  const { data: allClientes = [] } = useQuery({
+    queryKey: ["/api/clientes"],
+    queryFn: async () => {
+      const response = await fetch("/api/clientes", { credentials: "include" });
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  // Buscar TODAS as campanhas para filtro
+  const { data: allCampaigns = [] } = useQuery({
+    queryKey: ["/api/campanhas"],
+    queryFn: async () => {
+      const response = await fetch("/api/campanhas", { credentials: "include" });
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+  
   // Buscar custos de campanha
   const { data: campaignCosts = [], isLoading } = useQuery({
     queryKey: ["/api/campaign-costs"],
@@ -64,11 +84,11 @@ export function CampaignCostsReportSection({
 
   // Campanhas filtradas por cliente
   const filteredCampaigns = useMemo(() => {
-    if (filters.clientId === "all") return campanhas;
-    return campanhas.filter((campaign: any) => 
+    if (filters.clientId === "all") return allCampaigns;
+    return allCampaigns.filter((campaign: any) => 
       campaign.clientId?.toString() === filters.clientId
     );
-  }, [campanhas, filters.clientId]);
+  }, [allCampaigns, filters.clientId]);
 
   // Filtrar custos
   const filteredCosts = useMemo(() => {
@@ -292,7 +312,7 @@ export function CampaignCostsReportSection({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os clientes</SelectItem>
-                {clientes.map((client: any) => (
+                {allClientes.map((client: any) => (
                   <SelectItem key={client.id} value={client.id.toString()}>
                     {client.companyName || client.tradeName}
                   </SelectItem>
