@@ -614,6 +614,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete approved time entry (manager/admin only)
+  app.delete('/api/time-entries/approved/:id', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const entryId = parseInt(req.params.id);
+
+      // Verificar se a entrada existe e está aprovada
+      const entry = await storage.getTimeEntry(entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Lançamento não encontrado" });
+      }
+
+      if (entry.status !== 'APROVADO') {
+        return res.status(400).json({ message: "Apenas lançamentos aprovados podem ser excluídos" });
+      }
+
+      // Para GESTOR, verificar se é da sua equipe
+      if (user.role === 'GESTOR' && user.isManager) {
+        const entryUser = await storage.getUser(entry.userId);
+        if (!entryUser || entryUser.managerId !== user.id) {
+          return res.status(403).json({ message: "Você só pode excluir lançamentos da sua equipe" });
+        }
+      }
+
+      await storage.deleteTimeEntry(entryId);
+      res.json({ message: "Lançamento excluído com sucesso" });
+    } catch (error) {
+      console.error("Error deleting approved entry:", error);
+      res.status(500).json({ message: "Failed to delete approved entry" });
+    }
+  });
+
+  // Change approved entry status to SALVO (manager/admin only)
+  app.patch('/api/time-entries/approved/:id/return-to-saved', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const entryId = parseInt(req.params.id);
+      const { comment } = req.body;
+
+      // Verificar se a entrada existe e está aprovada
+      const entry = await storage.getTimeEntry(entryId);
+      if (!entry) {
+        return res.status(404).json({ message: "Lançamento não encontrado" });
+      }
+
+      if (entry.status !== 'APROVADO') {
+        return res.status(400).json({ message: "Apenas lançamentos aprovados podem ser retornados para salvo" });
+      }
+
+      // Para GESTOR, verificar se é da sua equipe
+      if (user.role === 'GESTOR' && user.isManager) {
+        const entryUser = await storage.getUser(entry.userId);
+        if (!entryUser || entryUser.managerId !== user.id) {
+          return res.status(403).json({ message: "Você só pode alterar lançamentos da sua equipe" });
+        }
+      }
+
+      const updatedEntry = await storage.returnApprovedToSaved(entryId, user.id, comment);
+      res.json(updatedEntry);
+    } catch (error) {
+      console.error("Error returning approved entry to saved:", error);
+      res.status(500).json({ message: "Failed to return entry to saved status" });
+    }
+  });
+
   // Reports routes
   app.get('/api/reports/user-stats', requireAuth, async (req: any, res) => {
     try {

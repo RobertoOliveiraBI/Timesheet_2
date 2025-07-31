@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, Filter, CheckCircle2, Edit, Save } from "lucide-react";
+import { Check, X, Filter, CheckCircle2, Edit, Save, RotateCcw, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge } from "./StatusBadge";
@@ -336,6 +336,52 @@ export function ApprovalManagement() {
   const handleSaveEdit = (entryId: number) => {
     editApprovedEntry.mutate({ id: entryId, data: editData });
   };
+
+  // Mutation para retornar aprovado para SALVO
+  const returnToSaved = useMutation({
+    mutationFn: async ({ id, comment }: { id: number; comment?: string }) => {
+      return apiRequest("PATCH", `/api/time-entries/approved/${id}/return-to-saved`, {
+        comment
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Lançamento retornado para 'Salvo' com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/approved"] });
+      setSelectedEntry(null);
+      setReviewComment("");
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao retornar lançamento para 'Salvo'",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para excluir lançamento aprovado
+  const deleteApprovedEntry = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/time-entries/approved/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso",
+        description: "Lançamento excluído com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/approved"] });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao excluir lançamento",
+        variant: "destructive",
+      });
+    },
+  });
 
   const formatDate = (dateString: string) => {
     return format(new Date(dateString + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR });
@@ -781,13 +827,91 @@ export function ApprovalManagement() {
                               </Button>
                             </div>
                           ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(entry)}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(entry)}
+                                title="Editar lançamento"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-orange-600 hover:text-orange-700"
+                                    onClick={() => setSelectedEntry(entry)}
+                                    title="Retornar para SALVO"
+                                  >
+                                    <RotateCcw className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Retornar para SALVO</DialogTitle>
+                                    <DialogDescription>
+                                      Este lançamento será alterado para status "SALVO" para que o colaborador possa visualizar e atualizar se necessário. Adicione um comentário explicando o motivo.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <Textarea
+                                    placeholder="Motivo da alteração (opcional)"
+                                    value={reviewComment}
+                                    onChange={(e) => setReviewComment(e.target.value)}
+                                  />
+                                  <DialogFooter>
+                                    <Button variant="outline" onClick={() => {
+                                      setSelectedEntry(null);
+                                      setReviewComment("");
+                                    }}>
+                                      Cancelar
+                                    </Button>
+                                    <Button
+                                      className="bg-orange-600 hover:bg-orange-700"
+                                      onClick={() => returnToSaved.mutate({ 
+                                        id: selectedEntry!.id, 
+                                        comment: reviewComment 
+                                      })}
+                                      disabled={returnToSaved.isPending}
+                                    >
+                                      {returnToSaved.isPending ? "Alterando..." : "Retornar para SALVO"}
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    title="Excluir lançamento"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                  <DialogHeader>
+                                    <DialogTitle>Confirmar Exclusão</DialogTitle>
+                                    <DialogDescription>
+                                      Tem certeza que deseja excluir este lançamento aprovado? Esta ação não pode ser desfeita.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <DialogFooter>
+                                    <Button variant="outline">
+                                      Cancelar
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      onClick={() => deleteApprovedEntry.mutate(entry.id)}
+                                      disabled={deleteApprovedEntry.isPending}
+                                    >
+                                      {deleteApprovedEntry.isPending ? "Excluindo..." : "Excluir"}
+                                    </Button>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </div>
                           )}
                         </TableCell>
                       </TableRow>

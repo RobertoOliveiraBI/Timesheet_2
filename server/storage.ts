@@ -85,12 +85,14 @@ export interface IStorage {
   createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry>;
   getTimeEntries(userId?: number, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
   deleteTimeEntry(id: number): Promise<void>;
+  getTimeEntry(id: number): Promise<TimeEntry | undefined>;
   getTimeEntriesByUser(userId: number, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]>;
   getPendingTimeEntries(managerId?: number): Promise<TimeEntryWithRelations[]>;
   updateTimeEntry(id: number, timeEntry: Partial<InsertTimeEntry>): Promise<TimeEntry>;
   submitTimeEntry(id: number, userId: number): Promise<TimeEntry>;
   approveTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry>;
   rejectTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry>;
+  returnApprovedToSaved(id: number, reviewedBy: number, comment?: string): Promise<TimeEntry>;
   
   // Reports
   getUserTimeStats(userId: number, fromDate?: string, toDate?: string): Promise<{
@@ -806,6 +808,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTimeEntry(id: number): Promise<void> {
     await db.delete(timeEntries).where(eq(timeEntries.id, id));
+  }
+
+  async getTimeEntry(id: number): Promise<TimeEntry | undefined> {
+    const [timeEntry] = await db.select().from(timeEntries).where(eq(timeEntries.id, id));
+    return timeEntry;
+  }
+
+  async returnApprovedToSaved(id: number, reviewedBy: number, comment?: string): Promise<TimeEntry> {
+    const [timeEntry] = await db
+      .update(timeEntries)
+      .set({
+        status: "SALVO",
+        reviewedBy: reviewedBy,
+        reviewedAt: new Date(),
+        reviewComment: comment,
+        updatedAt: new Date(),
+      })
+      .where(eq(timeEntries.id, id))
+      .returning();
+    return timeEntry;
   }
 
   // Departments
