@@ -189,7 +189,7 @@ export function CampaignCostsReportSection({
   return (
     <div className="space-y-6">
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
@@ -240,21 +240,6 @@ export function CampaignCostsReportSection({
             <div className="text-2xl font-bold">{stats.uniqueClients}</div>
             <p className="text-xs text-muted-foreground">
               clientes atendidos
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Média por Custo</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {stats.totalCosts > 0 ? (stats.totalValue / stats.totalCosts).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "0,00"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              valor médio
             </p>
           </CardContent>
         </Card>

@@ -62,7 +62,24 @@ The application follows a modern full-stack architecture with clear separation b
 - **Time Entries**: Core timesheet data with approval workflows using campaign_task_id and status field
 - **Task Types**: Configurable activity categories for precise time classification
 
-### Recent Updates (July 30, 2025)
+### Recent Updates (July 31, 2025)
+- **Campaign Costs Management Module**: Complete CRUD interface for campaign cost management
+  - New dedicated module with columns: cliente, campanha, assunto, descrição, mês, valor, status, autor, ações
+  - Role-based access control: only MASTER, ADMIN, and GESTOR can access the module
+  - Autosave functionality with robust validations and error handling
+  - Dynamic filtering system: search, month, client, campaign, and status filters
+  - Real-time indicators showing filtered data: Total Costs, Active Costs, Total Campaigns
+  - Client-campaign relationship filtering (selecting client filters available campaigns)
+  - Complete audit trail with user tracking and timestamp management
+- **Enhanced Reports Section**: New "Custos de Campanha" tab in reports
+  - Role-based visibility: only appears for MASTER, ADMIN, and GESTOR users
+  - Comprehensive filtering system with 6 filter options
+  - 4 dynamic indicators: Valor Total, Custos Ativos, Campanhas, Clientes
+  - Full CSV export functionality with filtered data
+  - Professional tabular layout with all cost details
+  - Independent data queries to avoid conflicts with other report filters
+
+### Previous Updates (July 30, 2025)
 - **Authentication Fix**: Resolved login issue for user roberto@cappei.com
   - Updated password hash to enable access with credentials: roberto@cappei.com / 123456
   - Fixed TypeScript compilation errors in server/storage.ts that were preventing app startup
