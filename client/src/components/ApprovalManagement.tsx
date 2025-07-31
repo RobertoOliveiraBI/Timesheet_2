@@ -211,23 +211,8 @@ export function ApprovalManagement() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Obter colaboradores únicos das entradas de validação
+  // Obter todos os colaboradores (usuários com role COLABORADOR)
   const collaborators = useMemo(() => {
-    const unique = new Map();
-    timeEntries.forEach(entry => {
-      if (!unique.has(entry.user.id)) {
-        unique.set(entry.user.id, {
-          id: entry.user.id,
-          firstName: entry.user.firstName,
-          lastName: entry.user.lastName
-        });
-      }
-    });
-    return Array.from(unique.values());
-  }, [timeEntries]);
-
-  // Obter colaboradores para filtro de aprovados (todos os usuários colaboradores)
-  const approvedCollaborators = useMemo(() => {
     return allUsers.filter(user => user.role === 'COLABORADOR').map(user => ({
       id: user.id,
       firstName: user.firstName,
@@ -457,7 +442,7 @@ export function ApprovalManagement() {
                   <SelectItem value="all">Todos os colaboradores</SelectItem>
                   {collaborators.map(collab => (
                     <SelectItem key={collab.id} value={collab.id.toString()}>
-                      {collab.name}
+                      {collab.firstName} {collab.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -675,7 +660,7 @@ export function ApprovalManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os colaboradores</SelectItem>
-                      {approvedCollaborators.map((user: any) => (
+                      {collaborators.map((user: any) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.firstName} {user.lastName}
                         </SelectItem>
