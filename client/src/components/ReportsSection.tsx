@@ -23,6 +23,7 @@ import { StatsCard } from "./StatsCard";
 import { StatusBadge } from "./StatusBadge";
 import { getStatusLabel } from "@/lib/statusUtils";
 import { DailyReportSection } from "./DailyReportSection";
+import { CampaignCostsReportSection } from "./CampaignCostsReportSection";
 
 export function ReportsSection() {
   const [filters, setFilters] = useState({
@@ -33,6 +34,15 @@ export function ReportsSection() {
     userId: "all",
     dateFrom: "",
     dateTo: "",
+  });
+
+  // Filtros específicos para custos de campanha
+  const [costFilters, setCostFilters] = useState({
+    month: format(new Date(), "yyyy-MM"),
+    clientId: "all",
+    campaignId: "all",
+    status: "all",
+    searchTerm: "",
   });
 
   const [pagination, setPagination] = useState({
@@ -218,7 +228,7 @@ export function ReportsSection() {
   return (
     <div className="space-y-8">
       <Tabs defaultValue="detailed" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="detailed" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             Relatório Detalhado
@@ -226,6 +236,10 @@ export function ReportsSection() {
           <TabsTrigger value="daily" className="flex items-center gap-2">
             <Calendar className="w-4 h-4" />
             Relatório Diário
+          </TabsTrigger>
+          <TabsTrigger value="costs" className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            Custos de Campanha
           </TabsTrigger>
         </TabsList>
         
@@ -608,6 +622,15 @@ export function ReportsSection() {
         
         <TabsContent value="daily" className="space-y-8 mt-6">
           <DailyReportSection />
+        </TabsContent>
+
+        <TabsContent value="costs" className="space-y-8 mt-6">
+          <CampaignCostsReportSection 
+            filters={costFilters} 
+            setFilters={setCostFilters}
+            clientes={clientes}
+            campanhas={campanhas}
+          />
         </TabsContent>
       </Tabs>
     </div>
