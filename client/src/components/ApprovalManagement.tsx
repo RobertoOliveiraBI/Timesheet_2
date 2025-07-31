@@ -208,16 +208,26 @@ export function ApprovalManagement() {
   // Buscar todos os usuários para filtros
   const { data: allUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/users", {
+        credentials: "include"
+      });
+      if (!response.ok) return [];
+      return response.json();
+    },
     staleTime: 5 * 60 * 1000,
   });
 
   // Obter todos os colaboradores (usuários com role COLABORADOR)
   const collaborators = useMemo(() => {
-    return allUsers.filter(user => user.role === 'COLABORADOR').map(user => ({
+    console.log("AllUsers loaded:", allUsers);
+    const colaboradores = allUsers.filter(user => user.role === 'COLABORADOR').map(user => ({
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName
     }));
+    console.log("Collaborators filtered:", colaboradores);
+    return colaboradores;
   }, [allUsers]);
 
   const approveEntry = useMutation({
