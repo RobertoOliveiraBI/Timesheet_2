@@ -108,6 +108,8 @@ const CampaignCostsModule = () => {
       
       const method = editingCost ? "PATCH" : "POST";
       
+      console.log("Mutation data:", { method, url, data, editingCost });
+      
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -117,17 +119,22 @@ const CampaignCostsModule = () => {
       
       if (!response.ok) {
         const error = await response.json();
+        console.error("Mutation error:", error);
         throw new Error(error.message || "Erro ao salvar custo");
       }
       
-      return response.json();
+      const result = await response.json();
+      console.log("Mutation response:", result);
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Mutation success:", data);
       toast({
         title: "Sucesso",
         description: editingCost ? "Custo atualizado!" : "Custo criado!"
       });
       queryClient.invalidateQueries({ queryKey: ["/api/campaign-costs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campaign-costs", "totals"] });
       resetForm();
     },
     onError: (error: any) => {
