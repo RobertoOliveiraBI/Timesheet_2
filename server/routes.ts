@@ -868,6 +868,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         delete updateData.isActive;
       }
 
+      // Clean up data - convert empty strings to null for date and numeric fields
+      if (updateData.contractStartDate === '') updateData.contractStartDate = null;
+      if (updateData.contractEndDate === '') updateData.contractEndDate = null;
+      if (updateData.contractValue === '') updateData.contractValue = null;
+      if (updateData.monthlyCost === '') updateData.monthlyCost = null;
+      
+      // Convert string IDs to integers or null
+      if (updateData.departmentId === '' || updateData.departmentId === undefined) updateData.departmentId = null;
+      if (updateData.costCenterId === '' || updateData.costCenterId === undefined) updateData.costCenterId = null;
+      if (updateData.managerId === '' || updateData.managerId === undefined) updateData.managerId = null;
+
       const updatedUser = await storage.updateUser(targetUserId, updateData);
       res.json(updatedUser);
     } catch (error) {
@@ -886,10 +897,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.id);
       const userData = req.body;
       
-      // Clean up data - convert empty strings to null for date fields
+      // Clean up data - convert empty strings to null for date and numeric fields
       if (userData.contractStartDate === '') userData.contractStartDate = null;
       if (userData.contractEndDate === '') userData.contractEndDate = null;
       if (userData.contractValue === '') userData.contractValue = null;
+      if (userData.monthlyCost === '') userData.monthlyCost = null;
+      
+      // Convert string IDs to integers or null
+      if (userData.departmentId === '' || userData.departmentId === undefined) userData.departmentId = null;
+      if (userData.costCenterId === '' || userData.costCenterId === undefined) userData.costCenterId = null;
+      if (userData.managerId === '' || userData.managerId === undefined) userData.managerId = null;
       
       const updatedUser = await storage.updateUser(userId, userData);
       res.json(updatedUser);
