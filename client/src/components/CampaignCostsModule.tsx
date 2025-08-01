@@ -491,7 +491,7 @@ const CampaignCostsModule = () => {
                 ) : (
                   filteredCosts.map((cost: any) => (
                     <TableRow key={cost.id}>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-[12px]">
                         {cost.campaign?.client?.companyName || cost.campaign?.client?.tradeName || "N/A"}
                       </TableCell>
                       <TableCell>{cost.campaign?.name || "N/A"}</TableCell>
