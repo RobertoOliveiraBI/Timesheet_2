@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, Filter, CheckCircle2, Edit, Save, RotateCcw, Trash2 } from "lucide-react";
+import { Check, X, Filter, CheckCircle2, Edit, Save, RotateCcw, Trash2, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { StatusBadge } from "./StatusBadge";
@@ -22,6 +22,7 @@ interface TimeEntry {
   description: string | null;
   status: 'RASCUNHO' | 'SALVO' | 'VALIDACAO' | 'APROVADO' | 'REJEITADO';
   submittedAt: string | null;
+  reviewComment?: string;
   user: {
     id: number;
     firstName: string;
@@ -56,6 +57,8 @@ export function ApprovalManagement() {
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [editingEntry, setEditingEntry] = useState<number | null>(null);
   const [editData, setEditData] = useState<any>({});
+  const [commentModalEntry, setCommentModalEntry] = useState<TimeEntry | null>(null);
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
   
   // Filtros para aba de aprovados - com mês atual como padrão
   const [approvedFilters, setApprovedFilters] = useState({
@@ -583,6 +586,20 @@ export function ApprovalManagement() {
                           >
                             <Check className="w-4 h-4" />
                           </Button>
+                          {entry.reviewComment && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setCommentModalEntry(entry);
+                                setCommentModalOpen(true);
+                              }}
+                              className="text-blue-600 hover:bg-blue-50"
+                              title="Ver thread de comentários"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button
@@ -984,6 +1001,73 @@ export function ApprovalManagement() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Comentários */}
+      <Dialog open={commentModalOpen} onOpenChange={setCommentModalOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Thread de Comentários</DialogTitle>
+            <DialogDescription>
+              Histórico de comentários entre gestor e colaborador
+            </DialogDescription>
+          </DialogHeader>
+          
+          {commentModalEntry && (
+            <div className="space-y-4">
+              {/* Informações da entrada */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Colaborador:</span>
+                    <p>{commentModalEntry.user.firstName} {commentModalEntry.user.lastName}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Data:</span>
+                    <p>{format(new Date(commentModalEntry.date + 'T00:00:00'), "dd/MM/yyyy")}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Cliente:</span>
+                    <p>{commentModalEntry.campaign.client.companyName}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Campanha:</span>
+                    <p>{commentModalEntry.campaign.name}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Tarefa:</span>
+                    <p>{commentModalEntry.campaignTask.description}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Horas:</span>
+                    <p>{commentModalEntry.hours}h</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thread de comentários */}
+              {commentModalEntry.reviewComment && (
+                <div className="max-h-96 overflow-y-auto space-y-3 p-4 border rounded-lg bg-white">
+                  <div className="whitespace-pre-wrap text-sm">
+                    {commentModalEntry.reviewComment}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setCommentModalOpen(false);
+                setCommentModalEntry(null);
+              }}
+            >
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
