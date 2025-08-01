@@ -103,6 +103,7 @@ export const campaigns = pgTable("campaigns", {
   contractEndDate: date("contract_end_date"),
   contractValue: decimal("contract_value", { precision: 12, scale: 2 }),
   clientId: integer("client_id").references(() => clients.id).notNull(),
+  costCenterId: integer("cost_center_id").references(() => costCenters.id),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -205,6 +206,7 @@ export const departmentsRelations = relations(departments, ({ many }) => ({
 
 export const costCentersRelations = relations(costCenters, ({ many }) => ({
   users: many(users),
+  campaigns: many(campaigns),
 }));
 
 export const economicGroupsRelations = relations(economicGroups, ({ many }) => ({
@@ -223,6 +225,10 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   client: one(clients, {
     fields: [campaigns.clientId],
     references: [clients.id],
+  }),
+  costCenter: one(costCenters, {
+    fields: [campaigns.costCenterId],
+    references: [costCenters.id],
   }),
   timeEntries: many(timeEntries),
   userAccess: many(campaignUsers),

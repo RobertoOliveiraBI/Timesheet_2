@@ -822,6 +822,7 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
     contractEndDate: campaign?.contractEndDate || "",
     contractValue: campaign?.contractValue || "",
     clientId: campaign?.clientId || null,
+    costCenterId: campaign?.costCenterId || null,
   });
 
   const { toast } = useToast();
@@ -830,6 +831,18 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
   // Buscar clientes para o select
   const { data: clients = [] } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
+  });
+
+  // Buscar centros de custo para o select
+  const { data: costCenters = [] } = useQuery<any[]>({
+    queryKey: ["/api/cost-centers"],
+    queryFn: async () => {
+      const response = await fetch("/api/cost-centers", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error('Erro ao buscar centros de custo');
+      return response.json();
+    },
   });
 
   const saveMutation = useMutation({
@@ -848,6 +861,7 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
         contractEndDate: data.contractEndDate || null,
         contractValue: data.contractValue ? data.contractValue.toString() : null,
         clientId: parseInt(data.clientId),
+        costCenterId: data.costCenterId ? parseInt(data.costCenterId) : null,
       };
       
       const url = campaign ? `/api/campaigns/${campaign.id}` : "/api/campaigns";
@@ -914,6 +928,25 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
               {clients.map((client) => (
                 <SelectItem key={client.id} value={client.id.toString()}>
                   {client.companyName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="costCenterId">Centro de Resultado</Label>
+          <Select 
+            value={formData.costCenterId?.toString() || ""} 
+            onValueChange={(value) => setFormData({ ...formData, costCenterId: value ? parseInt(value) : null })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um centro de resultado" />
+            </SelectTrigger>
+            <SelectContent>
+              {costCenters.map((costCenter) => (
+                <SelectItem key={costCenter.id} value={costCenter.id.toString()}>
+                  {costCenter.name}
                 </SelectItem>
               ))}
             </SelectContent>
