@@ -580,13 +580,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async approveTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry> {
+    // Se há comentário, adicionar ao feed antes de aprovar
+    if (comment && comment.trim()) {
+      await db.insert(timeEntryComments).values({
+        timeEntryId: id,
+        userId: reviewerId,
+        comment: comment.trim(),
+        commentType: "MANAGER_FEEDBACK",
+      });
+    }
+
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
         status: "APROVADO",
         reviewedBy: reviewerId,
         reviewedAt: new Date(),
-        reviewComment: comment,
+        reviewComment: comment, // Manter por compatibilidade
         updatedAt: new Date(),
       })
       .where(eq(timeEntries.id, id))
@@ -595,13 +605,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async rejectTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry> {
+    // Sempre adicionar comentário ao feed quando rejeitar (obrigatório para rejeição)
+    if (comment && comment.trim()) {
+      await db.insert(timeEntryComments).values({
+        timeEntryId: id,
+        userId: reviewerId,
+        comment: comment.trim(),
+        commentType: "MANAGER_FEEDBACK",
+      });
+    }
+
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
-        status: "REJEITADO",
+        status: "RASCUNHO", // Status muda para RASCUNHO para permitir edição
         reviewedBy: reviewerId,
         reviewedAt: new Date(),
-        reviewComment: comment,
+        reviewComment: comment, // Manter por compatibilidade
         updatedAt: new Date(),
       })
       .where(eq(timeEntries.id, id))
@@ -833,13 +853,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async returnApprovedToSaved(id: number, reviewedBy: number, comment?: string): Promise<TimeEntry> {
+    // Adicionar comentário ao feed se fornecido
+    if (comment && comment.trim()) {
+      await db.insert(timeEntryComments).values({
+        timeEntryId: id,
+        userId: reviewedBy,
+        comment: comment.trim(),
+        commentType: "MANAGER_FEEDBACK",
+      });
+    }
+
     const [timeEntry] = await db
       .update(timeEntries)
       .set({
         status: "SALVO",
         reviewedBy: reviewedBy,
         reviewedAt: new Date(),
-        reviewComment: comment,
+        reviewComment: comment, // Manter por compatibilidade
         updatedAt: new Date(),
       })
       .where(eq(timeEntries.id, id))
@@ -1177,7 +1207,7 @@ export class DatabaseStorage implements IStorage {
       .from(timeEntryComments)
       .innerJoin(users, eq(timeEntryComments.userId, users.id))
       .where(eq(timeEntryComments.timeEntryId, timeEntryId))
-      .orderBy(desc(timeEntryComments.createdAt));
+      .orderBy(asc(timeEntryComments.createdAt)); // Ordem cronológica: mais antigos primeiro
 
     return comments.map(comment => ({
       ...comment,

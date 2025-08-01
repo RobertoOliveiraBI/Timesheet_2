@@ -56,10 +56,7 @@ export function CommentModal({
   const { data: comments = [], isLoading, refetch } = useQuery({
     queryKey: ['time-entry-comments', timeEntry.id],
     queryFn: async () => {
-      console.log('Fetching comments for timeEntry:', timeEntry.id);
-      const response = await apiRequest('GET', `/api/time-entries/${timeEntry.id}/comments`);
-      console.log('Comments data:', response);
-      return response;
+      return await apiRequest('GET', `/api/time-entries/${timeEntry.id}/comments`);
     },
     enabled: isOpen && !!timeEntry.id,
   });
@@ -82,8 +79,7 @@ export function CommentModal({
       queryClient.invalidateQueries({ queryKey: ['timesheet'] });
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
     },
-    onError: (error) => {
-      console.error("Erro ao criar comentário:", error);
+    onError: () => {
       setIsSubmitting(false);
     },
   });
@@ -107,8 +103,7 @@ export function CommentModal({
       queryClient.invalidateQueries({ queryKey: ['time-entries'] });
       onClose(); // Fechar modal após resposta
     },
-    onError: (error) => {
-      console.error("Erro ao responder comentário:", error);
+    onError: () => {
       setIsSubmitting(false);
     },
   });

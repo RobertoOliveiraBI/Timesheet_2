@@ -134,7 +134,6 @@ export function TimesheetSemanal() {
     queryFn: async () => {
       const response = await fetch("/api/campanhas", { credentials: "include" });
       if (!response.ok) {
-        console.error("Erro ao buscar campanhas:", response.status);
         return [];
       }
       return response.json();
@@ -149,21 +148,14 @@ export function TimesheetSemanal() {
     queryFn: async () => {
       try {
         const url = `/api/timesheet/semana?inicioSemana=${format(inicioSemana, "yyyy-MM-dd")}&fimSemana=${format(addDays(inicioSemana, 5), "yyyy-MM-dd")}`;
-        console.log("Buscando entradas da semana:", url);
-        
         const response = await fetch(url, { credentials: "include" });
-        console.log("Response status:", response.status);
         
         if (!response.ok) {
-          console.log("Response não OK, retornando array vazio");
           return [];
         }
         
-        const data = await response.json();
-        console.log("Dados recebidos da API:", data);
-        return data;
+        return await response.json();
       } catch (error) {
-        console.error("Erro ao buscar entradas:", error);
         return [];
       }
     },
@@ -317,7 +309,6 @@ export function TimesheetSemanal() {
       setCampanhasPorCliente(prev => ({ ...prev, [clienteId]: campanhas }));
       return campanhas;
     } catch (error) {
-      console.error('Erro ao buscar campanhas:', error);
       return [];
     }
   };

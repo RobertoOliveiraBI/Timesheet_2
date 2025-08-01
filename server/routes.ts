@@ -617,64 +617,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete approved time entry (manager/admin only)
-  // Add comment to time entry (collaborator only)
-  app.post('/api/time-entries/:id/comment', requireAuth, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.id);
-      if (!user || user.role !== 'COLABORADOR') {
-        return res.status(403).json({ message: "Apenas colaboradores podem adicionar comentários" });
-      }
-
-      const entryId = parseInt(req.params.id);
-      const { comment } = req.body;
-
-      if (!comment || comment.trim().length === 0) {
-        return res.status(400).json({ message: "Comentário é obrigatório" });
-      }
-
-      if (comment.length > 1000) {
-        return res.status(400).json({ message: "Comentário não pode exceder 1000 caracteres" });
-      }
-
-      // Verificar se a entrada existe e pertence ao colaborador
-      const entry = await storage.getTimeEntry(entryId);
-      if (!entry) {
-        return res.status(404).json({ message: "Lançamento não encontrado" });
-      }
-
-      if (entry.userId !== user.id) {
-        return res.status(403).json({ message: "Você só pode comentar seus próprios lançamentos" });
-      }
-
-      if (entry.status !== 'RASCUNHO') {
-        return res.status(400).json({ message: "Apenas lançamentos em rascunho podem receber comentários" });
-      }
-
-      // Construir o novo comentário com timestamp e autor
-      const now = new Date();
-      const timestamp = format(now, "dd/MM/yyyy HH:mm");
-      const newCommentLine = `-- comentário de ${user.firstName} ${user.lastName} em ${timestamp} --\n${comment.trim()}`;
-      
-      // Concatenar com comentários existentes
-      const existingComment = entry.reviewComment || '';
-      const updatedComment = existingComment 
-        ? `${existingComment}\n\n${newCommentLine}`
-        : newCommentLine;
-
-      // Atualizar a entrada
-      await db.update(timeEntries)
-        .set({ 
-          reviewComment: updatedComment,
-          updatedAt: now
-        })
-        .where(eq(timeEntries.id, entryId));
-
-      res.json({ message: "Comentário adicionado com sucesso" });
-    } catch (error) {
-      console.error("Error adding comment:", error);
-      res.status(500).json({ message: "Erro ao adicionar comentário" });
-    }
-  });
 
   app.delete('/api/time-entries/approved/:id', requireAuth, async (req: any, res) => {
     try {
@@ -2134,15 +2076,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Usuário não encontrado" });
       }
 
+      // Verificar acesso ao time entry
+      const timeEntry = await storage.getTimeEntry(timeEntryId);
+      if (!timeEntry) {
+        return res.status(404).json({ message: "Entrada de tempo não encontrada" });
+      }
+
+      const { comment, commentType } = req.body;
+
+      // Validar role vs commentType
+      const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(user.role);
+      const isOwner = timeEntry.userId === user.id;
+
+      if (commentType === 'MANAGER_FEEDBACK' && !isManager) {
+        return res.status(403).json({ message: "Apenas gestores podem enviar feedback de gestor" });
+      }
+
+      if (commentType === 'COLLABORATOR_RESPONSE' && !isOwner) {
+        return res.status(403).json({ message: "Apenas o colaborador dono pode responder" });
+      }
+
+      // Verificar acesso geral
+      if (!isManager && !isOwner) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
       // Valida dados do comentário
       const data = insertTimeEntryCommentSchema.parse({
-        ...req.body,
+        comment,
+        commentType,
         timeEntryId,
         userId: user.id,
       });
 
-      const comment = await storage.createTimeEntryComment(data);
-      res.status(201).json(comment);
+      const newComment = await storage.createTimeEntryComment(data);
+      res.status(201).json(newComment);
     } catch (error) {
       console.error("Error creating time entry comment:", error);
       if (error instanceof z.ZodError) {
