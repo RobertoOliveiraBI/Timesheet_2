@@ -605,22 +605,24 @@ export function TimesheetSemanal() {
   // Mutation para envio em lote para validação
   const enviarLoteParaValidacao = useMutation({
     mutationFn: async () => {
-      const entradasRascunho = historicoMensal.filter(entrada => entrada.status === 'RASCUNHO');
+      const entradasParaValidacao = historicoMensal.filter(entrada => 
+        entrada.status === 'RASCUNHO' || entrada.status === 'SALVO'
+      );
       
-      if (entradasRascunho.length === 0) {
-        throw new Error("Nenhuma entrada em rascunho encontrada");
+      if (entradasParaValidacao.length === 0) {
+        throw new Error("Nenhuma entrada em rascunho ou salva encontrada");
       }
       
-      // Enviar todas as entradas em rascunho para validação
+      // Enviar todas as entradas em rascunho ou salvas para validação
       await Promise.all(
-        entradasRascunho.map(entrada => 
+        entradasParaValidacao.map(entrada => 
           apiRequest("PATCH", `/api/time-entries/${entrada.id}`, {
             status: "VALIDACAO"
           })
         )
       );
       
-      return entradasRascunho.length;
+      return entradasParaValidacao.length;
     },
     onSuccess: async (quantidade) => {
       toast({
@@ -878,7 +880,7 @@ export function TimesheetSemanal() {
             </CardTitle>
             
             <div className="flex items-center gap-2">
-              {historicoMensal.filter(entrada => entrada.status === 'RASCUNHO').length > 0 && (
+              {historicoMensal.filter(entrada => entrada.status === 'RASCUNHO' || entrada.status === 'SALVO').length > 0 && (
                 <Button 
                   size="sm" 
                   onClick={() => enviarLoteParaValidacao.mutate()}
@@ -886,7 +888,7 @@ export function TimesheetSemanal() {
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
                   <Send className="w-4 h-4 mr-1" />
-                  {enviarLoteParaValidacao.isPending ? "Enviando..." : "Enviar Rascunhos"}
+                  {enviarLoteParaValidacao.isPending ? "Enviando..." : "Enviar para Validação"}
                 </Button>
               )}
               <Button 
@@ -1085,7 +1087,7 @@ export function TimesheetSemanal() {
                               <div className="flex items-center justify-center gap-1">
                                 {entrada.status !== 'APROVADO' && (
                                   <>
-                                    {(entrada.status === 'RASCUNHO' || entrada.status === 'REJEITADO') && (
+                                    {(entrada.status === 'RASCUNHO' || entrada.status === 'SALVO' || entrada.status === 'REJEITADO') && (
                                       <>
                                         <Button
                                           variant="ghost"
@@ -1096,7 +1098,7 @@ export function TimesheetSemanal() {
                                         >
                                           <Edit className="h-4 w-4" />
                                         </Button>
-                                        {entrada.status === 'RASCUNHO' && (
+                                        {(entrada.status === 'RASCUNHO' || entrada.status === 'SALVO') && (
                                           <Button
                                             variant="ghost"
                                             size="sm"
@@ -1108,7 +1110,7 @@ export function TimesheetSemanal() {
                                             <Send className="h-4 w-4" />
                                           </Button>
                                         )}
-                                        {entrada.status === 'RASCUNHO' && entrada.reviewComment && (
+                                        {(entrada.status === 'RASCUNHO' || entrada.status === 'SALVO') && entrada.reviewComment && (
                                           <Button
                                             variant="ghost"
                                             size="sm"
