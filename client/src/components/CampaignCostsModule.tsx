@@ -468,7 +468,6 @@ const CampaignCostsModule = () => {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Campanha</TableHead>
                   <TableHead>Assunto</TableHead>
-                  <TableHead>Descrição</TableHead>
                   <TableHead>Mês</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>CNPJ Fornecedor</TableHead>
@@ -482,7 +481,7 @@ const CampaignCostsModule = () => {
               <TableBody>
                 {filteredCosts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <div className="text-muted-foreground">
                         {costs.length === 0 ? "Nenhum custo cadastrado" : "Nenhum custo encontrado com os filtros aplicados"}
                       </div>
@@ -491,38 +490,35 @@ const CampaignCostsModule = () => {
                 ) : (
                   filteredCosts.map((cost: any) => (
                     <TableRow key={cost.id}>
-                      <TableCell className="font-medium text-[12px]">
+                      <TableCell className="font-medium text-[10px]">
                         {cost.campaign?.client?.companyName || cost.campaign?.client?.tradeName || "N/A"}
                       </TableCell>
-                      <TableCell>{cost.campaign?.name || "N/A"}</TableCell>
-                      <TableCell>{cost.subject}</TableCell>
-                      <TableCell className="max-w-xs truncate" title={cost.description}>
-                        {cost.description || "-"}
-                      </TableCell>
-                      <TableCell>
+                      <TableCell className="text-[10px]">{cost.campaign?.name || "N/A"}</TableCell>
+                      <TableCell className="text-[10px]">{cost.subject}</TableCell>
+                      <TableCell className="text-[10px]">
                         {cost.referenceMonth ? new Date(cost.referenceMonth + "-01T00:00:00").toLocaleDateString("pt-BR", {
                           month: "long",
                           year: "numeric"
                         }) : "N/A"}
                       </TableCell>
-                      <TableCell className="font-mono">
+                      <TableCell className="font-mono text-[10px]">
                         R$ {parseFloat(cost.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-[10px]">
                         {cost.cnpjFornecedor || "-"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-[10px]">
                         {cost.razaoSocial || "-"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-[10px]">
                         {cost.category?.name || "-"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={cost.status === "ATIVO" ? "default" : "secondary"}>
+                        <Badge variant={cost.status === "ATIVO" ? "default" : "secondary"} className="text-[10px]">
                           {cost.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-[10px]">
                         {cost.user?.firstName || cost.user?.email || "N/A"} {cost.user?.lastName || ""}
                       </TableCell>
                       <TableCell>
