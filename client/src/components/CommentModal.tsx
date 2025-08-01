@@ -162,6 +162,14 @@ export function CommentModal({
   const canAddComment = () => {
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
     const isOwner = timeEntry.userId === currentUserId;
+    console.log('canAddComment debug:', {
+      currentUserRole,
+      currentUserId,
+      timeEntryUserId: timeEntry.userId,
+      isManager,
+      isOwner,
+      canAdd: isManager || isOwner
+    });
     return isManager || isOwner;
   };
 
