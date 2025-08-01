@@ -9,6 +9,7 @@ import {
   LogOut,
   DollarSign
 } from "lucide-react";
+import tractionfyLogo from "@assets/Tractionfy-purple-icon (1)_1754084442077.png";
 import { useLocation } from "wouter";
 import { useValidationCount } from "@/hooks/useValidationCount";
 import { Badge } from "@/components/ui/badge";
@@ -55,14 +56,22 @@ export function Sidebar() {
   return (
     <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 z-50">
       {/* Sidebar header */}
-      <div className="flex items-center px-6 py-4 border-b border-slate-200">
+      <div className="flex items-center px-6 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <Clock className="w-4 h-4 text-white" />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-white shadow-lg ring-1 ring-gray-200 p-2 hover:shadow-xl transition-shadow duration-200">
+            <img 
+              src={tractionfyLogo} 
+              alt="Tractionfy Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
-          <div className="ml-3">
-            <p className="text-sm font-semibold text-slate-900">Tractionfy</p>
-            <p className="text-xs text-slate-500">Timesheet</p>
+          <div className="ml-4">
+            <p className="text-xl font-bold text-slate-900 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Tractionfy
+            </p>
+            <p className="text-xs text-slate-500 font-medium tracking-wide uppercase">
+              Timesheet Platform
+            </p>
           </div>
         </div>
       </div>
