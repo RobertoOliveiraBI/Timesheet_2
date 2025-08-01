@@ -1,0 +1,163 @@
+Contexto
+Você está trabalhando no SaaS Tractionfy Timesheet, voltado para controle e gestão de custos de campanhas de marketing, onde o objetivo é dar autonomia para o gestor lançar despesas detalhadas, sem burocracia, e garantir que a administração consiga cadastrar e controlar as categorias de custos usadas por toda a equipe.
+
+Lógica
+A solicitação visa permitir que o gestor preencha os campos CNPJ do Fornecedor, Razão Social e Categoria ao cadastrar um custo por campanha, com possibilidade de deixar esses campos em branco se não souber, além de garantir que as categorias disponíveis para seleção sejam cadastradas e gerenciadas exclusivamente na área administrativa pelo perfil ADMIN/MASTER, mantendo governança sobre o que aparece para o gestor.
+
+Ação
+Implemente os campos cnpj_fornecedor, razao_social e categoria no cadastro de custo por campanha, tornando todos opcionais, e conecte o campo categoria a um select populado pelas categorias já cadastradas pelo ADMIN/MASTER na área de administração, crie o CRUD completo de categorias se ainda não existir, e já cadastre os registros de categorias abaixo diretamente na base para facilitar o teste e não deixar o admin sem referência.
+
+Resultados
+O gestor poderá lançar custos detalhados, escolher a categoria correta (sem digitação livre, só select), ADMIN/MASTER poderá cadastrar, editar, excluir e inativar categorias, sistema fica à prova de erro, aumenta o controle e reduz ruído operacional.
+
+Entradas
+Campos a adicionar: cnpj_fornecedor, razao_social, categoria (select)
+
+Lista de categorias iniciais (conforme detalhado abaixo)
+
+Permissão para ADMIN/MASTER gerenciar categorias
+
+Formato
+Responda com explicação detalhada do que foi feito, mudanças no frontend, backend e banco, scripts de migração se necessário, exemplo de uso, e explique ponto a ponto as decisões, tratando o código como se estivesse mentorando alguém menos experiente.
+
+Informações Adicionais
+Lista de Categorias para cadastro inicial:
+
+Feiras e Eventos
+
+Viagem, Estadia e Refeição - Comercial
+
+Software e Aplicativos - Comercial
+
+Serviço de Consultoria Comercial
+
+Comissões
+
+Prospecções
+
+Brindes a Clientes
+
+Hospedagem Site / Domínio
+
+Software e Aplicativos - Marketing
+
+Materiais Impressos e Promocionais
+
+Publicidade Mídias Digitais
+
+Serviço de Consultoria de Assessoria Imprensa
+
+Serviço de Consultoria Marketing
+
+Material de Uso e Consumo Geral
+
+Locação de Equipamentos
+
+Viagem, Estadia e Refeição - Administrativo
+
+Legais e Cartoriais
+
+Translado / Taxi / Aplicativo / KM / Park
+
+Lanches e Refeições
+
+Bens de Nat. Perm. Deduzidos como Despesas
+
+Doações
+
+Impostos e taxas
+
+Manutenção e Reparos de Equipamento
+
+Material de Escritório
+
+Material de Informática
+
+Material de Copa e Cozinha
+
+Seguro de Veiculo
+
+Manutenção de Moveis e Utensílios em Geral
+
+Ações Endomarketing
+
+Fundo Fixo
+
+Serviço de Terceiros Adm
+
+Serviço de Entregas
+
+Serviço de Limpeza e Conservação
+
+Serviço de Segurança e Vigilância
+
+Serviço de Tradução
+
+Software e Aplicativos - Adm
+
+Serviço de Suporte Tecnologia
+
+Serviço de Consultoria Juridica
+
+Serviço de Recrutamento e Seleção
+
+Serviço de Consultoria Contábil/ Fiscal/ DP
+
+Serviço de Consultoria Adm / Financeira
+
+Papel
+Você vai atuar como engenheiro sênior mentorando outro dev, então explique o porquê das escolhas, mostre exemplos, detalhe as alterações, sempre focando em simplicidade, clareza, e prevenção de erros comuns.
+
+✅ Requisitos Funcionais
+No cadastro de custo por campanha, adicione os campos cnpj_fornecedor, razao_social e categoria (select)
+
+O campo categoria deve ser obrigatório no backend mas pode ser deixado em branco pelo gestor (validação só alerta, não bloqueia)
+
+ADMIN/MASTER podem cadastrar, editar, excluir e inativar categorias via área administrativa
+
+As categorias devem ser persistidas no banco e carregadas em tempo real no select
+
+No backend, criar tabela de categorias se ainda não existir
+
+🗃️ Banco de Dados
+Se não existir, crie tabela cost_categories com campos: id, nome, ativo, created_at, updated_at
+
+Relacione o campo categoria do custo à tabela de categorias por id (FK)
+
+Seguir padrões de nomenclatura, migrando com Drizzle ORM
+
+💾 Persistência
+Dados de custos devem ser salvos manualmente via botão “Salvar”, exibindo feedback visual de progresso
+
+Valide campos obrigatórios e formatos (ex: CNPJ, quando informado, deve ser válido)
+
+Trate nulos e evite erros ao listar registros, sempre verifique existência antes de exibir
+
+🔐 Controle de Acesso
+Apenas ADMIN/MASTER podem criar, editar ou excluir categorias, gestor apenas seleciona no cadastro de custos
+
+Os campos de custo por campanha só aparecem para GESTOR, ADMIN ou MASTER, não para COLABORADOR
+
+🎨 Frontend
+Adicione campos ao formulário de custo por campanha
+
+O campo categoria deve ser um select dinâmico
+
+Permitir cadastro, edição e inativação de categorias em painel restrito de administração
+
+⚠️ Important:
+Do not make changes to any other part of the system — só mexa nessa feature, nada de efeito colateral em outros módulos, não mexa em workflow de aprovação, timesheet ou painel de clientes.
+
+Teste e trate todas as funções:
+Teste todos CRUDS, tabelas, e cadastros envolvidos
+
+Garanta que todas tabelas realmente listam registros, nada de select vazio ou erro de null
+
+Certifique que todos os registros estão aparecendo nos selects
+
+Teste cadastro, edição, inativação de categorias e custos
+
+Valide formatos (CNPJ, string, campos opcionais)
+
+Explique o que alterou e por quê
+
