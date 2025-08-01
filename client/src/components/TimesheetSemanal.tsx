@@ -88,6 +88,12 @@ export function TimesheetSemanal() {
   const [modalComentarioAberto, setModalComentarioAberto] = useState(false);
   const [novoComentario, setNovoComentario] = useState("");
 
+  // Estados para filtros do histórico mensal
+  const [filtroCliente, setFiltroCliente] = useState("all");
+  const [filtroCampanha, setFiltroCampanha] = useState("all");
+  const [filtroDia, setFiltroDia] = useState("all");
+  const [filtroStatus, setFiltroStatus] = useState("all");
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,6 +113,21 @@ export function TimesheetSemanal() {
       const data = await response.json();
       console.log("Clientes carregados:", data);
       return data;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+  });
+
+  // Buscar todas as campanhas para o filtro
+  const { data: campanhasParaFiltro = [] } = useQuery<Campanha[]>({
+    queryKey: ["/api/campanhas", "filtro"],
+    queryFn: async () => {
+      const response = await fetch("/api/campanhas", { credentials: "include" });
+      if (!response.ok) {
+        console.error("Erro ao buscar campanhas:", response.status);
+        return [];
+      }
+      return response.json();
     },
     staleTime: 5 * 60 * 1000,
     retry: 3,
@@ -926,6 +947,104 @@ export function TimesheetSemanal() {
         </CardHeader>
         
         <CardContent>
+          {/* Filtros */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Cliente</label>
+              <Select value={filtroCliente} onValueChange={(value) => {
+                setFiltroCliente(value);
+                // Reset campaign filter when client changes
+                if (value === "all") {
+                  setFiltroCampanha("all");
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os clientes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os clientes</SelectItem>
+                  {clientes.map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id.toString()}>
+                      {cliente.tradeName || cliente.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Campanha</label>
+              <Select value={filtroCampanha} onValueChange={setFiltroCampanha}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas as campanhas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as campanhas</SelectItem>
+                  {campanhasParaFiltro
+                    .filter((campanha) => 
+                      filtroCliente === "all" || campanha.clientId?.toString() === filtroCliente
+                    )
+                    .map((campanha) => (
+                      <SelectItem key={campanha.id} value={campanha.id.toString()}>
+                        {campanha.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Dia</label>
+              <Select value={filtroDia} onValueChange={setFiltroDia}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os dias" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os dias</SelectItem>
+                  {Array.from(new Set(historicoMensal.map((entrada: any) => entrada.date)))
+                    .sort()
+                    .map((date: string) => (
+                      <SelectItem key={date} value={date}>
+                        {format(new Date(date + 'T00:00:00'), "dd/MM/yyyy")}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="RASCUNHO">Rascunho</SelectItem>
+                  <SelectItem value="SALVO">Salvo</SelectItem>
+                  <SelectItem value="VALIDACAO">Em Validação</SelectItem>
+                  <SelectItem value="APROVADO">Aprovado</SelectItem>
+                  <SelectItem value="REJEITADO">Rejeitado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFiltroCliente("all");
+                  setFiltroCampanha("all");
+                  setFiltroDia("all");
+                  setFiltroStatus("all");
+                }}
+                className="w-full"
+              >
+                Limpar Filtros
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-4">
             {historicoMensal.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -950,6 +1069,21 @@ export function TimesheetSemanal() {
                       </thead>
                       <tbody>
                         {historicoMensal
+                          .filter((entrada: any) => {
+                            const clienteSelecionado = clientes.find(c => c.id.toString() === filtroCliente);
+                            const matchesClient = filtroCliente === "all" || 
+                              entrada.clienteNome?.toLowerCase() === clienteSelecionado?.companyName?.toLowerCase() ||
+                              entrada.clienteNome?.toLowerCase() === clienteSelecionado?.tradeName?.toLowerCase();
+                            
+                            const campanhaSelecionada = campanhasParaFiltro.find(c => c.id.toString() === filtroCampanha);
+                            const matchesCampaign = filtroCampanha === "all" || 
+                              entrada.campanhaNome?.toLowerCase() === campanhaSelecionada?.name?.toLowerCase();
+                            
+                            const matchesDay = filtroDia === "all" || entrada.date === filtroDia;
+                            const matchesStatus = filtroStatus === "all" || entrada.status === filtroStatus;
+                            
+                            return matchesClient && matchesCampaign && matchesDay && matchesStatus;
+                          })
                           .sort((a: EntradaSalva, b: EntradaSalva) => new Date(b.date + 'T00:00:00').getTime() - new Date(a.date + 'T00:00:00').getTime())
                           .map((entrada: EntradaSalva) => (
                           <tr key={entrada.id} className="hover:bg-gray-50 border-b border-gray-200">
@@ -1040,9 +1174,25 @@ export function TimesheetSemanal() {
                   
                 <div className="mt-4 p-4 bg-gray-50 rounded">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Total de horas no mês:</span>
+                    <span className="font-medium">Total de horas {filtroCliente !== "all" || filtroCampanha !== "all" || filtroDia !== "all" || filtroStatus !== "all" ? "(filtradas)" : "no mês"}:</span>
                     <span className="text-lg font-bold">
-                      {historicoMensal.reduce((total: number, entrada: EntradaSalva) => total + parseFloat(entrada.hours), 0).toFixed(2)}h
+                      {historicoMensal
+                        .filter((entrada: any) => {
+                          const clienteSelecionado = clientes.find(c => c.id.toString() === filtroCliente);
+                          const matchesClient = filtroCliente === "all" || 
+                            entrada.clienteNome?.toLowerCase() === clienteSelecionado?.companyName?.toLowerCase() ||
+                            entrada.clienteNome?.toLowerCase() === clienteSelecionado?.tradeName?.toLowerCase();
+                          
+                          const campanhaSelecionada = campanhasParaFiltro.find(c => c.id.toString() === filtroCampanha);
+                          const matchesCampaign = filtroCampanha === "all" || 
+                            entrada.campanhaNome?.toLowerCase() === campanhaSelecionada?.name?.toLowerCase();
+                          
+                          const matchesDay = filtroDia === "all" || entrada.date === filtroDia;
+                          const matchesStatus = filtroStatus === "all" || entrada.status === filtroStatus;
+                          
+                          return matchesClient && matchesCampaign && matchesDay && matchesStatus;
+                        })
+                        .reduce((total: number, entrada: EntradaSalva) => total + parseFloat(entrada.hours), 0).toFixed(2)}h
                     </span>
                   </div>
                 </div>
