@@ -26,6 +26,9 @@ export function Sidebar() {
   const [location, setLocation] = useLocation();
   const validationCount = useValidationCount();
 
+  // Debug temporário
+  console.log("Sidebar - Dados do usuário:", user);
+
   const userInitials = user ? 
     `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() : 
     'U';
@@ -59,7 +62,7 @@ export function Sidebar() {
             <p className="text-sm font-medium text-slate-900">
               {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Usuário'}
             </p>
-            <p className="text-xs text-slate-500">{user?.role || 'Colaborador'}</p>
+            <p className="text-xs text-slate-500">{user?.role || 'Carregando...'}</p>
           </div>
         </div>
       </div>
