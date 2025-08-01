@@ -122,7 +122,7 @@ export function CommentModal({
     setIsSubmitting(true);
 
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
-    const isOwner = timeEntry.userId === currentUserId;
+    const isOwner = Number(timeEntry.userId) === Number(currentUserId);
 
     if (isManager) {
       // Manager adding feedback
@@ -165,7 +165,7 @@ export function CommentModal({
 
   const canAddComment = () => {
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
-    const isOwner = timeEntry.userId === currentUserId;
+    const isOwner = Number(timeEntry.userId) === Number(currentUserId);
     console.log('Debug canAddComment:', {
       currentUserRole,
       currentUserId,
@@ -179,7 +179,7 @@ export function CommentModal({
 
   const getSubmitButtonText = () => {
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
-    const isOwner = timeEntry.userId === currentUserId;
+    const isOwner = Number(timeEntry.userId) === Number(currentUserId);
     
     if (isManager) {
       return "Enviar Feedback";
@@ -246,8 +246,11 @@ export function CommentModal({
             <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
               Debug: canAddComment = {canAddComment().toString()}, 
               role: {currentUserRole}, 
-              userId: {currentUserId}, 
-              entryUserId: {timeEntry.userId}
+              userId: {currentUserId} (type: {typeof currentUserId}), 
+              entryUserId: {timeEntry.userId} (type: {typeof timeEntry.userId}),
+              Number(userId): {Number(currentUserId)},
+              Number(entryUserId): {Number(timeEntry.userId)},
+              isOwner: {(Number(timeEntry.userId) === Number(currentUserId)).toString()}
             </div>
             
             {canAddComment() ? (
@@ -281,7 +284,7 @@ export function CommentModal({
                     {isSubmitting ? "Enviando..." : getSubmitButtonText()}
                   </Button>
                 </div>
-                {timeEntry.userId === currentUserId && (
+                {Number(timeEntry.userId) === Number(currentUserId) && (
                   <p className="text-xs text-muted-foreground">
                     💡 Ao responder, a entrada voltará para status "Rascunho" permitindo edição
                   </p>
