@@ -1160,7 +1160,7 @@ export class DatabaseStorage implements IStorage {
     return newComment;
   }
 
-  async getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: User }>> {
+  async getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: { id: number; name: string; email: string; role: string } }>> {
     const comments = await db
       .select({
         id: timeEntryComments.id,
@@ -1169,19 +1169,25 @@ export class DatabaseStorage implements IStorage {
         comment: timeEntryComments.comment,
         commentType: timeEntryComments.commentType,
         createdAt: timeEntryComments.createdAt,
-        user: {
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          role: users.role,
-        },
+        userFirstName: users.firstName,
+        userLastName: users.lastName,
+        userEmail: users.email,
+        userRole: users.role,
       })
       .from(timeEntryComments)
       .innerJoin(users, eq(timeEntryComments.userId, users.id))
       .where(eq(timeEntryComments.timeEntryId, timeEntryId))
       .orderBy(desc(timeEntryComments.createdAt));
 
-    return comments as Array<TimeEntryComment & { user: User }>;
+    return comments.map(comment => ({
+      ...comment,
+      user: {
+        id: comment.userId,
+        name: `${comment.userFirstName} ${comment.userLastName}`,
+        email: comment.userEmail,
+        role: comment.userRole,
+      }
+    })) as Array<TimeEntryComment & { user: { id: number; name: string; email: string; role: string } }>;
   }
 
   async respondToComment(timeEntryId: number, userId: number, comment: string): Promise<{comment: TimeEntryComment, updatedEntry: TimeEntry}> {
