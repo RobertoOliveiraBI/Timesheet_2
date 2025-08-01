@@ -124,14 +124,14 @@ export function CommentModal({
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
     const isOwner = timeEntry.userId === currentUserId;
 
-    if (isManager && !isOwner) {
+    if (isManager) {
       // Manager adding feedback
       createCommentMutation.mutate({
         comment: newComment,
         commentType: "MANAGER_FEEDBACK"
       });
     } else if (isOwner) {
-      // Collaborator adding comment
+      // Collaborator adding comment/response
       createCommentMutation.mutate({
         comment: newComment,
         commentType: "COLLABORATOR_RESPONSE"
@@ -173,7 +173,7 @@ export function CommentModal({
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
     const isOwner = timeEntry.userId === currentUserId;
     
-    if (isManager && !isOwner) {
+    if (isManager) {
       return "Enviar Feedback";
     } else if (isOwner) {
       return "Adicionar Comentário";
@@ -235,21 +235,30 @@ export function CommentModal({
           {/* Add Comment Form */}
           {canAddComment() && (
             <div className="border-t pt-4 space-y-3">
-              <Textarea
-                placeholder="Digite seu comentário..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="min-h-[100px]"
-                disabled={isSubmitting}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) ? 'Adicionar Feedback' : 'Adicionar Comentário'}
+                </label>
+                <Textarea
+                  placeholder={['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) 
+                    ? "Digite seu feedback para o colaborador..." 
+                    : "Digite seu comentário..."
+                  }
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="min-h-[100px] resize-none"
+                  disabled={isSubmitting}
+                />
+              </div>
               <div className="flex justify-between items-center">
                 <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Cancelar
+                  Fechar
                 </Button>
                 <Button 
                   onClick={handleSubmitComment}
                   disabled={!newComment.trim() || isSubmitting}
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   {isSubmitting ? "Enviando..." : getSubmitButtonText()}
