@@ -92,6 +92,12 @@ export function useAuth() {
     },
   });
 
+  // Debug para capturar o problema
+  if (user && Object.keys(user).length === 0) {
+    console.log("DEBUG useAuth: Usuário retornado como objeto vazio");
+    alert("DEBUG: useAuth retornou objeto vazio - possível problema de cache");
+  }
+
   return {
     user: user ?? null,
     isLoading,

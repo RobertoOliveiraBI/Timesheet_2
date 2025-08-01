@@ -28,6 +28,19 @@ export function Sidebar() {
 
 
 
+  // Debug para entender o problema
+  if (isLoading) {
+    console.log("DEBUG SIDEBAR: Ainda carregando dados do usuário");
+  }
+  if (!user) {
+    console.log("DEBUG SIDEBAR: Usuário é null/undefined");
+    alert("DEBUG: Usuário não carregado no Sidebar");
+  }
+  if (user && !user.role) {
+    console.log("DEBUG SIDEBAR: Usuário existe mas role é undefined:", user);
+    alert(`DEBUG: Usuário ${user.email} sem role definida`);
+  }
+  
   // Se está carregando ou usuário não tem role, mostrar loading
   if (isLoading || !user || !user.role) {
     return (
@@ -41,6 +54,8 @@ export function Sidebar() {
       </div>
     );
   }
+  
+  console.log("DEBUG SIDEBAR: Usuário carregado com sucesso:", user.email, "Role:", user.role);
 
   const userInitials = 
     `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || 'U';
