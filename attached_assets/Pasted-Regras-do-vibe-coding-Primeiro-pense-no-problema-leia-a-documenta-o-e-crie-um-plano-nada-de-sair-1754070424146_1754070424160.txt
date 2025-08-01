@@ -1,0 +1,118 @@
+Regras do vibe coding
+Primeiro, pense no problema, leia a documentação e crie um plano, nada de sair codando sem saber onde quer chegar
+
+O plano deve ter uma lista de tarefas que você pode marcar como concluídas, transparência é obrigação
+
+Antes de começar a trabalhar, entre em contato comigo e eu verificarei o plano, validação é cultura
+
+Em seguida, comece a trabalhar nas tarefas, marcando-as como concluídas conforme você avança, nada de tocar fogo no código e sumir
+
+A cada passo, me dê uma explicação detalhada das alterações que você fez, sem blá-blá-blá
+
+Cada tarefa e alteração de código deve ser a mais simples possível, evitar efeito dominó, cada coisa no seu quadrado
+
+Aviso de segurança: Revise todo o código e veja se segue boas práticas, ninguém quer código vulnerável ou exposto
+
+Certifique-se de que não haja informações confidenciais e vulnerabilidades exploráveis
+
+Explique tudo que fez como se fosse um engenheiro sênior ensinando um estagiário com sede de aprender, didático, direto, nada de enrolar
+
+Contexto
+Hoje, a área do colaborador não exibe corretamente o feed de comentários nos lançamentos, além disso, o histórico dos comentários se perde se o gestor não aprovar novamente, criando aquele limbo informacional que todo mundo odeia, o objetivo é criar um feed real, tipo rede social: todo comentário feito, de qualquer um (gestor ou colaborador), é gravado em ordem cronológica, nunca apagado ou sobrescrito, exibido de forma legível, sempre indicando autor, data e hora, pra dar rastreabilidade e cultura de transparência
+
+Lógica
+Todo comentário novo precisa ser adicionado (append) no campo de comentários do lançamento, nunca atualizado ou sobrescrito, sempre preservando histórico, assim garantimos trilha completa de quem falou o quê e quando, que é o mínimo para controle e compliance decente, principalmente se alguém resolver questionar decisões depois
+
+Ação
+Refazer o módulo de feed de comentários na área do colaborador para:
+
+Permitir inclusão de novos comentários (com autor, data e hora)
+
+Listar todos os comentários anteriores em formato de feed
+
+Garantir que cada novo comentário seja apenas adicionado (nunca apague ou sobrescreva comentários antigos)
+
+Exibir o feed de forma legível, em ordem cronológica, com separação clara entre os comentários
+
+Tratar campos nulos, tipos de dado e edge cases de inserção
+
+Resultados
+Histórico de comentários nunca será perdido
+
+Feed claro e transparente, estilo timeline
+
+Nenhum dado antigo sobrescrito
+
+Usuários vão conseguir confiar que toda troca de informação está registrada
+
+Entradas
+ID do lançamento/comentário
+
+Autor (nome do usuário)
+
+Data e hora do comentário (UTC-3/SP)
+
+Texto do comentário
+
+Histórico já existente, se houver
+
+Formato
+Resposta estruturada, explicando o que foi feito
+
+Código simples, modular e seguro
+
+Mudanças detalhadas em cada etapa
+
+Explicação didática do que foi alterado, como funciona e o porquê
+
+Informações Adicionais
+Sistema precisa tratar timezone de São Paulo (UTC-3)
+
+Não alterar nenhuma outra parte do sistema, foco só no feed de comentários do colaborador
+
+Validar persistência dos dados e funcionamento dos CRUDs, garantir que listagens estão OK
+
+Se o banco não estiver preparado, oriente como criar/ajustar a tabela ou campo de comentários
+
+Trate criação, edição, inativação de registros, incluindo tratamento para valores nulos e tipos de dado errados
+
+Papel
+Se comporte como engenheiro sênior, mentorando outro dev (ou IA) a entregar a solução mais enxuta e resiliente possível, explicando cada escolha de implementação
+
+✅ Requisitos Funcionais:
+O colaborador pode adicionar comentários em lançamentos, todos os comentários ficam registrados e nunca são apagados ou sobrescritos, sempre mostrando autor, data e hora, exibidos em feed cronológico legível
+
+🗃️ Banco de Dados:
+Explique se será necessário criar ou ajustar o campo que armazena comentários para trabalhar como uma lista/histórico (array, JSON ou string appendada)
+
+Explique se é necessário ajustar relacionamentos com tabelas de lançamentos, usuários etc
+
+Siga o padrão já usado no projeto, mas não tenha medo de propor melhoria se o modelo atual for frágil
+
+💾 Persistência:
+Dados de comentários devem ser salvos imediatamente após novo comentário (autosave) ou manualmente com botão "Salvar" que dá feedback visual
+
+Validação básica: nenhum campo obrigatório pode ficar em branco antes de enviar
+
+🔐 Controle de Acesso:
+Somente colaboradores autenticados podem comentar em seus lançamentos
+
+Cada usuário só pode adicionar comentários nos lançamentos aos quais tem permissão
+
+🎨 Frontend:
+Adapte a tela do colaborador para mostrar o feed completo de comentários (estilo rede social/timeline)
+
+Adicione input para novo comentário, autorreconhecendo o usuário logado e preenchendo automaticamente data/hora no padrão UTC-3
+
+Cada comentário deve exibir: autor, data, hora e texto, separados visualmente, ordem cronológica
+
+⚠️ Important:
+Do not make changes to any other part of the system — only work on este módulo, deixe o resto quieto
+
+Teste e trate todas as funções de criação, edição e inativação de registros para lidar com campos nulos e garantir que campos numéricos e string estão corretos
+
+Valide todas as listagens de registros (usuários, categorias, clientes, cadastros em geral), nada de listar vazio ou quebrado
+
+Confirme a existência dos CRUDs necessários para o sistema rodar redondo
+
+Verifique se as tabelas de banco de dados necessárias existem e estão modeladas corretamente

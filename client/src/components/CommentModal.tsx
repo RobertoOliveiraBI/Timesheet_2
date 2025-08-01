@@ -52,22 +52,14 @@ export function CommentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch comments
+  // Fetch comments using the same pattern as other API calls
   const { data: comments = [], isLoading, refetch } = useQuery({
     queryKey: ['time-entry-comments', timeEntry.id],
     queryFn: async () => {
       console.log('Fetching comments for timeEntry:', timeEntry.id);
-      const response = await fetch(`/api/time-entries/${timeEntry.id}/comments`, {
-        credentials: 'include'
-      });
-      console.log('Comments response status:', response.status);
-      if (!response.ok) {
-        console.error('Failed to fetch comments:', response.status, response.statusText);
-        throw new Error('Failed to fetch comments');
-      }
-      const data = await response.json();
-      console.log('Comments data:', data);
-      return data;
+      const response = await apiRequest('GET', `/api/time-entries/${timeEntry.id}/comments`);
+      console.log('Comments data:', response);
+      return response;
     },
     enabled: isOpen && !!timeEntry.id,
   });
