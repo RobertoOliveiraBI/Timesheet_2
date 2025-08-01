@@ -127,8 +127,11 @@ export function CommentModal({
         commentType: "MANAGER_FEEDBACK"
       });
     } else if (isOwner) {
-      // Collaborator responding (changes status to RASCUNHO)
-      respondCommentMutation.mutate(newComment);
+      // Collaborator adding comment
+      createCommentMutation.mutate({
+        comment: newComment,
+        commentType: "COLLABORATOR_RESPONSE"
+      });
     }
   };
 
@@ -169,7 +172,7 @@ export function CommentModal({
     if (isManager && !isOwner) {
       return "Enviar Feedback";
     } else if (isOwner) {
-      return "Responder e Editar";
+      return "Adicionar Comentário";
     }
     return "Enviar";
   };

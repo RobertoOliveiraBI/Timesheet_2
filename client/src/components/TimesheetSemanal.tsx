@@ -1110,17 +1110,6 @@ export function TimesheetSemanal() {
                                             <Send className="h-4 w-4" />
                                           </Button>
                                         )}
-                                        {(entrada.status === 'RASCUNHO' || entrada.status === 'SALVO') && entrada.reviewComment && (
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => abrirModalComentario(entrada)}
-                                            className="h-8 w-8 p-0 text-orange-600 hover:bg-orange-50"
-                                            title="Responder comentário do gestor"
-                                          >
-                                            <MessageCircle className="h-4 w-4" />
-                                          </Button>
-                                        )}
                                       </>
                                     )}
                                     <Button
