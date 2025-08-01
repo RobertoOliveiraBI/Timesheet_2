@@ -42,6 +42,7 @@ const CampaignCostsModule = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedClient, setSelectedClient] = useState("all");
+  const [selectedCampaign, setSelectedCampaign] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("ATIVO");
   const [showForm, setShowForm] = useState(false);
   const [editingCost, setEditingCost] = useState<any>(null);
@@ -96,7 +97,7 @@ const CampaignCostsModule = () => {
     }
   });
 
-  // Query para buscar campanhas do cliente selecionado
+  // Query para buscar campanhas do cliente selecionado (apenas para o formulário)
   const { data: campaigns = [] } = useQuery({
     queryKey: ["/api/campanhas", formData.client_id],
     queryFn: async () => {
@@ -108,6 +109,18 @@ const CampaignCostsModule = () => {
       return response.json();
     },
     enabled: !!formData.client_id && showForm
+  });
+
+  // Query para buscar todas as campanhas (para o filtro)
+  const { data: allCampaigns = [] } = useQuery({
+    queryKey: ["/api/campanhas", "all"],
+    queryFn: async () => {
+      const response = await fetch("/api/campanhas", {
+        credentials: "include"
+      });
+      if (!response.ok) throw new Error("Erro ao carregar campanhas");
+      return response.json();
+    }
   });
 
   // Query para buscar categorias de custo
@@ -283,9 +296,10 @@ const CampaignCostsModule = () => {
     
     const matchesMonth = selectedMonth === "all" || cost.referenceMonth === selectedMonth;
     const matchesClient = selectedClient === "all" || cost.campaign?.clientId?.toString() === selectedClient;
+    const matchesCampaign = selectedCampaign === "all" || cost.campaignId?.toString() === selectedCampaign;
     const matchesStatus = selectedStatus === "all" || cost.status === selectedStatus;
     
-    return matchesSearch && matchesMonth && matchesClient && matchesStatus;
+    return matchesSearch && matchesMonth && matchesClient && matchesCampaign && matchesStatus;
   });
 
   // Calcular indicadores dos custos filtrados
@@ -397,7 +411,7 @@ const CampaignCostsModule = () => {
         </CardHeader>
         <CardContent>
           {/* Filtros */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -422,7 +436,13 @@ const CampaignCostsModule = () => {
               </SelectContent>
             </Select>
 
-            <Select value={selectedClient} onValueChange={setSelectedClient}>
+            <Select value={selectedClient} onValueChange={(value) => {
+              setSelectedClient(value);
+              // Reset campaign filter when client changes
+              if (value === "all") {
+                setSelectedCampaign("all");
+              }
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Filtrar por cliente" />
               </SelectTrigger>
@@ -433,6 +453,24 @@ const CampaignCostsModule = () => {
                     {client.companyName || client.tradeName}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por campanha" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as campanhas</SelectItem>
+                {allCampaigns
+                  .filter((campaign: any) => 
+                    selectedClient === "all" || campaign.clientId?.toString() === selectedClient
+                  )
+                  .map((campaign: any) => (
+                    <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                      {campaign.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
 
@@ -453,6 +491,7 @@ const CampaignCostsModule = () => {
                 setSearchTerm("");
                 setSelectedMonth("all");
                 setSelectedClient("all");
+                setSelectedCampaign("all");
                 setSelectedStatus("ATIVO");
               }}
             >
@@ -481,7 +520,7 @@ const CampaignCostsModule = () => {
               <TableBody>
                 {filteredCosts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8">
+                    <TableCell colSpan={12} className="text-center py-8">
                       <div className="text-muted-foreground">
                         {costs.length === 0 ? "Nenhum custo cadastrado" : "Nenhum custo encontrado com os filtros aplicados"}
                       </div>
