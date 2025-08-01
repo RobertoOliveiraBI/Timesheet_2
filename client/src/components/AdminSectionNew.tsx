@@ -131,20 +131,7 @@ export function AdminSection() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: systemConfig = {}, error: configError, isLoading: configLoading } = useQuery<any>({
-    queryKey: ["/api/config"],
-    queryFn: async () => {
-      const response = await fetch("/api/config", {
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
-      return response.json();
-    },
-    retry: false,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
-  });
+
 
   const { data: campaignTasks = [], isLoading: campaignTasksLoading } = useQuery<any[]>({
     queryKey: ["/api/campaign-tasks"],
@@ -191,15 +178,7 @@ export function AdminSection() {
     refetchOnWindowFocus: false,
   });
 
-  const updateConfigMutation = useMutation({
-    mutationFn: async (config: Record<string, any>) => {
-      await apiRequest("PATCH", "/api/config", config);
-    },
-    onSuccess: () => {
-      toast({ title: "Configurações atualizadas!" });
-      queryClient.invalidateQueries({ queryKey: ["/api/config"] });
-    },
-  });
+
 
   const deleteMutation = useMutation({
     mutationFn: async ({ type, id }: { type: string; id: number }) => {
@@ -292,9 +271,7 @@ export function AdminSection() {
     costCenter.description?.toLowerCase().includes(searchTerms.costCenters.toLowerCase())
   );
 
-  const handleConfigChange = (key: string, value: boolean) => {
-    updateConfigMutation.mutate({ [key]: value });
-  };
+
 
   const quickActions = [
     {
@@ -716,48 +693,7 @@ export function AdminSection() {
           </CardContent>
         </Card>
 
-        {/* System Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Configurações do Sistema</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Fechamento Automático Mensal</p>
-                  <p className="text-sm text-slate-500">Fechar automaticamente os lançamentos mensais</p>
-                </div>
-                <Switch
-                  checked={systemConfig.fechamento_automatico || false}
-                  onCheckedChange={(checked) => handleConfigChange("fechamento_automatico", checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Notificações por Email</p>
-                  <p className="text-sm text-slate-500">Enviar notificações via email</p>
-                </div>
-                <Switch
-                  checked={systemConfig.notificacao_email || false}
-                  onCheckedChange={(checked) => handleConfigChange("notificacao_email", checked)}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Backup Automático Semanal</p>
-                  <p className="text-sm text-slate-500">Realizar backup automático dos dados</p>
-                </div>
-                <Switch
-                  checked={systemConfig.backup_automatico || false}
-                  onCheckedChange={(checked) => handleConfigChange("backup_automatico", checked)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Tarefas de Campanha */}
         <Card>
