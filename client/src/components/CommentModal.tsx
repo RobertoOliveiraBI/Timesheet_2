@@ -52,11 +52,17 @@ export function CommentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch comments using the same pattern as other API calls
+  // Fetch comments using credentials
   const { data: comments = [], isLoading, refetch } = useQuery({
     queryKey: ['time-entry-comments', timeEntry.id],
     queryFn: async () => {
-      return await apiRequest('GET', `/api/time-entries/${timeEntry.id}/comments`);
+      const response = await fetch(`/api/time-entries/${timeEntry.id}/comments`, {
+        credentials: "include"
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch comments');
+      }
+      return response.json();
     },
     enabled: isOpen && !!timeEntry.id,
   });
@@ -67,6 +73,7 @@ export function CommentModal({
       const response = await fetch(`/api/time-entries/${timeEntry.id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Failed to create comment');
@@ -90,6 +97,7 @@ export function CommentModal({
       const response = await fetch(`/api/time-entries/${timeEntry.id}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: "include",
         body: JSON.stringify({ comment }),
       });
       if (!response.ok) throw new Error('Failed to respond to comment');
