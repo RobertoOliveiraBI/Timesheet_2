@@ -14,11 +14,11 @@ export function useAuth() {
   
   const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
-    retry: false,
-    retryOnMount: false,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos
+    retry: 1,
+    retryOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Sempre buscar dados frescos
+    gcTime: 5 * 60 * 1000, // 5 minutos
     queryFn: async () => {
       const res = await fetch("/api/user", {
         credentials: "include",
@@ -30,6 +30,13 @@ export function useAuth() {
         throw new Error(`${res.status}: ${res.statusText}`);
       }
       const userData = await res.json();
+      
+      // Validar se userData tem as propriedades essenciais
+      if (userData && (!userData.id || !userData.role)) {
+        console.error("Dados de usuário inválidos recebidos:", userData);
+        throw new Error("Dados de usuário inválidos");
+      }
+      
       return userData as User;
     },
   });
@@ -92,10 +99,17 @@ export function useAuth() {
     },
   });
 
-  // Debug para capturar o problema
+  // Debug para capturar o problema e corrigir automaticamente
   if (user && Object.keys(user).length === 0) {
-    console.log("DEBUG useAuth: Usuário retornado como objeto vazio");
-    alert("DEBUG: useAuth retornou objeto vazio - possível problema de cache");
+    console.log("DEBUG useAuth: Usuário retornado como objeto vazio - invalidando cache");
+    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    return {
+      user: null,
+      isLoading: true,
+      error,
+      loginMutation,
+      logoutMutation,
+    };
   }
 
   return {

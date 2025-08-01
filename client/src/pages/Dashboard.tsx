@@ -126,13 +126,7 @@ export default function Dashboard() {
   };
 
   const hasPermission = (section: string) => {
-    console.log("DEBUG DASHBOARD: Verificando permissão para seção:", section);
-    console.log("DEBUG DASHBOARD: Usuário atual:", user);
-    console.log("DEBUG DASHBOARD: Role do usuário:", user?.role);
-    
     if (!user?.role) {
-      console.log("DEBUG DASHBOARD: Sem permissão - usuário sem role");
-      alert(`DEBUG: Tentando acessar ${section} mas usuário não tem role definida`);
       return false;
     }
     
@@ -144,14 +138,7 @@ export default function Dashboard() {
       "campaign-costs": ["MASTER", "ADMIN", "GESTOR"],
     };
     
-    const hasAccess = permissions[section]?.includes(user.role) || false;
-    console.log("DEBUG DASHBOARD: Tem acesso?", hasAccess);
-    
-    if (!hasAccess) {
-      alert(`DEBUG: Usuário ${user.email} (${user.role}) tentou acessar ${section} mas não tem permissão`);
-    }
-    
-    return hasAccess;
+    return permissions[section]?.includes(user.role) || false;
   };
 
   const renderContent = () => {
