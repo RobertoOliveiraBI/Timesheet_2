@@ -1,5 +1,6 @@
 import { Switch, Route } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useSimpleAuth";
@@ -9,7 +10,6 @@ import Dashboard from "@/pages/Dashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import NotFound from "@/pages/not-found";
 
-const queryClient = new QueryClient();
 
 function Router() {
   const { user, isLoading } = useAuth();
