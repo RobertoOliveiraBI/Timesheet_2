@@ -56,9 +56,18 @@ export function CommentModal({
   const { data: comments = [], isLoading, refetch } = useQuery({
     queryKey: ['time-entry-comments', timeEntry.id],
     queryFn: async () => {
-      const response = await fetch(`/api/time-entries/${timeEntry.id}/comments`);
-      if (!response.ok) throw new Error('Failed to fetch comments');
-      return response.json();
+      console.log('Fetching comments for timeEntry:', timeEntry.id);
+      const response = await fetch(`/api/time-entries/${timeEntry.id}/comments`, {
+        credentials: 'include'
+      });
+      console.log('Comments response status:', response.status);
+      if (!response.ok) {
+        console.error('Failed to fetch comments:', response.status, response.statusText);
+        throw new Error('Failed to fetch comments');
+      }
+      const data = await response.json();
+      console.log('Comments data:', data);
+      return data;
     },
     enabled: isOpen && !!timeEntry.id,
   });
@@ -162,14 +171,6 @@ export function CommentModal({
   const canAddComment = () => {
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
     const isOwner = timeEntry.userId === currentUserId;
-    console.log('canAddComment debug:', {
-      currentUserRole,
-      currentUserId,
-      timeEntryUserId: timeEntry.userId,
-      isManager,
-      isOwner,
-      canAdd: isManager || isOwner
-    });
     return isManager || isOwner;
   };
 
