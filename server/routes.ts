@@ -14,6 +14,7 @@ import {
   insertUserSchema,
   insertDepartmentSchema,
   insertCostCenterSchema,
+  insertCostCategorySchema,
   insertCampaignCostSchema,
   clients as clientsTable,
   campaigns as campaignsTable,
@@ -22,6 +23,7 @@ import {
   timeEntries,
   departments,
   costCenters,
+  costCategories,
   campaignCosts,
 } from "@shared/schema";
 import { z } from "zod";
@@ -1852,6 +1854,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting cost center:", error);
       res.status(500).json({ message: "Failed to delete cost center" });
+    }
+  });
+
+  // Cost Categories routes  
+  app.get("/api/cost-categories", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Função insuficiente." });
+      }
+
+      const categories = await storage.getCostCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching cost categories:", error);
+      res.status(500).json({ message: "Erro ao buscar categorias de custo" });
+    }
+  });
+
+  app.post("/api/cost-categories", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Apenas administradores podem criar categorias." });
+      }
+
+      const data = insertCostCategorySchema.parse(req.body);
+      const category = await storage.createCostCategory(data);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating cost category:", error);
+      if (error instanceof Error && error.message.includes("duplicate")) {
+        res.status(409).json({ message: "Já existe uma categoria com este nome" });
+      } else {
+        res.status(400).json({ message: "Erro ao criar categoria de custo" });
+      }
+    }
+  });
+
+  app.patch("/api/cost-categories/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Apenas administradores podem editar categorias." });
+      }
+
+      const id = parseInt(req.params.id);
+      const data = insertCostCategorySchema.partial().parse(req.body);
+      const updatedCategory = await storage.updateCostCategory(id, data);
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating cost category:", error);
+      if (error instanceof Error && error.message.includes("duplicate")) {
+        res.status(409).json({ message: "Já existe uma categoria com este nome" });
+      } else {
+        res.status(400).json({ message: "Erro ao atualizar categoria de custo" });
+      }
+    }
+  });
+
+  app.delete("/api/cost-categories/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado. Apenas administradores podem excluir categorias." });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteCostCategory(id);
+      res.json({ message: "Categoria de custo removida com sucesso" });
+    } catch (error) {
+      console.error("Error deleting cost category:", error);
+      res.status(500).json({ message: "Erro ao remover categoria de custo" });
     }
   });
 

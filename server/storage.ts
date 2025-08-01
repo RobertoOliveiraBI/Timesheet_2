@@ -10,6 +10,7 @@ import {
   campaignCosts,
   departments,
   costCenters,
+  costCategories,
   type User,
   type InsertUser,
   type InsertEconomicGroup,
@@ -32,6 +33,8 @@ import {
   type InsertCampaignCost,
   type CampaignCost,
   type CampaignCostWithRelations,
+  type InsertCostCategory,
+  type CostCategory,
   systemConfig,
   type SystemConfig,
   type InsertSystemConfig,
@@ -132,6 +135,12 @@ export interface IStorage {
   createCostCenter(costCenter: InsertCostCenter): Promise<CostCenter>;
   updateCostCenter(id: number, costCenter: Partial<InsertCostCenter>): Promise<CostCenter>;
   deleteCostCenter(id: number): Promise<void>;
+  
+  // Cost Categories
+  getCostCategories(): Promise<CostCategory[]>;
+  createCostCategory(category: InsertCostCategory): Promise<CostCategory>;
+  updateCostCategory(id: number, category: Partial<InsertCostCategory>): Promise<CostCategory>;
+  deleteCostCategory(id: number): Promise<void>;
   
   // Campaign Costs
   getCampaignCosts(filters?: {
@@ -918,6 +927,50 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Cost Categories
+  async getCostCategories(): Promise<CostCategory[]> {
+    return await db.select().from(costCategories).orderBy(asc(costCategories.name));
+  }
+
+  async createCostCategory(categoryData: InsertCostCategory): Promise<CostCategory> {
+    const [category] = await db
+      .insert(costCategories)
+      .values(categoryData)
+      .returning();
+    return category;
+  }
+
+  async updateCostCategory(id: number, categoryData: Partial<InsertCostCategory>): Promise<CostCategory> {
+    const [updatedCategory] = await db
+      .update(costCategories)
+      .set({
+        ...categoryData,
+        updatedAt: new Date(),
+      })
+      .where(eq(costCategories.id, id))
+      .returning();
+    return updatedCategory;
+  }
+
+  async deleteCostCategory(id: number): Promise<void> {
+    // Check if category has campaign costs
+    const costCount = await db
+      .select({ count: sql`count(*)` })
+      .from(campaignCosts)
+      .where(eq(campaignCosts.categoryId, id));
+    
+    if (Number(costCount[0].count) > 0) {
+      // Soft delete by setting isActive to false
+      await db
+        .update(costCategories)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(costCategories.id, id));
+    } else {
+      // Hard delete if no campaign costs assigned
+      await db.delete(costCategories).where(eq(costCategories.id, id));
+    }
+  }
+
   // Campaign Costs
   async getCampaignCosts(filters?: {
     campaignId?: number;
@@ -950,6 +1003,7 @@ export class DatabaseStorage implements IStorage {
         },
         user: true,
         inactivatedByUser: true,
+        category: true,
       },
       orderBy: [desc(campaignCosts.createdAt)],
     });

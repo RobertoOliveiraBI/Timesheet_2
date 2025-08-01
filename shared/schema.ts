@@ -156,6 +156,15 @@ export const timeEntries = pgTable("time_entries", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Cost categories table (categorias de custo)
+export const costCategories = pgTable("cost_categories", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).unique().notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Campaign costs (custos de campanha)
 export const campaignCosts = pgTable("campaign_costs", {
   id: serial("id").primaryKey(),
@@ -166,6 +175,10 @@ export const campaignCosts = pgTable("campaign_costs", {
   referenceMonth: varchar("reference_month", { length: 7 }).notNull(), // YYYY-MM format
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(), // Valor obrigatório
   notes: text("notes"), // Observações opcionais
+  // Novos campos adicionados conforme solicitação
+  cnpjFornecedor: varchar("cnpj_fornecedor", { length: 18 }), // CNPJ do fornecedor (opcional)
+  razaoSocial: varchar("razao_social", { length: 255 }), // Razão social (opcional)
+  categoryId: integer("category_id").references(() => costCategories.id), // Categoria (opcional, mas recomendada)
   status: varchar("status", { enum: ["ATIVO", "INATIVO"] }).default("ATIVO"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -177,6 +190,7 @@ export const campaignCosts = pgTable("campaign_costs", {
   index("idx_campaign_costs_month").on(table.referenceMonth),
   index("idx_campaign_costs_status").on(table.status),
   index("idx_campaign_costs_user").on(table.userId),
+  index("idx_campaign_costs_category").on(table.categoryId),
 ]);
 
 // Relations
@@ -282,6 +296,10 @@ export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
   }),
 }));
 
+export const costCategoriesRelations = relations(costCategories, ({ many }) => ({
+  campaignCosts: many(campaignCosts),
+}));
+
 export const campaignCostsRelations = relations(campaignCosts, ({ one }) => ({
   campaign: one(campaigns, {
     fields: [campaignCosts.campaignId],
@@ -294,6 +312,10 @@ export const campaignCostsRelations = relations(campaignCosts, ({ one }) => ({
   inactivatedByUser: one(users, {
     fields: [campaignCosts.inactivatedBy],
     references: [users.id],
+  }),
+  category: one(costCategories, {
+    fields: [campaignCosts.categoryId],
+    references: [costCategories.id],
   }),
 }));
 
@@ -342,6 +364,14 @@ export const insertCampaignUserSchema = createInsertSchema(campaignUsers).omit({
   createdAt: true,
 });
 
+export const insertCostCategorySchema = createInsertSchema(costCategories).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  name: z.string().min(1, "Nome da categoria é obrigatório").max(255, "Nome muito longo"),
+});
+
 export const insertCampaignCostSchema = createInsertSchema(campaignCosts).omit({
   id: true,
   createdAt: true,
@@ -366,6 +396,15 @@ export const insertCampaignCostSchema = createInsertSchema(campaignCosts).omit({
   ]),
   description: z.string().optional(),
   notes: z.string().optional(),
+  // Novos campos opcionais
+  cnpjFornecedor: z.string().optional().refine((val) => {
+    if (!val || val.trim() === '') return true;
+    // Validação básica de CNPJ (formato apenas)
+    const cnpjRegex = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$|^\d{14}$/;
+    return cnpjRegex.test(val.replace(/\D/g, '').replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5'));
+  }, "CNPJ deve ter formato válido (XX.XXX.XXX/XXXX-XX)"),
+  razaoSocial: z.string().max(255, "Razão social muito longa").optional(),
+  categoryId: z.number().optional(),
 });
 
 // Types
@@ -385,6 +424,8 @@ export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertCampaignUser = z.infer<typeof insertCampaignUserSchema>;
 export type CampaignUser = typeof campaignUsers.$inferSelect;
+export type InsertCostCategory = z.infer<typeof insertCostCategorySchema>;
+export type CostCategory = typeof costCategories.$inferSelect;
 export type InsertCampaignCost = z.infer<typeof insertCampaignCostSchema>;
 export type CampaignCost = typeof campaignCosts.$inferSelect;
 
@@ -452,4 +493,5 @@ export type CampaignCostWithRelations = CampaignCost & {
   campaign: Campaign & { client: Client };
   user: User;
   inactivatedByUser?: User;
+  category?: CostCategory;
 };

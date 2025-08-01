@@ -54,6 +54,9 @@ const CampaignCostsModule = () => {
     description: "",
     reference_month: getCurrentMonth(),
     amount: "",
+    cnpj_fornecedor: "",
+    razao_social: "",
+    category_id: "",
     status: "ATIVO" as "ATIVO" | "INATIVO"
   });
 
@@ -105,6 +108,18 @@ const CampaignCostsModule = () => {
       return response.json();
     },
     enabled: !!formData.client_id && showForm
+  });
+
+  // Query para buscar categorias de custo
+  const { data: costCategories = [] } = useQuery({
+    queryKey: ["/api/cost-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/cost-categories", {
+        credentials: "include"
+      });
+      if (!response.ok) throw new Error("Erro ao carregar categorias");
+      return response.json();
+    }
   });
 
   // Mutação para criar/atualizar custo  
@@ -193,6 +208,9 @@ const CampaignCostsModule = () => {
       description: "",
       reference_month: getCurrentMonth(),
       amount: "",
+      cnpj_fornecedor: "",
+      razao_social: "",
+      category_id: "",
       status: "ATIVO"
     });
     setEditingCost(null);
@@ -208,6 +226,9 @@ const CampaignCostsModule = () => {
       description: cost.description || "",
       reference_month: cost.referenceMonth || "",
       amount: cost.amount ? cost.amount.toString() : "",
+      cnpj_fornecedor: cost.cnpjFornecedor || "",
+      razao_social: cost.razaoSocial || "",
+      category_id: cost.categoryId ? cost.categoryId.toString() : "",
       status: cost.status || "ATIVO"
     });
     setShowForm(true);
@@ -244,6 +265,9 @@ const CampaignCostsModule = () => {
       description: formData.description,
       referenceMonth: formData.reference_month,
       amount,
+      cnpjFornecedor: formData.cnpj_fornecedor,
+      razaoSocial: formData.razao_social,
+      categoryId: formData.category_id ? parseInt(formData.category_id) : null,
       status: formData.status
     });
   };
@@ -447,6 +471,9 @@ const CampaignCostsModule = () => {
                   <TableHead>Descrição</TableHead>
                   <TableHead>Mês</TableHead>
                   <TableHead>Valor</TableHead>
+                  <TableHead>CNPJ Fornecedor</TableHead>
+                  <TableHead>Razão Social</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Autor</TableHead>
                   <TableHead>Ações</TableHead>
@@ -455,7 +482,7 @@ const CampaignCostsModule = () => {
               <TableBody>
                 {filteredCosts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8">
+                    <TableCell colSpan={12} className="text-center py-8">
                       <div className="text-muted-foreground">
                         {costs.length === 0 ? "Nenhum custo cadastrado" : "Nenhum custo encontrado com os filtros aplicados"}
                       </div>
@@ -480,6 +507,15 @@ const CampaignCostsModule = () => {
                       </TableCell>
                       <TableCell className="font-mono">
                         R$ {parseFloat(cost.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell>
+                        {cost.cnpjFornecedor || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {cost.razaoSocial || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {cost.category?.name || "-"}
                       </TableCell>
                       <TableCell>
                         <Badge variant={cost.status === "ATIVO" ? "default" : "secondary"}>
@@ -639,6 +675,53 @@ const CampaignCostsModule = () => {
                   <SelectContent>
                     <SelectItem value="ATIVO">Ativo</SelectItem>
                     <SelectItem value="INATIVO">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Novos campos adicionados: CNPJ, Razão Social e Categoria */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  CNPJ Fornecedor
+                </label>
+                <Input
+                  value={formData.cnpj_fornecedor}
+                  onChange={(e) => setFormData({ ...formData, cnpj_fornecedor: e.target.value })}
+                  placeholder="00.000.000/0000-00"
+                  maxLength={18}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Razão Social
+                </label>
+                <Input
+                  value={formData.razao_social}
+                  onChange={(e) => setFormData({ ...formData, razao_social: e.target.value })}
+                  placeholder="Nome da empresa fornecedora"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Categoria
+                </label>
+                <Select 
+                  value={formData.category_id} 
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {costCategories.map((category: any) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
