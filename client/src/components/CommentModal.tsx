@@ -122,21 +122,12 @@ export function CommentModal({
     setIsSubmitting(true);
 
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
-    const isOwner = Number(timeEntry.userId) === Number(currentUserId);
-
-    if (isManager) {
-      // Manager adding feedback
-      createCommentMutation.mutate({
-        comment: newComment,
-        commentType: "MANAGER_FEEDBACK"
-      });
-    } else if (isOwner) {
-      // Collaborator adding comment/response
-      createCommentMutation.mutate({
-        comment: newComment,
-        commentType: "COLLABORATOR_RESPONSE"
-      });
-    }
+    
+    // Qualquer usuário pode comentar, mas o tipo depende do papel
+    createCommentMutation.mutate({
+      comment: newComment,
+      commentType: isManager ? "MANAGER_FEEDBACK" : "COLLABORATOR_RESPONSE"
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -164,29 +155,13 @@ export function CommentModal({
   };
 
   const canAddComment = () => {
-    const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
-    const isOwner = Number(timeEntry.userId) === Number(currentUserId);
-    console.log('Debug canAddComment:', {
-      currentUserRole,
-      currentUserId,
-      timeEntryUserId: timeEntry.userId,
-      isManager,
-      isOwner,
-      canAdd: isManager || isOwner
-    });
-    return isManager || isOwner;
+    // Todos os usuários autenticados podem adicionar comentários
+    return true;
   };
 
   const getSubmitButtonText = () => {
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
-    const isOwner = Number(timeEntry.userId) === Number(currentUserId);
-    
-    if (isManager) {
-      return "Enviar Feedback";
-    } else if (isOwner) {
-      return "Adicionar Comentário";
-    }
-    return "Enviar";
+    return isManager ? "Enviar Feedback" : "Adicionar Comentário";
   };
 
   return (
@@ -240,60 +215,41 @@ export function CommentModal({
             </div>
           )}
 
-          {/* Add Comment Form - Always visible for debugging */}
+          {/* Add Comment Form */}
           <div className="border-t pt-4 space-y-3">
-            {/* Debug info */}
-            <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
-              Debug: canAddComment = {canAddComment().toString()}, 
-              role: {currentUserRole}, 
-              userId: {currentUserId} (type: {typeof currentUserId}), 
-              entryUserId: {timeEntry.userId} (type: {typeof timeEntry.userId}),
-              Number(userId): {Number(currentUserId)},
-              Number(entryUserId): {Number(timeEntry.userId)},
-              isOwner: {(Number(timeEntry.userId) === Number(currentUserId)).toString()}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) ? 'Adicionar Feedback' : 'Adicionar Comentário'}
+              </label>
+              <Textarea
+                placeholder={['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) 
+                  ? "Digite seu feedback para o colaborador..." 
+                  : "Digite seu comentário..."
+                }
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                className="min-h-[100px] resize-none"
+                disabled={isSubmitting}
+              />
             </div>
-            
-            {canAddComment() ? (
-              <>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    {['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) ? 'Adicionar Feedback' : 'Adicionar Comentário'}
-                  </label>
-                  <Textarea
-                    placeholder={['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) 
-                      ? "Digite seu feedback para o colaborador..." 
-                      : "Digite seu comentário..."
-                    }
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="min-h-[100px] resize-none"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="flex justify-between items-center">
-                  <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Fechar
-                  </Button>
-                  <Button 
-                    onClick={handleSubmitComment}
-                    disabled={!newComment.trim() || isSubmitting}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {isSubmitting ? "Enviando..." : getSubmitButtonText()}
-                  </Button>
-                </div>
-                {Number(timeEntry.userId) === Number(currentUserId) && (
-                  <p className="text-xs text-muted-foreground">
-                    💡 Ao responder, a entrada voltará para status "Rascunho" permitindo edição
-                  </p>
-                )}
-              </>
-            ) : (
-              <div className="text-center py-4 text-red-500">
-                Você não tem permissão para adicionar comentários.
-              </div>
+            <div className="flex justify-between items-center">
+              <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Fechar
+              </Button>
+              <Button 
+                onClick={handleSubmitComment}
+                disabled={!newComment.trim() || isSubmitting}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {isSubmitting ? "Enviando..." : getSubmitButtonText()}
+              </Button>
+            </div>
+            {Number(timeEntry.userId) === Number(currentUserId) && (
+              <p className="text-xs text-muted-foreground">
+                💡 Ao responder, a entrada voltará para status "Rascunho" permitindo edição
+              </p>
             )}
           </div>
         </div>
