@@ -22,16 +22,28 @@ const navigation = [
 ];
 
 export function Sidebar() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
   const validationCount = useValidationCount();
 
-  // Debug temporário
-  console.log("Sidebar - Dados do usuário:", user);
 
-  const userInitials = user ? 
-    `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() : 
-    'U';
+
+  // Se está carregando ou usuário não tem role, mostrar loading
+  if (isLoading || !user || !user.role) {
+    return (
+      <div className="fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 z-50">
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-slate-600">Carregando perfil...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const userInitials = 
+    `${user.firstName?.charAt(0) || ''}${user.lastName?.charAt(0) || ''}`.toUpperCase() || 'U';
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -60,9 +72,9 @@ export function Sidebar() {
           </div>
           <div className="ml-3">
             <p className="text-sm font-medium text-slate-900">
-              {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Usuário'}
+              {`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Usuário'}
             </p>
-            <p className="text-xs text-slate-500">{user?.role || 'Carregando...'}</p>
+            <p className="text-xs text-slate-500">{user.role}</p>
           </div>
         </div>
       </div>
@@ -71,7 +83,7 @@ export function Sidebar() {
       <nav className="mt-6 px-3">
         <div className="space-y-1">
           {navigation
-            .filter((item) => !user?.role || item.roles.includes(user.role))
+            .filter((item) => item.roles.includes(user.role))
             .map((item) => {
               const isActive = location === item.href;
               const Icon = item.icon;

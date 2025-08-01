@@ -12,11 +12,13 @@ type LoginCredentials = {
 export function useAuth() {
   const { toast } = useToast();
   
-  const { data: user, error, isLoading } = useQuery<User | undefined, Error>({
+  const { data: user, error, isLoading } = useQuery<User | null, Error>({
     queryKey: ["/api/user"],
     retry: false,
     retryOnMount: false,
     refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
     queryFn: async () => {
       const res = await fetch("/api/user", {
         credentials: "include",
@@ -27,7 +29,8 @@ export function useAuth() {
       if (!res.ok) {
         throw new Error(`${res.status}: ${res.statusText}`);
       }
-      return await res.json();
+      const userData = await res.json();
+      return userData as User;
     },
   });
 
