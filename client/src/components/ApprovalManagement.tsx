@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +70,9 @@ export function ApprovalManagement() {
   const [editData, setEditData] = useState<any>({});
   const [commentModalEntry, setCommentModalEntry] = useState<TimeEntry | null>(null);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
+  
+  // Estado para controlar quais entradas têm comentários
+  const [entradasComComentarios, setEntradasComComentarios] = useState<Set<number>>(new Set());
   const [currentUser, setCurrentUser] = useState<any>(null);
   
   // Filtros para aba de aprovados - com mês atual como padrão
@@ -88,6 +91,22 @@ export function ApprovalManagement() {
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Função para verificar se uma entrada tem comentários
+  const verificarComentarios = async (entradaId: number) => {
+    try {
+      const response = await fetch(`/api/time-entries/${entradaId}/comments`, {
+        credentials: "include"
+      });
+      if (response.ok) {
+        const comentarios = await response.json();
+        return comentarios.length > 0;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar comentários:', error);
+    }
+    return false;
+  };
 
   // Buscar dados do usuário atual
   const { data: userData } = useQuery({
@@ -189,7 +208,25 @@ export function ApprovalManagement() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Efeito para verificar comentários das entradas em validação
+  useEffect(() => {
+    const verificarComentariosValidacao = async () => {
+      if (!timeEntries || timeEntries.length === 0) return;
+      
+      const novasEntradasComComentarios = new Set<number>();
+      
+      for (const entrada of timeEntries) {
+        const temComentarios = await verificarComentarios(entrada.id);
+        if (temComentarios) {
+          novasEntradasComComentarios.add(entrada.id);
+        }
+      }
+      
+      setEntradasComComentarios(novasEntradasComComentarios);
+    };
 
+    verificarComentariosValidacao();
+  }, [timeEntries]);
 
   // Filtrar entradas com base nos filtros selecionados
   const filteredEntries = useMemo(() => {
@@ -614,10 +651,14 @@ export function ApprovalManagement() {
                               setCommentModalEntry(entry);
                               setCommentModalOpen(true);
                             }}
-                            className="text-blue-600 hover:bg-blue-50"
-                            title="Ver thread de comentários"
+                            className={`hover:bg-blue-50 ${
+                              entradasComComentarios.has(entry.id) 
+                                ? "bg-blue-600 text-white hover:bg-blue-700" 
+                                : "text-blue-600"
+                            }`}
+                            title={entradasComComentarios.has(entry.id) ? "Ver thread de comentários (tem comentários)" : "Ver thread de comentários"}
                           >
-                            <MessageCircle className="w-4 h-4" />
+                            <MessageCircle className={`w-4 h-4 ${entradasComComentarios.has(entry.id) ? "fill-current" : ""}`} />
                           </Button>
                           <Dialog>
                             <DialogTrigger asChild>

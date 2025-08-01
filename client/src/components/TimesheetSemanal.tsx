@@ -87,6 +87,9 @@ export function TimesheetSemanal() {
   // Estados para modal de comentários
   const [entradaParaComentario, setEntradaParaComentario] = useState<any>(null);
   const [modalComentarioAberto, setModalComentarioAberto] = useState(false);
+  
+  // Estado para controlar quais entradas têm comentários
+  const [entradasComComentarios, setEntradasComComentarios] = useState<Set<number>>(new Set());
 
   // Estados para filtros do histórico mensal
   const [filtroCliente, setFiltroCliente] = useState("all");
@@ -106,6 +109,24 @@ export function TimesheetSemanal() {
       return response.json();
     },
   });
+
+  // Função para verificar se uma entrada tem comentários
+  const verificarComentarios = async (entradaId: number) => {
+    try {
+      const response = await fetch(`/api/time-entries/${entradaId}/comments`, {
+        credentials: "include"
+      });
+      if (response.ok) {
+        const comentarios = await response.json();
+        return comentarios.length > 0;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar comentários:', error);
+    }
+    return false;
+  };
+
+
 
   // Calcular dias da semana (segunda a sábado)
   const inicioSemana = startOfWeek(semanaAtual, { weekStartsOn: 1 }); // Segunda-feira
@@ -186,6 +207,26 @@ export function TimesheetSemanal() {
     },
     staleTime: 2 * 60 * 1000,
   });
+
+  // Efeito para verificar comentários das entradas do histórico
+  useEffect(() => {
+    const verificarComentariosDoHistorico = async () => {
+      if (!historicoMensal || historicoMensal.length === 0) return;
+      
+      const novasEntradasComComentarios = new Set<number>();
+      
+      for (const entrada of historicoMensal) {
+        const temComentarios = await verificarComentarios(entrada.id);
+        if (temComentarios) {
+          novasEntradasComComentarios.add(entrada.id);
+        }
+      }
+      
+      setEntradasComComentarios(novasEntradasComComentarios);
+    };
+
+    verificarComentariosDoHistorico();
+  }, [historicoMensal]);
 
   // Processar entradas existentes usando useMemo para evitar loops
   const linhasProcessadas = useMemo(() => {
@@ -1107,10 +1148,14 @@ export function TimesheetSemanal() {
                                       variant="ghost"
                                       size="sm"
                                       onClick={() => abrirModalComentario(entrada)}
-                                      className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
-                                      title="Comentários"
+                                      className={`h-8 w-8 p-0 hover:bg-blue-50 ${
+                                        entradasComComentarios.has(entrada.id) 
+                                          ? "bg-blue-600 text-white hover:bg-blue-700" 
+                                          : "text-blue-600"
+                                      }`}
+                                      title={entradasComComentarios.has(entrada.id) ? "Comentários (tem comentários)" : "Comentários"}
                                     >
-                                      <MessageCircle className="h-4 w-4" />
+                                      <MessageCircle className={`h-4 w-4 ${entradasComComentarios.has(entrada.id) ? "fill-current" : ""}`} />
                                     </Button>
                                     <Button
                                       variant="ghost"
