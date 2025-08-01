@@ -1,0 +1,94 @@
+Contexto
+Você está trabalhando no Tractionfy Timesheet, sistema SaaS para gestão de horas, onde a interação entre colaborador e gestor via comentários é essencial para fechar pendências, sem perder histórico e garantindo rastreabilidade total das conversas, além disso o sistema precisa operar todo no fuso horário de São Paulo (UTC-3), para acabar com confusão de datas e horas nos registros.
+
+Lógica
+Ao responder um comentário, o colaborador sinaliza que tomou providência — logo o sistema deve atualizar o status do lançamento imediatamente para "EM VALIDAÇÃO", sem intervenção manual do gestor, eliminando o risco de pendência perdida na fila.
+
+Os comentários funcionam como histórico vivo, feed de discussão, então não pode existir sobrescrita nem apagamento, todo comentário novo é um append no campo de comentários, mantendo dados de autor, data e hora, na hora de exibir, mostrar tudo como feed organizado do mais antigo pro mais novo, tipo rede social, valorizando a transparência.
+
+O sistema inteiro deve trabalhar e registrar datas e horas sempre no timezone de São Paulo (America/Sao_Paulo, UTC-3), padronizando logs, registros e exibições.
+
+Ação
+Implemente:
+
+Alteração automática do status para “EM VALIDAÇÃO” quando colaborador responde comentário
+
+Histórico de comentários em modo append, com dados de autor, data, hora, nunca sobrescrevendo, nunca apagando, e exibição em feed cronológico
+
+Configuração global de timezone para America/Sao_Paulo em backend e frontend, garantindo que todos registros, logs e visualizações estejam nesse fuso
+
+Resultados
+Workflow fica fluido, gestor não precisa fiscalizar manualmente respostas, colaborador não se perde em comentários soltos, e nunca mais aquela velha dúvida “mas quem escreveu isso e quando?”, tudo rastreável, organizado e no horário do cliente — e sem bug de data trocada por causa de timezone errado.
+
+Entradas
+Lançamentos de horas com comentários vinculados
+
+Perfis de usuário para identificar autor dos comentários
+
+Timezone padrão America/Sao_Paulo
+
+Formato
+Explique cada alteração, por que foi feita, detalhe decisões de estrutura de banco, frontend, backend, e mostre exemplos de uso ou exibição, sempre ensinando o racional por trás de cada escolha
+
+Informações Adicionais
+Se não houver campo adequado para histórico de comentários, crie um array ou tabela relacionada (dependendo do design atual), cada comentário deve conter: id, id_lançamento, autor, texto, data, hora — nunca remova comentários antigos.
+Feed deve aparecer sempre atualizado e ordenado, tipo timeline, em todas telas relevantes.
+
+Papel
+Aja como engenheiro sênior mentorando o dev: explique decisões, mostre boas práticas, justifique cada passo, e incentive perguntas inteligentes sobre possíveis edge cases.
+
+✅ Requisitos Funcionais
+Status muda para “EM VALIDAÇÃO” automaticamente quando colaborador responde comentário
+
+Comentários sempre acumulados (append), nunca sobrescritos nem apagados, sempre com autor, data e hora salvos
+
+Comentários exibidos em ordem cronológica como feed de discussão, destacando autor, data e hora
+
+Todo sistema opera e exibe datas/horas no timezone America/Sao_Paulo (UTC-3)
+
+🗃️ Banco de Dados
+Crie ou adapte tabela/array de comentários para garantir histórico completo, associando comentário ao lançamento por id (ex: time_entry_comments), com campos: id, time_entry_id, autor_id, texto, created_at
+
+Não sobrescrever nem deletar comentários antigos, sempre faça append
+
+Relacione sempre que possível ao usuário autor (FK), garantindo rastreabilidade
+
+💾 Persistência
+Comentário salvo automaticamente (autosave) ao responder, já dispara mudança de status para “EM VALIDAÇÃO”
+
+Nunca atualizar ou sobrescrever registro anterior, sempre inserir novo registro de comentário
+
+Feedback visual claro de que comentário foi registrado e status alterado
+
+Validação de campos obrigatórios (não aceitar comentário vazio)
+
+🔐 Controle de Acesso
+Só o colaborador que recebeu comentário do gestor pode responder e disparar mudança de status
+
+Gestor/admin podem visualizar todo o histórico de comentários, mas não editar comentários do colaborador
+
+Somente o autor pode escrever/responder seu comentário, não alterar nem excluir comentários existentes
+
+🎨 Frontend
+Adicione campo de resposta de comentário que salva e já atualiza status na mesma ação
+
+Exiba histórico de comentários como feed/timeline ordenado, com autor, data, hora
+
+Ajuste componentes de datas para exibir sempre no formato e timezone corretos de São Paulo
+
+⚠️ Important:
+Do not make changes to any other part of the system — só altere o módulo de comentários/time entry, nada de mexer em timesheet, cadastro de clientes, campanhas ou outros workflows.
+
+Checklist de Testes:
+
+Responder comentário muda status imediatamente
+
+Feed de comentários aparece completo, em ordem, com dados do autor e data/hora
+
+Comentários nunca somem, mesmo após nova reprovação/edição
+
+Datas e horas aparecem corretas para São Paulo em todo o sistema (criação, exibição, logs)
+
+Teste funções CRUD dos comentários (inserção, leitura/listagem), sem update/delete
+
+Teste com usuários diferentes para garantir controle de acesso correto

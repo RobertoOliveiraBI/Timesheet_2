@@ -7,6 +7,7 @@ import {
   taskTypes,
   campaignTasks,
   timeEntries,
+  timeEntryComments,
   campaignCosts,
   departments,
   costCenters,
@@ -26,6 +27,8 @@ import {
   type CampaignTaskWithRelations,
   type InsertTimeEntry,
   type TimeEntry,
+  type InsertTimeEntryComment,
+  type TimeEntryComment,
   type InsertCampaignUser,
   type CampaignUser,
   type TimeEntryWithRelations,
@@ -96,6 +99,11 @@ export interface IStorage {
   approveTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry>;
   rejectTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry>;
   returnApprovedToSaved(id: number, reviewedBy: number, comment?: string): Promise<TimeEntry>;
+  
+  // Time Entry Comments - Sistema de comentários com histórico
+  createTimeEntryComment(comment: InsertTimeEntryComment): Promise<TimeEntryComment>;
+  getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: User }>>;
+  respondToComment(timeEntryId: number, userId: number, comment: string): Promise<{comment: TimeEntryComment, updatedEntry: TimeEntry}>;
   
   // Reports
   getUserTimeStats(userId: number, fromDate?: string, toDate?: string): Promise<{
@@ -1137,6 +1145,68 @@ export class DatabaseStorage implements IStorage {
       total: Number(result[0].total) || 0,
       count: Number(result[0].count) || 0,
     };
+  }
+
+  // Time Entry Comments - Sistema de comentários com histórico
+  async createTimeEntryComment(comment: InsertTimeEntryComment): Promise<TimeEntryComment> {
+    const [newComment] = await db
+      .insert(timeEntryComments)
+      .values({
+        ...comment,
+        createdAt: new Date(),
+      })
+      .returning();
+    
+    return newComment;
+  }
+
+  async getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: User }>> {
+    const comments = await db
+      .select({
+        id: timeEntryComments.id,
+        timeEntryId: timeEntryComments.timeEntryId,
+        userId: timeEntryComments.userId,
+        comment: timeEntryComments.comment,
+        commentType: timeEntryComments.commentType,
+        createdAt: timeEntryComments.createdAt,
+        user: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role,
+        },
+      })
+      .from(timeEntryComments)
+      .innerJoin(users, eq(timeEntryComments.userId, users.id))
+      .where(eq(timeEntryComments.timeEntryId, timeEntryId))
+      .orderBy(desc(timeEntryComments.createdAt));
+
+    return comments as Array<TimeEntryComment & { user: User }>;
+  }
+
+  async respondToComment(timeEntryId: number, userId: number, comment: string): Promise<{comment: TimeEntryComment, updatedEntry: TimeEntry}> {
+    const [newComment] = await db
+      .insert(timeEntryComments) 
+      .values({
+        timeEntryId,
+        userId,
+        comment,
+        commentType: "COLLABORATOR_RESPONSE",
+        createdAt: new Date(),
+      })
+      .returning();
+
+    // Atualiza o status do time entry para RASCUNHO permitindo edição
+    const [updatedEntry] = await db
+      .update(timeEntries)
+      .set({
+        status: "RASCUNHO",
+        updatedAt: new Date(),
+      })
+      .where(eq(timeEntries.id, timeEntryId))
+      .returning();
+
+    return { comment: newComment, updatedEntry };
   }
 }
 

@@ -148,13 +148,28 @@ export const timeEntries = pgTable("time_entries", {
   description: text("description"),
   resultCenter: varchar("result_center").default("Todos"), // Centro de resultado
   status: varchar("status", { enum: ["RASCUNHO", "SALVO", "VALIDACAO", "APROVADO", "REJEITADO"] }).default("RASCUNHO"),
-  submittedAt: timestamp("submitted_at"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
   reviewedBy: integer("reviewed_by").references(() => users.id),
-  reviewedAt: timestamp("reviewed_at"),
-  reviewComment: text("review_comment"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  reviewComment: text("review_comment"), // Mantém campo legado por compatibilidade
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
+
+// Time entry comments - Sistema de comentários com histórico completo
+export const timeEntryComments = pgTable("time_entry_comments", {
+  id: serial("id").primaryKey(),
+  timeEntryId: integer("time_entry_id").references(() => timeEntries.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(), // Autor do comentário
+  comment: text("comment").notNull(), // Conteúdo do comentário
+  commentType: varchar("comment_type", { enum: ["MANAGER_FEEDBACK", "COLLABORATOR_RESPONSE"] }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+}, (table) => [
+  // Índices para performance
+  index("idx_time_entry_comments_entry").on(table.timeEntryId),
+  index("idx_time_entry_comments_user").on(table.userId),
+  index("idx_time_entry_comments_created").on(table.createdAt),
+]);
 
 // Cost categories table (categorias de custo)
 export const costCategories = pgTable("cost_categories", {
@@ -204,6 +219,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   reviewedEntries: many(timeEntries),
   campaignAccess: many(campaignUsers),
   campaignCosts: many(campaignCosts),
+  timeEntryComments: many(timeEntryComments),
   department: one(departments, {
     fields: [users.departmentId],
     references: [departments.id],
@@ -277,7 +293,7 @@ export const campaignTasksRelations = relations(campaignTasks, ({ one }) => ({
   }),
 }));
 
-export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
+export const timeEntriesRelations = relations(timeEntries, ({ one, many }) => ({
   user: one(users, {
     fields: [timeEntries.userId],
     references: [users.id],
@@ -292,6 +308,18 @@ export const timeEntriesRelations = relations(timeEntries, ({ one }) => ({
   }),
   reviewer: one(users, {
     fields: [timeEntries.reviewedBy],
+    references: [users.id],
+  }),
+  comments: many(timeEntryComments),
+}));
+
+export const timeEntryCommentsRelations = relations(timeEntryComments, ({ one }) => ({
+  timeEntry: one(timeEntries, {
+    fields: [timeEntryComments.timeEntryId],
+    references: [timeEntries.id],
+  }),
+  user: one(users, {
+    fields: [timeEntryComments.userId],
     references: [users.id],
   }),
 }));
@@ -359,6 +387,14 @@ export const insertTimeEntrySchema = createInsertSchema(timeEntries).omit({
   reviewedAt: true,
 });
 
+export const insertTimeEntryCommentSchema = createInsertSchema(timeEntryComments).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  comment: z.string().min(1, "Comentário não pode estar vazio").max(2000, "Comentário muito longo"),
+  commentType: z.enum(["MANAGER_FEEDBACK", "COLLABORATOR_RESPONSE"]),
+});
+
 export const insertCampaignUserSchema = createInsertSchema(campaignUsers).omit({
   id: true,
   createdAt: true,
@@ -422,6 +458,8 @@ export type InsertCampaignTask = z.infer<typeof insertCampaignTaskSchema>;
 export type CampaignTask = typeof campaignTasks.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
+export type InsertTimeEntryComment = z.infer<typeof insertTimeEntryCommentSchema>;
+export type TimeEntryComment = typeof timeEntryComments.$inferSelect;
 export type InsertCampaignUser = z.infer<typeof insertCampaignUserSchema>;
 export type CampaignUser = typeof campaignUsers.$inferSelect;
 export type InsertCostCategory = z.infer<typeof insertCostCategorySchema>;

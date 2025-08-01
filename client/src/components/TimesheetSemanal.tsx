@@ -16,6 +16,7 @@ import { ptBR } from "date-fns/locale";
 import { getStatusConfig } from "@/lib/statusUtils";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
+import { CommentModal } from "./CommentModal";
 
 interface Cliente {
   id: number;
@@ -83,10 +84,9 @@ export function TimesheetSemanal() {
   const [entradaParaExcluir, setEntradaParaExcluir] = useState<EntradaSalva | null>(null);
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
   
-  // Estados para comentários
-  const [entradaComentando, setEntradaComentando] = useState<EntradaSalva | null>(null);
+  // Estados para modal de comentários
+  const [entradaParaComentario, setEntradaParaComentario] = useState<any>(null);
   const [modalComentarioAberto, setModalComentarioAberto] = useState(false);
-  const [novoComentario, setNovoComentario] = useState("");
 
   // Estados para filtros do histórico mensal
   const [filtroCliente, setFiltroCliente] = useState("all");
@@ -96,6 +96,16 @@ export function TimesheetSemanal() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Buscar dados do usuário atual
+  const { data: currentUser } = useQuery({
+    queryKey: ["/api/user"],
+    queryFn: async () => {
+      const response = await fetch("/api/user");
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+  });
 
   // Calcular dias da semana (segunda a sábado)
   const inicioSemana = startOfWeek(semanaAtual, { weekStartsOn: 1 }); // Segunda-feira
@@ -451,49 +461,15 @@ export function TimesheetSemanal() {
   });
 
   // Funções para comentários
-  const abrirModalComentario = (entrada: EntradaSalva) => {
-    setEntradaComentando(entrada);
-    setNovoComentario("");
+  const abrirModalComentario = (entrada: any) => {
+    setEntradaParaComentario(entrada);
     setModalComentarioAberto(true);
   };
 
   const fecharModalComentario = () => {
-    setEntradaComentando(null);
-    setNovoComentario("");
+    setEntradaParaComentario(null);
     setModalComentarioAberto(false);
   };
-
-  // Mutation para adicionar comentário
-  const adicionarComentario = useMutation({
-    mutationFn: async () => {
-      if (!entradaComentando || !novoComentario.trim()) return;
-      
-      await apiRequest("POST", `/api/time-entries/${entradaComentando.id}/comment`, {
-        comment: novoComentario.trim()
-      });
-    },
-    onSuccess: async () => {
-      toast({
-        title: "Sucesso!",
-        description: "Comentário adicionado com sucesso",
-      });
-      
-      fecharModalComentario();
-      
-      // Atualizar queries
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
-        refetchHistorico()
-      ]);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Erro ao adicionar comentário",
-        variant: "destructive",
-      });
-    },
-  });
 
   // Funções para editar entrada
   const abrirModalEdicao = (entrada: EntradaSalva) => {
@@ -1148,6 +1124,15 @@ export function TimesheetSemanal() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
+                                      onClick={() => abrirModalComentario(entrada)}
+                                      className="h-8 w-8 p-0 text-blue-600 hover:bg-blue-50"
+                                      title="Comentários"
+                                    >
+                                      <MessageCircle className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       onClick={() => abrirModalExclusao(entrada)}
                                       className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
                                       title="Excluir"
@@ -1320,76 +1305,21 @@ export function TimesheetSemanal() {
     </Dialog>
 
     {/* Modal de Comentários */}
-    <Dialog open={modalComentarioAberto} onOpenChange={setModalComentarioAberto}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Responder Comentário do Gestor</DialogTitle>
-        </DialogHeader>
-        
-        {entradaComentando && (
-          <div className="space-y-4">
-            {/* Informações da entrada */}
-            <div className="bg-gray-50 p-4 rounded">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Data:</span>
-                  <p>{format(new Date(entradaComentando.date + 'T00:00:00'), "dd/MM/yyyy")}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Horas:</span>
-                  <p>{entradaComentando.hours}h</p>
-                </div>
-                <div>
-                  <span className="font-medium">Cliente:</span>
-                  <p>{entradaComentando.clienteNome}</p>
-                </div>
-                <div>
-                  <span className="font-medium">Campanha:</span>
-                  <p>{entradaComentando.campanhaNome}</p>
-                </div>
-                <div className="col-span-2">
-                  <span className="font-medium">Tarefa:</span>
-                  <p>{entradaComentando.tarefaNome}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Comentário do gestor */}
-            {entradaComentando.reviewComment && (
-              <div className="border border-yellow-200 bg-yellow-50 p-4 rounded">
-                <Label className="font-medium text-yellow-800">Comentário do Gestor:</Label>
-                <p className="mt-2 text-sm text-yellow-700">{entradaComentando.reviewComment}</p>
-              </div>
-            )}
-            
-            {/* Campo para resposta */}
-            <div>
-              <Label htmlFor="novoComentario">Sua Resposta:</Label>
-              <Textarea
-                id="novoComentario"
-                value={novoComentario}
-                onChange={(e) => setNovoComentario(e.target.value)}
-                placeholder="Digite sua resposta ao comentário do gestor..."
-                rows={4}
-                className="mt-2"
-              />
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={fecharModalComentario}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={() => adicionarComentario.mutate()}
-                disabled={adicionarComentario.isPending || !novoComentario.trim()}
-              >
-                {adicionarComentario.isPending ? "Enviando..." : "Enviar Resposta"}
-              </Button>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+    {entradaParaComentario && currentUser && (
+      <CommentModal
+        isOpen={modalComentarioAberto}
+        onClose={fecharModalComentario}
+        timeEntry={{
+          ...entradaParaComentario,
+          user: {
+            name: `${currentUser.firstName} ${currentUser.lastName}`,
+            role: currentUser.role
+          }
+        }}
+        currentUserId={currentUser.id}
+        currentUserRole={currentUser.role}
+      />
+    )}
   </div>
   );
 }

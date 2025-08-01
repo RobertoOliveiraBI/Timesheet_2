@@ -10,6 +10,7 @@ import {
   insertTaskTypeSchema,
   insertCampaignTaskSchema,
   insertTimeEntrySchema,
+  insertTimeEntryCommentSchema,
   insertCampaignUserSchema,
   insertUserSchema,
   insertDepartmentSchema,
@@ -21,6 +22,7 @@ import {
   campaignTasks as campaignTasksTable,
   campaignUsers as campaignUsersTable,
   timeEntries,
+  timeEntryComments,
   departments,
   costCenters,
   costCategories,
@@ -2080,6 +2082,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching campaign costs totals:", error);
       res.status(500).json({ message: "Erro ao buscar totais de custos" });
+    }
+  });
+
+  // Time Entry Comments - Sistema de comentários com histórico
+  app.get('/api/time-entries/:id/comments', requireAuth, async (req: any, res) => {
+    try {
+      const timeEntryId = parseInt(req.params.id);
+      
+      if (isNaN(timeEntryId)) {
+        return res.status(400).json({ message: "ID do time entry inválido" });
+      }
+
+      // Verifica se o usuário tem acesso ao time entry
+      const timeEntry = await storage.getTimeEntry(timeEntryId);
+      if (!timeEntry) {
+        return res.status(404).json({ message: "Entrada de tempo não encontrada" });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+
+      // Verificar acesso baseado no role
+      const canAccess = timeEntry.userId === user.id || 
+                       ['MASTER', 'ADMIN', 'GESTOR'].includes(user.role);
+      
+      if (!canAccess) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const comments = await storage.getTimeEntryComments(timeEntryId);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching time entry comments:", error);
+      res.status(500).json({ message: "Erro ao buscar comentários" });
+    }
+  });
+
+  app.post('/api/time-entries/:id/comments', requireAuth, async (req: any, res) => {
+    try {
+      const timeEntryId = parseInt(req.params.id);
+      
+      if (isNaN(timeEntryId)) {
+        return res.status(400).json({ message: "ID do time entry inválido" });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+
+      // Valida dados do comentário
+      const data = insertTimeEntryCommentSchema.parse({
+        ...req.body,
+        timeEntryId,
+        userId: user.id,
+      });
+
+      const comment = await storage.createTimeEntryComment(data);
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating time entry comment:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Dados inválidos", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Erro ao criar comentário" });
+    }
+  });
+
+  app.post('/api/time-entries/:id/respond', requireAuth, async (req: any, res) => {
+    try {
+      const timeEntryId = parseInt(req.params.id);
+      const { comment } = req.body;
+      
+      if (isNaN(timeEntryId)) {
+        return res.status(400).json({ message: "ID do time entry inválido" });
+      }
+
+      if (!comment || comment.trim() === '') {
+        return res.status(400).json({ message: "Comentário é obrigatório" });
+      }
+
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(401).json({ message: "Usuário não encontrado" });
+      }
+
+      // Verifica se o usuário tem acesso ao time entry
+      const timeEntry = await storage.getTimeEntry(timeEntryId);
+      if (!timeEntry) {
+        return res.status(404).json({ message: "Entrada de tempo não encontrada" });
+      }
+
+      // Apenas o colaborador dono do time entry pode responder
+      if (timeEntry.userId !== user.id) {
+        return res.status(403).json({ message: "Apenas o colaborador pode responder aos comentários" });
+      }
+
+      const result = await storage.respondToComment(timeEntryId, user.id, comment);
+      res.json(result);
+    } catch (error) {
+      console.error("Error responding to comment:", error);
+      res.status(500).json({ message: "Erro ao responder comentário" });
     }
   });
 
