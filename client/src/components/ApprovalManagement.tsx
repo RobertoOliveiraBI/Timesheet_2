@@ -99,18 +99,13 @@ export function ApprovalManagement() {
   const { data: timeEntries = [], isLoading, error: validationError } = useQuery<TimeEntry[]>({
     queryKey: ["/api/time-entries/validation"],
     queryFn: async () => {
-      console.log("DEBUG: Fazendo fetch para /api/time-entries/validation");
       const response = await fetch("/api/time-entries/validation", {
         credentials: "include"
       });
-      console.log("DEBUG: Response status:", response.status);
       if (!response.ok) {
-        console.error("DEBUG: Erro na API validation:", response.status, response.statusText);
         throw new Error(`API Error: ${response.status}`);
       }
-      const data = await response.json();
-      console.log("DEBUG: Dados recebidos da validation:", data);
-      return data;
+      return response.json();
     },
     staleTime: 2 * 60 * 1000,
     retry: 1,

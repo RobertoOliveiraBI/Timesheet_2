@@ -99,10 +99,12 @@ export function useAuth() {
     },
   });
 
-  // Debug para capturar o problema e corrigir automaticamente
-  if (user && Object.keys(user).length === 0) {
-    console.log("DEBUG useAuth: Usuário retornado como objeto vazio - invalidando cache");
-    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+  // Verificar se dados do usuário são válidos
+  const isValidUser = user && typeof user === 'object' && user.id && user.role;
+  
+  // Se user existe mas é inválido (objeto vazio ou sem propriedades essenciais)
+  if (user && !isValidUser) {
+    // Em vez de invalidar cache, retornar como loading até dados válidos chegarem
     return {
       user: null,
       isLoading: true,
