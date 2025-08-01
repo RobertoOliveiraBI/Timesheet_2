@@ -490,35 +490,35 @@ const CampaignCostsModule = () => {
                 ) : (
                   filteredCosts.map((cost: any) => (
                     <TableRow key={cost.id}>
-                      <TableCell className="font-medium text-[10px]">
+                      <TableCell className="font-medium text-[12px]">
                         {cost.campaign?.client?.companyName || cost.campaign?.client?.tradeName || "N/A"}
                       </TableCell>
-                      <TableCell className="text-[10px]">{cost.campaign?.name || "N/A"}</TableCell>
-                      <TableCell className="text-[10px]">{cost.subject}</TableCell>
-                      <TableCell className="text-[10px]">
+                      <TableCell className="text-[12px]">{cost.campaign?.name || "N/A"}</TableCell>
+                      <TableCell className="text-[12px]">{cost.subject}</TableCell>
+                      <TableCell className="text-[12px]">
                         {cost.referenceMonth ? new Date(cost.referenceMonth + "-01T00:00:00").toLocaleDateString("pt-BR", {
                           month: "long",
                           year: "numeric"
                         }) : "N/A"}
                       </TableCell>
-                      <TableCell className="font-mono text-[10px]">
+                      <TableCell className="font-mono text-[12px]">
                         R$ {parseFloat(cost.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </TableCell>
-                      <TableCell className="text-[10px]">
+                      <TableCell className="text-[12px]">
                         {cost.cnpjFornecedor || "-"}
                       </TableCell>
-                      <TableCell className="text-[10px]">
+                      <TableCell className="text-[12px]">
                         {cost.razaoSocial || "-"}
                       </TableCell>
-                      <TableCell className="text-[10px]">
+                      <TableCell className="text-[12px]">
                         {cost.category?.name || "-"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={cost.status === "ATIVO" ? "default" : "secondary"} className="text-[10px]">
+                        <Badge variant={cost.status === "ATIVO" ? "default" : "secondary"} className="text-[12px]">
                           {cost.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-[10px]">
+                      <TableCell className="text-[12px]">
                         {cost.user?.firstName || cost.user?.email || "N/A"} {cost.user?.lastName || ""}
                       </TableCell>
                       <TableCell>
