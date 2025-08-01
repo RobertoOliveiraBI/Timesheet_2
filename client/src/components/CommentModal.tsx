@@ -166,6 +166,14 @@ export function CommentModal({
   const canAddComment = () => {
     const isManager = ['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole);
     const isOwner = timeEntry.userId === currentUserId;
+    console.log('Debug canAddComment:', {
+      currentUserRole,
+      currentUserId,
+      timeEntryUserId: timeEntry.userId,
+      isManager,
+      isOwner,
+      canAdd: isManager || isOwner
+    });
     return isManager || isOwner;
   };
 
@@ -232,45 +240,59 @@ export function CommentModal({
             </div>
           )}
 
-          {/* Add Comment Form */}
-          {canAddComment() && (
-            <div className="border-t pt-4 space-y-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  {['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) ? 'Adicionar Feedback' : 'Adicionar Comentário'}
-                </label>
-                <Textarea
-                  placeholder={['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) 
-                    ? "Digite seu feedback para o colaborador..." 
-                    : "Digite seu comentário..."
-                  }
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  className="min-h-[100px] resize-none"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="flex justify-between items-center">
-                <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Fechar
-                </Button>
-                <Button 
-                  onClick={handleSubmitComment}
-                  disabled={!newComment.trim() || isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Send className="h-4 w-4 mr-2" />
-                  {isSubmitting ? "Enviando..." : getSubmitButtonText()}
-                </Button>
-              </div>
-              {timeEntry.userId === currentUserId && (
-                <p className="text-xs text-muted-foreground">
-                  💡 Ao responder, a entrada voltará para status "Rascunho" permitindo edição
-                </p>
-              )}
+          {/* Add Comment Form - Always visible for debugging */}
+          <div className="border-t pt-4 space-y-3">
+            {/* Debug info */}
+            <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
+              Debug: canAddComment = {canAddComment().toString()}, 
+              role: {currentUserRole}, 
+              userId: {currentUserId}, 
+              entryUserId: {timeEntry.userId}
             </div>
-          )}
+            
+            {canAddComment() ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) ? 'Adicionar Feedback' : 'Adicionar Comentário'}
+                  </label>
+                  <Textarea
+                    placeholder={['MASTER', 'ADMIN', 'GESTOR'].includes(currentUserRole) 
+                      ? "Digite seu feedback para o colaborador..." 
+                      : "Digite seu comentário..."
+                    }
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="min-h-[100px] resize-none"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="flex justify-between items-center">
+                  <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Fechar
+                  </Button>
+                  <Button 
+                    onClick={handleSubmitComment}
+                    disabled={!newComment.trim() || isSubmitting}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isSubmitting ? "Enviando..." : getSubmitButtonText()}
+                  </Button>
+                </div>
+                {timeEntry.userId === currentUserId && (
+                  <p className="text-xs text-muted-foreground">
+                    💡 Ao responder, a entrada voltará para status "Rascunho" permitindo edição
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-4 text-red-500">
+                Você não tem permissão para adicionar comentários.
+              </div>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
