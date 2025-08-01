@@ -24,8 +24,8 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
     isManager: user?.isManager || false,
     managerId: user?.managerId || null,
     contractType: user?.contractType || "CLT",
-    costCenter: user?.costCenter || "GBrasil",
-    department: user?.department || "Criação",
+    costCenterId: user?.costCenterId || null,
+    departmentId: user?.departmentId || null,
     contractStartDate: user?.contractStartDate || "",
     contractEndDate: user?.contractEndDate || "",
     contractValue: user?.contractValue || "",
@@ -49,6 +49,30 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
         credentials: "include",
       });
       if (!response.ok) throw new Error('Erro ao buscar usuários');
+      return response.json();
+    },
+  });
+
+  // Buscar departamentos dinâmicos
+  const { data: departments = [] } = useQuery<any[]>({
+    queryKey: ["/api/departments"],
+    queryFn: async () => {
+      const response = await fetch("/api/departments", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error('Erro ao buscar departamentos');
+      return response.json();
+    },
+  });
+
+  // Buscar centros de custo dinâmicos
+  const { data: costCenters = [] } = useQuery<any[]>({
+    queryKey: ["/api/cost-centers"],
+    queryFn: async () => {
+      const response = await fetch("/api/cost-centers", {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error('Erro ao buscar centros de custo');
       return response.json();
     },
   });
@@ -223,14 +247,19 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
           </div>
           <div>
             <Label htmlFor="costCenter">Centro de Resultado</Label>
-            <Select value={formData.costCenter} onValueChange={(value) => setFormData({ ...formData, costCenter: value })}>
+            <Select 
+              value={formData.costCenterId?.toString() || ""} 
+              onValueChange={(value) => setFormData({ ...formData, costCenterId: value ? parseInt(value) : null })}
+            >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Selecione o centro de custo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="GBrasil">GBrasil</SelectItem>
-                <SelectItem value="GTodos">GTodos</SelectItem>
-                <SelectItem value="PPR">PPR</SelectItem>
+                {costCenters.map((center) => (
+                  <SelectItem key={center.id} value={center.id.toString()}>
+                    {center.name} ({center.code})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -238,15 +267,19 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
 
         <div>
           <Label htmlFor="department">Departamento</Label>
-          <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
+          <Select 
+            value={formData.departmentId?.toString() || ""} 
+            onValueChange={(value) => setFormData({ ...formData, departmentId: value ? parseInt(value) : null })}
+          >
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue placeholder="Selecione o departamento" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Criação">Criação</SelectItem>
-              <SelectItem value="Conteúdo">Conteúdo</SelectItem>
-              <SelectItem value="Design">Design</SelectItem>
-              <SelectItem value="Mídia">Mídia</SelectItem>
+              {departments.map((dept) => (
+                <SelectItem key={dept.id} value={dept.id.toString()}>
+                  {dept.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
