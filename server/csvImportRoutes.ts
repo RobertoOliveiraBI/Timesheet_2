@@ -8,6 +8,7 @@ import {
   csvImportCostCenterSchema,
   csvImportTaskTypeSchema,
   csvImportCostCategorySchema,
+  csvImportCampaignTaskSchema,
   csvImportCampaignCostSchema,
   ImportResult
 } from '@shared/schema';
@@ -29,6 +30,7 @@ import {
   importCostCenters,
   importTaskTypes,
   importCostCategories,
+  importCampaignTasks,
   importCampaignCosts,
   csvTemplates
 } from './csvImport.js';
@@ -157,6 +159,11 @@ export function setupCsvImportRoutes(app: Express, storage: any) {
   app.post('/api/csv-import/cost-categories', requireAdminAuth, upload.single('csvFile'), async (req: any, res) => {
     await processImport(req, res, csvImportCostCategorySchema, 'costCategories', 
       (validResults: ImportResult[]) => importCostCategories(validResults));
+  });
+
+  app.post('/api/csv-import/campaign-tasks', requireAdminAuth, upload.single('csvFile'), async (req: any, res) => {
+    await processImport(req, res, csvImportCampaignTaskSchema, 'campaignTasks', 
+      (validResults: ImportResult[]) => importCampaignTasks(validResults));
   });
 
   app.post('/api/csv-import/campaign-costs', requireAdminAuth, upload.single('csvFile'), async (req: any, res) => {

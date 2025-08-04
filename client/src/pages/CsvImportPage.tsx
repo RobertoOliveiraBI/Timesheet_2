@@ -68,6 +68,13 @@ const importEntities: ImportEntity[] = [
     icon: FileText,
     category: 'campaigns'
   },
+  {
+    id: 'campaign-tasks',
+    name: 'Tarefas de Campanha',
+    description: 'Importar tarefas específicas para campanhas',
+    icon: Target,
+    category: 'campaigns'
+  },
 
   // Financeiro
   {

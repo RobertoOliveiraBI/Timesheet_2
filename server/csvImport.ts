@@ -10,6 +10,7 @@ import {
   csvImportCostCenterSchema,
   csvImportTaskTypeSchema,
   csvImportCostCategorySchema,
+  csvImportCampaignTaskSchema,
   csvImportCampaignCostSchema,
   ImportResult
 } from '@shared/schema';
@@ -73,6 +74,12 @@ export const csvTemplates = {
     headers: ['name', 'isActive'],
     example: ['Software', 'true'],
     description: 'Importação de categorias de custo'
+  },
+  'campaign-tasks': {
+    filename: 'modelo_tarefas_campanha.csv',
+    headers: ['campaignName', 'taskTypeName', 'customDescription'],
+    example: ['Campanha Digital 2024', 'Desenvolvimento', 'Desenvolvimento de landing page personalizada'],
+    description: 'Importação de tarefas de campanha'
   },
   'campaign-costs': {
     filename: 'modelo_custos_campanha.csv',
@@ -184,6 +191,17 @@ async function findCostCategoryByName(name: string): Promise<number | null> {
     const categories = await storage.getCostCategories();
     const category = categories.find((c: any) => c.name.toLowerCase() === name.toLowerCase());
     return category ? category.id : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function findTaskTypeByName(name: string): Promise<number | null> {
+  if (!name) return null;
+  try {
+    const taskTypes = await storage.getTaskTypes();
+    const taskType = taskTypes.find((t: any) => t.name.toLowerCase() === name.toLowerCase());
+    return taskType ? taskType.id : null;
   } catch (error) {
     return null;
   }
@@ -559,6 +577,64 @@ export async function importCostCategories(validResults: ImportResult[]): Promis
         success: false,
         rowNumber: result.rowNumber,
         errors: [`Erro ao criar categoria de custo: ${error.message}`]
+      });
+    }
+  }
+  
+  return finalResults;
+}
+
+export async function importCampaignTasks(validResults: ImportResult[]): Promise<ImportResult[]> {
+  const finalResults: ImportResult[] = [];
+  
+  for (const result of validResults) {
+    if (!result.success || !result.data) {
+      finalResults.push(result);
+      continue;
+    }
+    
+    try {
+      // Converter descrições em IDs
+      const campaignId = await findCampaignByName(result.data.campaignName);
+      const taskTypeId = await findTaskTypeByName(result.data.taskTypeName);
+      
+      // Validar se a campanha foi encontrada (obrigatório)
+      if (!campaignId) {
+        finalResults.push({
+          success: false,
+          rowNumber: result.rowNumber,
+          errors: [`Campanha "${result.data.campaignName}" não encontrada`]
+        });
+        continue;
+      }
+      
+      // Validar se o tipo de tarefa foi encontrado (obrigatório)
+      if (!taskTypeId) {
+        finalResults.push({
+          success: false,
+          rowNumber: result.rowNumber,
+          errors: [`Tipo de tarefa "${result.data.taskTypeName}" não encontrado`]
+        });
+        continue;
+      }
+      
+      const taskData = {
+        campaignId,
+        taskTypeId,
+        description: result.data.customDescription || '', // description é obrigatório no schema
+        isActive: true,
+      };
+      
+      const campaignTask = await storage.createCampaignTask(taskData);
+      finalResults.push({
+        ...result,
+        data: campaignTask
+      });
+    } catch (error: any) {
+      finalResults.push({
+        success: false,
+        rowNumber: result.rowNumber,
+        errors: [`Erro ao criar tarefa de campanha: ${error.message}`]
       });
     }
   }

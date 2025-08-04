@@ -607,6 +607,12 @@ export const csvImportCostCategorySchema = z.object({
   isActive: z.string().transform(val => val?.toLowerCase() !== 'false' && val !== '0').default("true"),
 });
 
+export const csvImportCampaignTaskSchema = z.object({
+  campaignName: z.string().min(1, "Nome da campanha é obrigatório"),
+  taskTypeName: z.string().min(1, "Nome do tipo de tarefa é obrigatório"),
+  customDescription: z.string().optional(),
+});
+
 export const csvImportCampaignCostSchema = z.object({
   campaignName: z.string().min(1, "Nome da campanha é obrigatório"),
   subject: z.string().min(1, "Assunto é obrigatório"),
@@ -629,6 +635,7 @@ export type CsvImportDepartment = z.infer<typeof csvImportDepartmentSchema>;
 export type CsvImportCostCenter = z.infer<typeof csvImportCostCenterSchema>;
 export type CsvImportTaskType = z.infer<typeof csvImportTaskTypeSchema>;
 export type CsvImportCostCategory = z.infer<typeof csvImportCostCategorySchema>;
+export type CsvImportCampaignTask = z.infer<typeof csvImportCampaignTaskSchema>;
 export type CsvImportCampaignCost = z.infer<typeof csvImportCampaignCostSchema>;
 
 // Tipo para resultado de importação
