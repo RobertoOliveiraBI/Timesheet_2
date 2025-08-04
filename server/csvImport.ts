@@ -32,7 +32,7 @@ export const csvTemplates = {
     ],
     description: 'Importação de usuários do sistema'
   },
-  economicGroups: {
+  'economic-groups': {
     filename: 'modelo_grupos_economicos.csv',
     headers: ['name', 'description'],
     example: ['Grupo Empresarial ABC', 'Holding com empresas do setor de marketing'],
@@ -56,25 +56,25 @@ export const csvTemplates = {
     example: ['Tecnologia', 'Departamento de desenvolvimento de software', 'true'],
     description: 'Importação de departamentos'
   },
-  costCenters: {
+  'cost-centers': {
     filename: 'modelo_centros_custo.csv',
     headers: ['name', 'code', 'description', 'isActive'],
     example: ['Centro Custo TI', 'CC001', 'Centro de custo do departamento de TI', 'true'],
     description: 'Importação de centros de custo'
   },
-  taskTypes: {
+  'task-types': {
     filename: 'modelo_tipos_tarefa.csv',
     headers: ['name', 'description', 'color', 'isBillable', 'isActive'],
     example: ['Desenvolvimento', 'Atividades de programação', '#3b82f6', 'true', 'true'],
     description: 'Importação de tipos de tarefa'
   },
-  costCategories: {
+  'cost-categories': {
     filename: 'modelo_categorias_custo.csv',
     headers: ['name', 'isActive'],
     example: ['Software', 'true'],
     description: 'Importação de categorias de custo'
   },
-  campaignCosts: {
+  'campaign-costs': {
     filename: 'modelo_custos_campanha.csv',
     headers: ['campaignId', 'subject', 'description', 'referenceMonth', 'amount', 'notes', 'cnpjFornecedor', 'razaoSocial', 'categoryId', 'status'],
     example: ['1', 'Licença Software', 'Licença anual do software XYZ', '2024-01', '1200.00', 'Renovação anual', '11.222.333/0001-44', 'Software House Ltda', '1', 'ATIVO'],

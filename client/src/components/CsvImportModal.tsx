@@ -67,12 +67,18 @@ export function CsvImportModal({ isOpen, onClose, selectedEntity, entityName }: 
   const downloadTemplate = async () => {
     try {
       setDownloadingTemplate(true);
+      console.log('Downloading template for:', selectedEntity);
+      
       const response = await fetch(`/api/csv-import/template/${selectedEntity}`, {
         credentials: 'include'
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Erro ao baixar template');
+        const errorData = await response.json().catch(() => null);
+        console.error('Download error:', errorData);
+        throw new Error(errorData?.message || 'Erro ao baixar template');
       }
 
       const blob = await response.blob();
@@ -89,10 +95,11 @@ export function CsvImportModal({ isOpen, onClose, selectedEntity, entityName }: 
         title: "Template baixado",
         description: "Template CSV baixado com sucesso"
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Template download error:', error);
       toast({
         title: "Erro",
-        description: "Erro ao baixar template CSV",
+        description: error.message || "Erro ao baixar template CSV",
         variant: "destructive"
       });
     } finally {

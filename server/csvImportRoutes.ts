@@ -58,9 +58,12 @@ export function setupCsvImportRoutes(app: Express, storage: any) {
   // Rota para baixar template CSV
   app.get('/api/csv-import/template/:entityType', requireAdminAuth, (req: any, res) => {
     try {
-      const entityType = req.params.entityType;
+      const entityType = req.params.entityType as keyof typeof csvTemplates;
+      console.log('Requested entity type:', entityType);
+      console.log('Available templates:', Object.keys(csvTemplates));
       
       if (!csvTemplates[entityType]) {
+        console.error('Template not found for entity:', entityType);
         return res.status(400).json({ message: "Tipo de entidade inválido" });
       }
 
@@ -89,7 +92,7 @@ export function setupCsvImportRoutes(app: Express, storage: any) {
         return res.status(400).json({ message: "Arquivo CSV é obrigatório" });
       }
 
-      const results: ImportResult[] = await processCsvData(req.file.buffer, schema, entityType);
+      const results: ImportResult[] = await processCsvData(req.file.buffer, schema, entityType as keyof typeof csvTemplates);
       const validResults = results.filter((r: ImportResult) => r.success);
       const invalidResults = results.filter((r: ImportResult) => !r.success);
       
