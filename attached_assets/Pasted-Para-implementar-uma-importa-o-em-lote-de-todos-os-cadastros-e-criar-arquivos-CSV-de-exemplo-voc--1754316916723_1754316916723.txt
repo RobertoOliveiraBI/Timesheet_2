@@ -1,0 +1,57 @@
+Para implementar uma importação em lote de todos os cadastros e criar arquivos CSV de exemplo, você pode seguir este esboço:
+
+1. Criar um endpoint para importação em lote
+Aqui está uma implementação do endpoint que recebe um arquivo CSV com os dados e os importa para as respectivas tabelas do seu banco de dados:
+
+// server/routes.ts
+const express = require("express");
+const { Pool } = require("pg");
+const fs = require("fs");
+const csv = require("csv-parser");
+const router = express.Router();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL.replace('.us-east-2', '-pooler.us-east-2'),
+});
+// Endpoint para importar todos os cadastros
+router.post("/api/importar-cadastros", async (req, res) => {
+  const results = [];
+  
+  fs.createReadStream("caminho/para/seu/arquivo.csv")
+    .pipe(csv())
+    .on("data", (data) => results.push(data))
+    .on("end", async () => {
+      try {
+        const client = await pool.connect();
+        await client.query("BEGIN");
+        for (const row of results) {
+          await client.query(
+            "INSERT INTO sua_tabela(nome_coluna1, nome_coluna2) VALUES($1, $2)",
+            [row.coluna1, row.coluna2] // ajuste conforme suas colunas
+          );
+        }
+        await client.query("COMMIT");
+        client.release();
+        
+        res.status(201).json({ message: "Dados importados com sucesso!" });
+      } catch (error) {
+        console.error("Erro durante a importação: ", error);
+        await client.query("ROLLBACK");
+        res.status(500).json({ message: "Erro ao importar dados" });
+      }
+    });
+});
+module.exports = router;
+2. Criar arquivos CSV de exemplo
+Aqui está um exemplo de como você poderia estruturar seus arquivos CSV para os cadastros:
+
+Arquivo: clientes.csv
+companyName,tradeName,cnpj,email,economicGroupId
+Empresa Exemplo,Exemplo,12.345.678/0001-90,contato@exemplo.com,1
+Outra Empresa,Outra,98.765.432/0001-01,contato@outraempresa.com,2
+Arquivo: campanhas.csv
+name,description,contractStartDate,contractEndDate,contractValue,clientId,costCenterId
+Campanha Exemplo,Descrição da Campanha,2023-01-01,2023-12-31,10000.00,1,1
+Outra Campanha,Outra descrição,2023-05-01,2023-11-30,15000.00,2,1
+Resumo
+Crie um endpoint em seu servidor que processe arquivos CSV e importe os dados para o banco de dados.
+Utilize os arquivos CSV de exemplo para testar a funcionalidade.

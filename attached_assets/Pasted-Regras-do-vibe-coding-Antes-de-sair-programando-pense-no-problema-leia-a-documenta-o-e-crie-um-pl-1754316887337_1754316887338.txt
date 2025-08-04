@@ -1,0 +1,136 @@
+Regras do vibe coding
+Antes de sair programando, pense no problema, leia a documentação e crie um plano claro, nada de “só funciona na máquina do dev”
+
+Crie uma lista de tarefas bem definida e checklistável, visibilidade é vida
+
+Antes de começar, me mostre o plano pra eu aprovar, revisão de adulto
+
+Execute tarefa por tarefa, marcando como feito e explicando cada passo, transparência total
+
+Simplifique tudo ao máximo, sem invencionice, cada função focada e modular
+
+Revise código para garantir segurança, evitar vazamento de dado, SQL injection, etc
+
+Explique o que mudou como se estivesse ensinando pra quem nunca viu o código, didático e direto
+
+Não mexa em nenhuma outra parte do sistema, foco total só na importação dos cadastros administrativos
+
+Antes de entregar, valide as listagens e se as tabelas e relacionamentos realmente existem
+
+Contexto
+O sistema administrativo precisa de uma funcionalidade para importar em massa registros das principais tabelas (usuários, campanhas, centros de custo, clientes, etc) usando arquivos CSV, hoje, importar registro a registro é inviável, improdutivo e totalmente retrógrado, precisamos de velocidade sem perder controle, especialmente das chaves internas, evitando duplicidade e lixo de dados
+
+Lógica
+Ao importar um CSV, o sistema deve:
+
+Validar estrutura do arquivo (nomes dos campos, tipo de dado, formato de datas e números)
+
+Garantir que cada registro relacione corretamente as chaves internas (ex: id_usuario, id_campanha, id_cliente, etc), nada de só aceitar nome solto
+
+Tratar erros de importação e retornar feedback amigável, ninguém merece mensagem obscura de stack trace
+
+Oferecer um modelo CSV de cada cadastro com os campos esperados e formatos corretos para o usuário baixar antes de importar, prevenindo erro humano básico
+
+Registrar todo erro de linha (ex: campo obrigatório ausente, formato inválido, chave não encontrada) e permitir baixar relatório dos erros
+
+Ação
+Implementar, em todos os cadastros administrativos do sistema:
+
+Botão “Importar CSV” para uploads em massa
+
+Download do modelo de CSV, exibindo cabeçalhos e exemplos do formato correto
+
+Validação rígida dos campos:
+
+Datas no padrão ISO (YYYY-MM-DD) ou BR (DD/MM/YYYY), definir e informar no modelo
+
+Números sem símbolo, usando ponto para decimal
+
+IDs devem bater com registros já existentes (não aceitar nomes soltos onde precisa id)
+
+Importação deve manter relacionamentos entre tabelas (ex: centro de custo ligado ao cliente correto, campanha ligada ao usuário dono, etc)
+
+Feedback visual mostrando o andamento, sucesso parcial ou total, e relatório dos erros para correção manual
+
+Resultados
+Importação em massa rápida, segura e sem perder integridade dos dados
+
+Controle total das chaves internas preservado
+
+Redução absurda do trabalho operacional manual
+
+Usuário menos dependente de suporte
+
+Entradas
+Arquivo CSV estruturado conforme modelo
+
+Relacionamentos de chaves internas já existentes no banco
+
+Campos obrigatórios e opcionais claramente definidos
+
+Formato
+Resposta com checklist das etapas
+
+Explicação clara de cada ajuste
+
+Código modular
+
+Mensagem de feedback para cada linha processada (erro ou sucesso)
+
+Informações Adicionais
+Evite sobrescrever registros existentes sem confirmação explícita
+
+Ofereça opção de “incluir somente novos”, “atualizar existentes” ou “misturar ambos”, com explicação dos impactos
+
+Caso encontre referência inexistente de chave (id não achado), bloqueie a importação daquele registro e sinalize no relatório
+
+Geração automática do template de importação, atualizado sempre que houver alteração no cadastro
+
+Não permitir upload de arquivos acima de X MB para não matar a performance (definir limite padrão, ex: 5MB)
+
+Papel
+Aja como engenheiro sênior mentorando a implementação, priorizando clareza, robustez e autonomia do usuário administrativo, explique cada decisão, não aceite “gambiarra que só funciona na mão do dev”
+
+✅ Requisitos Funcionais:
+Importação em massa de registros para todas as tabelas administrativas via CSV
+
+Download do modelo CSV atualizado de cada cadastro
+
+Validação e tratamento dos campos obrigatórios, formatos, e relacionamentos internos
+
+Relatório de erros detalhado por linha processada
+
+🗃️ Banco de Dados:
+Confirme se cada cadastro já tem campo de ID próprio e das tabelas relacionadas
+
+Valide existência e integridade dos relacionamentos, nada de aceitar referência fantasma
+
+Não invente novas tabelas sem necessidade, aproveite o modelo já existente
+
+💾 Persistência:
+Cada registro importado deve ser salvo apenas após validação completa
+
+Opção de salvar só após aprovação visual do preview dos dados importados
+
+Erros de validação nunca devem parar a importação das linhas válidas
+
+Registre logs de todas as operações de importação
+
+🔐 Controle de Acesso:
+Apenas usuários administrativos autenticados podem importar registros
+
+Ação de importação deve ser auditada (quem importou, quando, para qual tabela)
+
+🎨 Frontend:
+Adicione botão para importar e outro para baixar modelo
+
+Tela deve mostrar status de cada linha: importada, erro, pendente
+
+Feedback visual amigável, barra de progresso, e opção de baixar relatório de erros
+
+Tooltip em cada campo obrigatório informando formato correto
+
+⚠️ Important:
+Não altere nenhuma outra parte do sistema — só trabalhe no módulo de importação em massa dos cadastros administrativos
+
+Valide todos os CRUDs das tabelas envolvidas, teste edge cases e sempre trate campos nulos, formatos e possíveis duplicidades
