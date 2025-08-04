@@ -543,10 +543,10 @@ export const csvImportUserSchema = z.object({
   role: z.enum(["MASTER", "ADMIN", "GESTOR", "COLABORADOR"]).default("COLABORADOR"),
   position: z.string().optional(),
   isManager: z.string().transform(val => val?.toLowerCase() === 'true' || val === '1').optional(),
-  managerId: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
+  managerEmail: z.string().optional(),
   contractType: z.enum(["CLT", "PJ"]).optional(),
-  costCenterId: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
-  departmentId: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
+  costCenterName: z.string().optional(),
+  departmentName: z.string().optional(),
   contractStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$/, "Data deve estar no formato YYYY-MM-DD ou DD/MM/YYYY").optional(),
   contractEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$/, "Data deve estar no formato YYYY-MM-DD ou DD/MM/YYYY").optional(),
   contractValue: z.string().transform(val => val ? val.replace(',', '.') : undefined).optional(),
@@ -566,7 +566,7 @@ export const csvImportClientSchema = z.object({
   tradeName: z.string().optional(),
   cnpj: z.string().optional(),
   email: z.string().email("Email inválido").optional(),
-  economicGroupId: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
+  economicGroupName: z.string().optional(),
   isActive: z.string().transform(val => val?.toLowerCase() !== 'false' && val !== '0').default("true"),
 });
 
@@ -576,8 +576,8 @@ export const csvImportCampaignSchema = z.object({
   contractStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$/, "Data deve estar no formato YYYY-MM-DD ou DD/MM/YYYY").optional(),
   contractEndDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$|^\d{2}\/\d{2}\/\d{4}$/, "Data deve estar no formato YYYY-MM-DD ou DD/MM/YYYY").optional(),
   contractValue: z.string().transform(val => val ? val.replace(',', '.') : undefined).optional(),
-  clientId: z.string().transform(val => parseInt(val)),
-  costCenterId: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
+  clientName: z.string().min(1, "Nome do cliente é obrigatório"),
+  costCenterName: z.string().optional(),
   isActive: z.string().transform(val => val?.toLowerCase() !== 'false' && val !== '0').default("true"),
 });
 
@@ -608,7 +608,7 @@ export const csvImportCostCategorySchema = z.object({
 });
 
 export const csvImportCampaignCostSchema = z.object({
-  campaignId: z.string().transform(val => parseInt(val)),
+  campaignName: z.string().min(1, "Nome da campanha é obrigatório"),
   subject: z.string().min(1, "Assunto é obrigatório"),
   description: z.string().optional(),
   referenceMonth: z.string().regex(/^\d{4}-\d{2}$/, "Mês de referência deve estar no formato YYYY-MM"),
@@ -616,7 +616,7 @@ export const csvImportCampaignCostSchema = z.object({
   notes: z.string().optional(),
   cnpjFornecedor: z.string().optional(),
   razaoSocial: z.string().optional(),
-  categoryId: z.string().transform(val => val ? parseInt(val) : undefined).optional(),
+  categoryName: z.string().optional(),
   status: z.enum(["ATIVO", "INATIVO"]).default("ATIVO"),
 });
 

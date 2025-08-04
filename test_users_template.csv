@@ -1,0 +1,2 @@
+﻿email,password,firstName,lastName,role,position,isManager,managerEmail,contractType,costCenterName,departmentName,contractStartDate,contractEndDate,contractValue,companyName,cnpj,monthlyCost,isActive
+joao@exemplo.com,123456,João,Silva,COLABORADOR,Desenvolvedor,false,gestor@exemplo.com,CLT,GBrasil,Conteúdo,2024-01-01,2024-12-31,5000.00,,,4500.00,true

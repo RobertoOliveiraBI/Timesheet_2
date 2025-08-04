@@ -62,7 +62,18 @@ The application follows a modern full-stack architecture with clear separation b
 - **Time Entries**: Core timesheet data with approval workflows using campaign_task_id and status field
 - **Task Types**: Configurable activity categories for precise time classification
 
-### Recent Updates (July 31, 2025)
+### Recent Updates (August 4, 2025)
+- **CSV Import System Enhancement**: Converted all templates to use user-friendly descriptions instead of internal IDs
+  - **User Import**: Now uses `managerEmail`, `departmentName`, `costCenterName` instead of numeric IDs
+  - **Client Import**: Now uses `economicGroupName` instead of `economicGroupId`
+  - **Campaign Import**: Now uses `clientName`, `costCenterName` instead of numeric IDs
+  - **Campaign Costs Import**: Now uses `campaignName`, `categoryName` instead of numeric IDs
+  - **Automatic ID Resolution**: System automatically converts descriptions to internal IDs during import
+  - **Enhanced Validation**: Validates that referenced entities exist before import
+  - **Improved Error Messages**: Clear error messages when referenced entities are not found
+  - **Administrator-Friendly**: Templates now use human-readable data that administrators understand
+
+### Previous Updates (July 31, 2025)
 - **Campaign Costs Management Module**: Complete CRUD interface for campaign cost management
   - New dedicated module with columns: cliente, campanha, assunto, descrição, mês, valor, status, autor, ações
   - Role-based access control: only MASTER, ADMIN, and GESTOR can access the module
