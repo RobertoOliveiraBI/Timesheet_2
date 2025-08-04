@@ -39,6 +39,7 @@ function Router() {
           <Route path="/approvals" component={Dashboard} />
           <Route path="/admin" component={Dashboard} />
           <Route path="/campaign-costs" component={Dashboard} />
+          <Route path="/csv-import" component={Dashboard} />
           <Route path="/profile" component={ProfilePage} />
         </>
       )}

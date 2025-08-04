@@ -11,6 +11,7 @@ import { AdminSection } from "@/components/AdminSectionNew";
 import { ApprovalManagement } from "@/components/ApprovalManagement";
 import { ReportsSection } from "@/components/ReportsSection";
 import CampaignCostsModule from "@/components/CampaignCostsModule";
+import { CsvImportPage } from "@/pages/CsvImportPage";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -109,6 +110,7 @@ export default function Dashboard() {
     if (location === "/admin") return "admin";
     if (location === "/reports") return "reports";
     if (location === "/campaign-costs") return "campaign-costs";
+    if (location === "/csv-import") return "csv-import";
     if (location === "/timesheet" || location === "/") return "timesheet";
     return "timesheet";
   };
@@ -121,6 +123,7 @@ export default function Dashboard() {
       approvals: { title: "Área do Gestor", subtitle: "Aprove ou rejeite lançamentos de horas" },
       admin: { title: "Administração", subtitle: "Gerencie usuários e configurações do sistema" },
       "campaign-costs": { title: "Custos de Campanha", subtitle: "Gerencie custos e despesas das campanhas" },
+      "csv-import": { title: "Importação CSV", subtitle: "Importe dados administrativos em lote via CSV" },
     };
     return titles[section] || titles.timesheet;
   };
@@ -136,6 +139,7 @@ export default function Dashboard() {
       approvals: ["MASTER", "ADMIN", "GESTOR"],
       admin: ["MASTER", "ADMIN"],
       "campaign-costs": ["MASTER", "ADMIN", "GESTOR"],
+      "csv-import": ["MASTER", "ADMIN"],
     };
     
     return permissions[section]?.includes(user.role) || false;
@@ -166,6 +170,8 @@ export default function Dashboard() {
         return <ReportsSection />;
       case "campaign-costs":
         return <CampaignCostsModule />;
+      case "csv-import":
+        return <CsvImportPage />;
       default:
         return (
           <div className="space-y-8">

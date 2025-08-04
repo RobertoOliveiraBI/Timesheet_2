@@ -2160,6 +2160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Importação CSV - incluir rotas em arquivo separado
+  const csvImportModule = await import('./csvImportRoutes');
+  csvImportModule.setupCsvImportRoutes(app, storage);
+
   const httpServer = createServer(app);
   return httpServer;
 }
