@@ -1,20 +1,9 @@
 # Tractionfy Timesheet SaaS
 
 ## Overview
-
-This is a comprehensive timesheet management SaaS application designed specifically for marketing agencies managing multiple clients, campaigns, and hybrid teams. The system allows precise tracking of billable and non-billable hours, team management with role-based permissions, and automated monthly closing workflows.
-
-### Current Status (January 2025)
-- ✅ Complete authentication system with email/password
-- ✅ Weekly timesheet form with hierarchical task selection (Client → Campaign → Specific Task)
-- ✅ Status workflow system: RASCUNHO → SALVO → VALIDACAO → APROVADO → REJEITADO
-- ✅ Approval management interface for managers and admins
-- ✅ Administrative panel for complete system management
-- ✅ Real-time data loading with optimized caching
-- ✅ Role-based access control (MASTER, ADMIN, GESTOR, COLABORADOR)
+Tractionfy Timesheet SaaS is a comprehensive timesheet management application for marketing agencies with multiple clients, campaigns, and hybrid teams. It enables precise tracking of billable and non-billable hours, team management with role-based permissions, and automated monthly closing workflows. The system is designed for scalability and maintainability, emphasizing clear separation of concerns, comprehensive type safety, and robust authentication mechanisms suitable for multi-tenant SaaS deployment.
 
 ## User Preferences
-
 Preferred communication style: Simple, everyday language.
 Design library: Using shadcn/ui components for consistent, professional UI
 Authentication: Simple email/password system using PostgreSQL database
@@ -23,14 +12,14 @@ UI/UX: Minimalist design, single header, weekly timesheet table format
 
 ## System Architecture
 
-The application follows a modern full-stack architecture with clear separation between frontend and backend concerns:
+The application follows a modern full-stack architecture with clear separation between frontend and backend concerns.
 
 ### Frontend Architecture
 - **Framework**: React with TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Routing**: Wouter for client-side routing
 - **State Management**: TanStack Query for server state, React hooks for local state
-- **Build Tool**: Vite for development and production builds
+- **Build Tool**: Vite
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
@@ -43,151 +32,32 @@ The application follows a modern full-stack architecture with clear separation b
 - **Schema Management**: Drizzle Kit for migrations and schema generation
 - **Connection**: WebSocket-enabled connection pooling for serverless compatibility
 
-## Key Components
+### Key Components
 
-### Authentication & Authorization
+#### Authentication & Authorization
 - **OIDC Integration**: Uses Replit's OpenID Connect for secure authentication
-- **Role-Based Access Control**: Four distinct user roles with granular permissions:
-  - MASTER: Full system access (super admin)
-  - ADMIN: User management, reporting, and month-end closing
-  - GESTOR: Team management, approvals, and team-specific reporting
-  - COLABORADOR: Personal time entry and viewing
+- **Role-Based Access Control**: Four distinct user roles (MASTER, ADMIN, GESTOR, COLABORADOR) with granular permissions.
 
-### Data Models
-- **Users**: Extended user profiles with contract details, departments, and hierarchical relationships
-- **Economic Groups**: Client organization structure for grouping related companies
-- **Clients**: Individual client entities linked to economic groups
-- **Campaigns**: Project containers with user assignments and task categorization
-- **Campaign Tasks**: Specific pre-configured tasks within campaigns combining task types with custom descriptions
-- **Time Entries**: Core timesheet data with approval workflows using campaign_task_id and status field
-- **Task Types**: Configurable activity categories for precise time classification
+#### Data Models
+The system includes data models for Users, Economic Groups, Clients, Campaigns, Campaign Tasks, Time Entries, and Task Types to support the timesheet management workflow.
 
-### Recent Updates (August 15, 2025)
-- **CSV Import Error Logging Enhancement**: Significantly improved error handling and debugging for CSV imports
-  - **Detailed Error Messages**: Enhanced validation error messages with specific field information and accepted values
-  - **Role Validation Fix**: Made role field case-insensitive (accepts "Colaborador", "COLABORADOR", etc.)
-  - **CSV Parser Configuration**: Properly configured to handle semicolon-separated CSV files (Brazilian standard)
-  - **Data Preprocessing**: Added preprocessing to handle empty values, whitespace, and common CSV formatting issues
-  - **Enhanced Logging**: Added comprehensive logging for CSV processing, validation errors, and database operations
-  - **Improved Error Context**: Error messages now include row numbers, field names, and specific validation failures
-  - **Database Error Translation**: Converted technical database errors into user-friendly messages
-  - **Development Debugging**: Added detailed console logging for troubleshooting import issues
+#### User Interface Components
+- **Dashboard**: Role-specific landing pages with relevant metrics and quick actions.
+- **Timesheet Form**: Intuitive time entry with 15-minute granularity and hierarchical task selection (Client → Campaign → Specific Task).
+- **Approval Interface**: Batch approval/rejection capabilities for managers.
+- **Reporting Suite**: Comprehensive analytics with filtering and export functionality.
+- **Admin Panel**: System configuration and user management tools.
 
-### Previous Updates (August 4, 2025)
-- **CSV Import System Enhancement**: Converted all templates to use user-friendly descriptions instead of internal IDs
-  - **User Import**: Now uses `managerEmail`, `departmentName`, `costCenterName` instead of numeric IDs
-  - **Client Import**: Now uses `economicGroupName` instead of `economicGroupId`
-  - **Campaign Import**: Now uses `clientName`, `costCenterName` instead of numeric IDs
-  - **Campaign Costs Import**: Now uses `campaignName`, `categoryName` instead of numeric IDs
-  - **Automatic ID Resolution**: System automatically converts descriptions to internal IDs during import
-  - **Enhanced Validation**: Validates that referenced entities exist before import
-  - **Improved Error Messages**: Clear error messages when referenced entities are not found
-  - **Administrator-Friendly**: Templates now use human-readable data that administrators understand
-
-### Previous Updates (July 31, 2025)
-- **Campaign Costs Management Module**: Complete CRUD interface for campaign cost management
-  - New dedicated module with columns: cliente, campanha, assunto, descrição, mês, valor, status, autor, ações
-  - Role-based access control: only MASTER, ADMIN, and GESTOR can access the module
-  - Autosave functionality with robust validations and error handling
-  - Dynamic filtering system: search, month, client, campaign, and status filters
-  - Real-time indicators showing filtered data: Total Costs, Active Costs, Total Campaigns
-  - Client-campaign relationship filtering (selecting client filters available campaigns)
-  - Complete audit trail with user tracking and timestamp management
-- **Enhanced Reports Section**: New "Custos de Campanha" tab in reports
-  - Role-based visibility: only appears for MASTER, ADMIN, and GESTOR users
-  - Comprehensive filtering system with 6 filter options
-  - 4 dynamic indicators: Valor Total, Custos Ativos, Campanhas, Clientes
-  - Full CSV export functionality with filtered data
-  - Professional tabular layout with all cost details
-  - Independent data queries to avoid conflicts with other report filters
-
-### Previous Updates (July 30, 2025)
-- **Authentication Fix**: Resolved login issue for user roberto@cappei.com
-  - Updated password hash to enable access with credentials: roberto@cappei.com / 123456
-  - Fixed TypeScript compilation errors in server/storage.ts that were preventing app startup
-  - Resolved database connection issues and type safety problems
-  - Application now runs successfully without errors on port 5000
-
-### Previous Updates (January 28, 2025)
-- **Manager Approval System**: Complete implementation of enhanced approval interface
-  - Comprehensive filtering by collaborator, month, client, and campaign
-  - Individual and batch approval buttons with proper status transitions
-  - Badge counter showing pending validations in manager menu (Área do Gestor)
-  - Specialized endpoint `/api/time-entries/validation` for manager access control
-  - Real-time validation count updates with automatic refresh every 30 seconds
-- **Validation Workflow**: Implemented complete validation submission system in monthly history
-  - Individual line validation: Send single entries from RASCUNHO to VALIDACAO status
-  - Batch validation: Send all draft entries for validation with one click
-  - Status progression: RASCUNHO → VALIDACAO → APROVADO workflow
-- **Reports Overhaul**: Completely reconfigured reports screen with simplified functionality
-  - Simplified filters: Only month/year, client, and campaign selection
-  - Dynamic filtering: Selecting client shows only that client's campaigns
-  - Correct indicators: Total hours, billable hours, non-billable hours, and clients served
-  - Detailed reports table with all filtered entries
-  - CSV-only download functionality (removed Excel and PDF options)
-  - **NEW**: Added status filter to reports for better data segmentation
-  - **NEW**: Colorized status badges across all interfaces for better visual identification
-- **Status Badge System**: Implemented unified status visualization across all interfaces
-  - Color-coded badges: Gray (Rascunho), Blue (Salvo), Yellow (Em Validação), Green (Aprovado)
-  - Applied to Reports, Monthly History, and Manager Approval interfaces
-  - Consistent visual language throughout the application
-  - **CORRECTION**: Removed "REJEITADO" status - rejected entries return to "RASCUNHO" for editing
-- **UI Enhancements**: 
-  - Added send icons and proper button states in monthly history
-  - Batch action button appears only when draft entries exist
-  - Individual send buttons for each RASCUNHO entry
-  - Status indicators for entries in VALIDACAO state
-  - Dashboard indicators expanded to 5 cards including "Horas este mês"
-  - Enhanced reports filters now include 5 columns: Month/Year, Collaborator, Client, Campaign, Status
-  - **NEW**: Added comment modal in reports - displays manager comments with click-to-view functionality
-  - **NEW**: Comment column in reports table with MessageCircle icon for entries with manager feedback
-  - **NEW**: Added collaborator filter to reports for filtering entries by specific users
-  - **NEW**: Implemented pagination for reports when more than 100 entries (100 entries per page)
-  - **NEW**: Pagination controls with page numbers, navigation buttons, and entry count display
-  - **REFINED**: Collaborator filter now shows only users with COLABORADOR role for better usability
-- **Campaign Access Control System**: Implemented complete system for managing collaborator access to campaigns
-  - **NEW**: Campaign access endpoints (`/api/campanhas/:id/colaboradores`) for admin management
-  - **NEW**: Role-based campaign filtering - collaborators see only assigned campaigns, admins see all
-  - **NEW**: CampaignAccessModal component for intuitive permission management in admin interface
-  - **NEW**: Enhanced task visualization with client and campaign information displayed below descriptions
-  - **Automatic Assignment**: When creating new campaigns, access control must be explicitly managed
-  - **Security**: Collaborators cannot access campaigns without explicit permission assignment
-- **Data Integrity**: Fixed editing functionality with proper HTTP methods (PATCH) and cache invalidation
-- **Data Cleanup**: Removed all test time entries from master user Roberto (23 entries deleted)
-- **Date Display Fix**: Corrected timezone issues in date formatting across all components
-  - **FIXED**: Date entries now display correctly (28/07 shows as 28/07, not 27/07)
-  - **IMPROVEMENT**: Added 'T00:00:00' suffix to date strings before parsing to prevent timezone shifting
-  - **CONSISTENCY**: Applied fix to all date formatting functions in timesheet, reports, and approval components
-- **Performance**: Optimized query invalidation and real-time data updates across all modules
-
-### User Interface Components
-- **Dashboard**: Role-specific landing pages with relevant metrics and quick actions
-- **Timesheet Form**: Intuitive time entry with 15-minute granularity and campaign/task selection
-- **Approval Interface**: Batch approval/rejection capabilities for managers
-- **Reporting Suite**: Comprehensive analytics with filtering and export functionality
-- **Admin Panel**: System configuration and user management tools
-
-## Data Flow
-
-### Time Entry Workflow
-1. User selects date, campaign, task type, and duration
-2. System validates permissions and business rules
-3. Entry saved with DRAFT status
-4. Manager reviews and approves/rejects entries
-5. Approved entries become available for billing reports
-
-### Authentication Flow
-1. User accesses application
-2. Redirected to Replit OIDC provider if not authenticated
-3. Upon successful authentication, user profile created/updated
-4. Session established with PostgreSQL-backed storage
-5. Role-based navigation and features presented
-
-### Reporting Data Flow
-1. Raw time entries aggregated by various dimensions
-2. Real-time calculations for billable vs non-billable hours
-3. User and team performance metrics generation
-4. Export capabilities for external billing systems
+#### System Design Choices
+- **Status Workflow**: Implemented a comprehensive status workflow system for time entries: RASCUNHO → SALVO → VALIDACAO → APROVADO → REJEITADO.
+- **CSV Import System**: Supports importing data for users, clients, and campaigns using user-friendly descriptions (e.g., managerEmail, economicGroupName) instead of internal IDs, with automatic ID resolution and enhanced validation.
+- **Campaign Costs Management Module**: Dedicated CRUD interface for managing campaign costs, with role-based access, autosave, dynamic filtering, and audit trails.
+- **Reports Section**: Comprehensive reporting with filtering, dynamic indicators, and CSV export, including a dedicated "Custos de Campanha" tab.
+- **Manager Approval System**: Enhanced approval interface with filtering, individual and batch approval, and real-time validation count updates.
+- **Campaign Access Control System**: Manages collaborator access to campaigns, ensuring security and proper task visualization.
+- **Data Integrity**: Robust handling of data editing with proper HTTP methods and cache invalidation.
+- **Date Display Fix**: Corrected timezone issues in date formatting across all components.
+- **Performance**: Optimized query invalidation and real-time data updates across all modules.
 
 ## External Dependencies
 
@@ -198,37 +68,16 @@ The application follows a modern full-stack architecture with clear separation b
 
 ### UI Framework
 - **shadcn/ui**: Modern component library built on Radix UI and Tailwind CSS
-- **@radix-ui/***: Accessible component primitives (via shadcn/ui)
+- **@radix-ui/***: Accessible component primitives
 - **tailwindcss**: Utility-first CSS framework
 - **@tanstack/react-query**: Server state management and caching
 
 ### Development Tools
 - **vite**: Build tool and development server
-- **typescript**: Type safety and developer experience
+- **typescript**: Type safety
 - **zod**: Runtime type validation and schema definition
 
 ### Authentication
 - **openid-client**: OIDC protocol implementation
 - **express-session**: Session management middleware
 - **connect-pg-simple**: PostgreSQL session store
-
-## Deployment Strategy
-
-### Development Environment
-- **Replit Integration**: Optimized for Replit development environment
-- **Hot Module Replacement**: Vite provides fast development feedback
-- **Database Migrations**: Drizzle Kit handles schema evolution
-
-### Production Considerations
-- **Build Process**: Vite builds optimized static assets, esbuild bundles server code
-- **Database**: PostgreSQL with connection pooling for scalability
-- **Session Storage**: Database-backed sessions for multi-instance deployment
-- **Environment Variables**: Secure configuration management for database URLs and secrets
-
-### Security Measures
-- **OIDC Authentication**: Industry-standard authentication protocol
-- **Role-Based Permissions**: Granular access control throughout the application
-- **SQL Injection Prevention**: Drizzle ORM provides query parameterization
-- **Session Security**: HTTPOnly cookies with secure flags in production
-
-The system is designed for scalability and maintainability, with clear separation of concerns, comprehensive type safety, and robust authentication mechanisms suitable for multi-tenant SaaS deployment.
