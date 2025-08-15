@@ -215,14 +215,34 @@ export async function processCsvData<T>(
 ): Promise<ImportResult[]> {
   return new Promise((resolve, reject) => {
     const results: ImportResult[] = [];
-    const csvStream = Readable.from(fileBuffer.toString());
+    const csvContent = fileBuffer.toString();
+    const csvStream = Readable.from(csvContent);
+    
+    // Log informações sobre o arquivo CSV para debugging
+    const lines = csvContent.split('\n');
+    console.log(`Processando CSV para ${entityType}:`, {
+      totalLines: lines.length,
+      headers: lines[0]?.split(';') || [],
+      sampleData: lines[1]?.split(';') || [],
+      expectedHeaders: csvTemplates[entityType]?.headers || []
+    });
     
     csvStream
-      .pipe(csv())
+      .pipe(csv({ separator: ';' })) // Configurar para usar ponto e vírgula como separador
       .on('data', (row: any) => {
         const rowNumber = results.length + 2; // +2 porque começa em 1 e tem o cabeçalho
         
         try {
+          // Preprocessar dados para remover espaços em branco e normalizar valores vazios
+          Object.keys(row).forEach(key => {
+            if (typeof row[key] === 'string') {
+              row[key] = row[key].trim();
+              // Converter strings vazias em undefined para campos opcionais
+              if (row[key] === '' || row[key] === 'undefined' || row[key] === 'null') {
+                row[key] = undefined;
+              }
+            }
+          });
           // Converte datas se necessário
           if (row.contractStartDate) {
             row.contractStartDate = convertDateFormat(row.contractStartDate);
@@ -240,7 +260,41 @@ export async function processCsvData<T>(
             data: validatedData
           });
         } catch (error: any) {
-          const errors = error.errors ? error.errors.map((e: any) => `${e.path.join('.')}: ${e.message}`) : [error.message];
+          let errors: string[] = [];
+          
+          if (error.errors && Array.isArray(error.errors)) {
+            // Erros de validação Zod
+            errors = error.errors.map((e: any) => {
+              const fieldName = e.path.join('.');
+              let message = e.message;
+              
+              // Personalizar mensagens para campos específicos
+              if (fieldName === 'role' && e.code === 'invalid_enum_value') {
+                message = `Valor "${e.received}" inválido para role. Valores aceitos: MASTER, ADMIN, GESTOR, COLABORADOR`;
+              } else if (fieldName === 'contractType' && e.code === 'invalid_enum_value') {
+                message = `Valor "${e.received}" inválido para contractType. Valores aceitos: CLT, PJ`;
+              } else if (fieldName === 'email' && e.code === 'invalid_string') {
+                message = `Email "${row.email || 'vazio'}" é inválido ou está vazio`;
+              } else if (fieldName === 'password') {
+                message = `Senha deve ter pelo menos 6 caracteres. Valor atual: ${row.password ? `"${row.password}" (${row.password.length} caracteres)` : 'vazio'}`;
+              } else if (fieldName === 'contractStartDate' || fieldName === 'contractEndDate') {
+                message = `Data "${e.received}" inválida. Use formato YYYY-MM-DD (ex: 2024-01-15) ou DD/MM/YYYY (ex: 15/01/2024)`;
+              }
+              
+              return `Campo "${fieldName}": ${message}`;
+            });
+          } else {
+            errors = [error.message || 'Erro desconhecido na validação'];
+          }
+          
+          // Adicionar informações sobre os dados da linha para facilitar debugging
+          const rowData = JSON.stringify(row, null, 2);
+          console.error(`Erro na validação da linha ${rowNumber}:`, {
+            errors,
+            rowData,
+            entityType
+          });
+          
           results.push({
             success: false,
             rowNumber,
@@ -326,10 +380,29 @@ export async function importUsers(validResults: ImportResult[], userId: number):
         data: user
       });
     } catch (error: any) {
+      let errorMessage = `Erro ao criar usuário: ${error.message}`;
+      
+      // Melhorar mensagens de erro específicas
+      if (error.message && error.message.includes('unique constraint')) {
+        if (error.message.includes('email')) {
+          errorMessage = `Email "${result.data.email}" já está em uso por outro usuário`;
+        } else {
+          errorMessage = `Dados duplicados detectados - verifique se o usuário já existe`;
+        }
+      } else if (error.message && error.message.includes('foreign key constraint')) {
+        errorMessage = `Erro de relacionamento - verifique se departamento, centro de custo ou gestor existem`;
+      }
+      
+      console.error(`Erro na criação do usuário (linha ${result.rowNumber}):`, {
+        error: error.message,
+        userData: result.data,
+        stack: error.stack
+      });
+      
       finalResults.push({
         success: false,
         rowNumber: result.rowNumber,
-        errors: [`Erro ao criar usuário: ${error.message}`]
+        errors: [errorMessage]
       });
     }
   }

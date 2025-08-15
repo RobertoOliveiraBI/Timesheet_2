@@ -62,7 +62,18 @@ The application follows a modern full-stack architecture with clear separation b
 - **Time Entries**: Core timesheet data with approval workflows using campaign_task_id and status field
 - **Task Types**: Configurable activity categories for precise time classification
 
-### Recent Updates (August 4, 2025)
+### Recent Updates (August 15, 2025)
+- **CSV Import Error Logging Enhancement**: Significantly improved error handling and debugging for CSV imports
+  - **Detailed Error Messages**: Enhanced validation error messages with specific field information and accepted values
+  - **Role Validation Fix**: Made role field case-insensitive (accepts "Colaborador", "COLABORADOR", etc.)
+  - **CSV Parser Configuration**: Properly configured to handle semicolon-separated CSV files (Brazilian standard)
+  - **Data Preprocessing**: Added preprocessing to handle empty values, whitespace, and common CSV formatting issues
+  - **Enhanced Logging**: Added comprehensive logging for CSV processing, validation errors, and database operations
+  - **Improved Error Context**: Error messages now include row numbers, field names, and specific validation failures
+  - **Database Error Translation**: Converted technical database errors into user-friendly messages
+  - **Development Debugging**: Added detailed console logging for troubleshooting import issues
+
+### Previous Updates (August 4, 2025)
 - **CSV Import System Enhancement**: Converted all templates to use user-friendly descriptions instead of internal IDs
   - **User Import**: Now uses `managerEmail`, `departmentName`, `costCenterName` instead of numeric IDs
   - **Client Import**: Now uses `economicGroupName` instead of `economicGroupId`

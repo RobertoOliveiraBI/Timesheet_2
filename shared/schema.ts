@@ -536,11 +536,17 @@ export type CampaignCostWithRelations = CampaignCost & {
 
 // CSV Import Schemas - Schemas específicos para importação em massa
 export const csvImportUserSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().min(1, "Email é obrigatório").email("Formato de email inválido"),
   password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   firstName: z.string().min(1, "Nome é obrigatório"),
   lastName: z.string().optional(),
-  role: z.enum(["MASTER", "ADMIN", "GESTOR", "COLABORADOR"]).default("COLABORADOR"),
+  role: z.string().transform(val => {
+    const normalized = val?.toUpperCase().trim();
+    if (["MASTER", "ADMIN", "GESTOR", "COLABORADOR"].includes(normalized)) {
+      return normalized as "MASTER" | "ADMIN" | "GESTOR" | "COLABORADOR";
+    }
+    throw new Error(`Role "${val}" inválido. Valores aceitos: MASTER, ADMIN, GESTOR, COLABORADOR`);
+  }).default("COLABORADOR"),
   position: z.string().optional(),
   isManager: z.string().transform(val => val?.toLowerCase() === 'true' || val === '1').optional(),
   managerEmail: z.string().optional(),

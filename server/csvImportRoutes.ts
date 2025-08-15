@@ -115,9 +115,33 @@ export function setupCsvImportRoutes(app: Express, storage: any) {
         summary: { success: successCount, errors: errorCount, total: allResults.length },
         results: allResults
       });
-    } catch (error) {
-      console.error(`Error importing ${entityType}:`, error);
-      res.status(500).json({ message: "Erro interno durante a importação" });
+    } catch (error: any) {
+      console.error(`Error importing ${entityType}:`, {
+        error: error.message,
+        stack: error.stack,
+        entityType,
+        fileInfo: req.file ? {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        } : 'No file'
+      });
+      
+      let errorMessage = "Erro interno durante a importação";
+      if (error.message) {
+        if (error.message.includes('CSV')) {
+          errorMessage = `Erro no processamento do arquivo CSV: ${error.message}`;
+        } else if (error.message.includes('database') || error.message.includes('constraint')) {
+          errorMessage = `Erro no banco de dados: ${error.message}`;
+        } else {
+          errorMessage = `Erro na importação: ${error.message}`;
+        }
+      }
+      
+      res.status(500).json({ 
+        message: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   }
 
