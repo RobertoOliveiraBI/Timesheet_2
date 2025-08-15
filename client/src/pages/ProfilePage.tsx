@@ -64,9 +64,9 @@ export default function ProfilePage() {
       firstName: user?.firstName || "",
       lastName: user?.lastName || "",
       position: user?.position || "",
-      department: user?.department || "",
+      department: user?.department?.name || "",
       contractType: user?.contractType || "",
-      costCenter: user?.costCenter || "",
+      costCenter: user?.costCenter?.name || "",
       companyName: user?.companyName || "",
       cnpj: user?.cnpj || "",
     });
@@ -158,7 +158,7 @@ export default function ProfilePage() {
               {user.department && (
                 <div className="flex items-center gap-3 text-sm">
                   <Building className="w-4 h-4 text-slate-500" />
-                  <span className="text-slate-700">{user.department}</span>
+                  <span className="text-slate-700">{user.department.name}</span>
                 </div>
               )}
               {user.contractStartDate && (
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                     </Select>
                   ) : (
                     <div className="p-2 bg-slate-50 rounded-md">
-                      {user.department || "Não informado"}
+                      {user.department?.name || "Não informado"}
                     </div>
                   )}
                 </div>
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                     </Select>
                   ) : (
                     <div className="p-2 bg-slate-50 rounded-md">
-                      {user.costCenter || "Não informado"}
+                      {user.costCenter?.name || "Não informado"}
                     </div>
                   )}
                 </div>

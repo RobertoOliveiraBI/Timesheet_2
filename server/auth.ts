@@ -188,14 +188,27 @@ export function setupAuth(app: Express) {
   });
 
   // Get current user
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: "Not authenticated" });
     }
     
-    // Return user data without sensitive information
-    const { password, ...userWithoutPassword } = req.user as any;
-    res.json(userWithoutPassword);
+    try {
+      // Get enriched user data with relations
+      const enrichedUser = await storage.getUser((req.user as any).id);
+      if (!enrichedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Return user data without sensitive information but with enriched relations
+      const { password, ...userWithoutPassword } = enrichedUser as any;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error fetching enriched user data:", error);
+      // Fallback to basic user data
+      const { password, ...userWithoutPassword } = req.user as any;
+      res.json(userWithoutPassword);
+    }
   });
 }
 
