@@ -1190,7 +1190,7 @@ export class DatabaseStorage implements IStorage {
     return newComment;
   }
 
-  async getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: { id: number; name: string; email: string; role: string } }>> {
+  async getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: User }>> {
     const comments = await db
       .select({
         id: timeEntryComments.id,
@@ -1199,25 +1199,45 @@ export class DatabaseStorage implements IStorage {
         comment: timeEntryComments.comment,
         commentType: timeEntryComments.commentType,
         createdAt: timeEntryComments.createdAt,
-        userFirstName: users.firstName,
-        userLastName: users.lastName,
-        userEmail: users.email,
-        userRole: users.role,
+        user: {
+          id: users.id,
+          email: users.email,
+          password: users.password,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+          role: users.role,
+          position: users.position,
+          isManager: users.isManager,
+          managerId: users.managerId,
+          contractType: users.contractType,
+          costCenterId: users.costCenterId,
+          departmentId: users.departmentId,
+          contractStartDate: users.contractStartDate,
+          contractEndDate: users.contractEndDate,
+          contractValue: users.contractValue,
+          companyName: users.companyName,
+          cnpj: users.cnpj,
+          monthlyCost: users.monthlyCost,
+          isActive: users.isActive,
+          createdAt: users.createdAt,
+          updatedAt: users.updatedAt,
+        }
       })
       .from(timeEntryComments)
       .innerJoin(users, eq(timeEntryComments.userId, users.id))
       .where(eq(timeEntryComments.timeEntryId, timeEntryId))
-      .orderBy(asc(timeEntryComments.createdAt)); // Ordem cronológica: mais antigos primeiro
+      .orderBy(asc(timeEntryComments.createdAt));
 
     return comments.map(comment => ({
-      ...comment,
-      user: {
-        id: comment.userId,
-        name: `${comment.userFirstName} ${comment.userLastName}`,
-        email: comment.userEmail,
-        role: comment.userRole,
-      }
-    })) as Array<TimeEntryComment & { user: { id: number; name: string; email: string; role: string } }>;
+      id: comment.id,
+      timeEntryId: comment.timeEntryId,
+      userId: comment.userId,
+      comment: comment.comment,
+      commentType: comment.commentType,
+      createdAt: comment.createdAt,
+      user: comment.user
+    })) as Array<TimeEntryComment & { user: User }>;
   }
 
   async respondToComment(timeEntryId: number, userId: number, comment: string): Promise<{comment: TimeEntryComment, updatedEntry: TimeEntry}> {

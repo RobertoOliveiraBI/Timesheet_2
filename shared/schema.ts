@@ -525,6 +525,8 @@ export type CampaignTaskWithRelations = CampaignTask & {
 export type UserWithRelations = User & {
   manager?: User;
   subordinates: User[];
+  department?: Department | null;
+  costCenter?: CostCenter | null;
 };
 
 export type CampaignCostWithRelations = CampaignCost & {

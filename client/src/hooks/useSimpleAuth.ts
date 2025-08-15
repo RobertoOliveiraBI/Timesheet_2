@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { UserWithRelations } from "@shared/schema";
 import { apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -12,7 +12,7 @@ type LoginCredentials = {
 export function useAuth() {
   const { toast } = useToast();
   
-  const { data: user, error, isLoading } = useQuery<User | null, Error>({
+  const { data: user, error, isLoading } = useQuery<UserWithRelations | null, Error>({
     queryKey: ["/api/user"],
     retry: 1,
     retryOnMount: true,
@@ -37,7 +37,7 @@ export function useAuth() {
         throw new Error("Dados de usuário inválidos");
       }
       
-      return userData as User;
+      return userData as UserWithRelations;
     },
   });
 
