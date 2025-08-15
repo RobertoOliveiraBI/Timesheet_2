@@ -767,8 +767,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const userData = insertUserSchema.parse(req.body);
+      
+      // Hash the password before creating the user
+      if (userData.password) {
+        const bcrypt = require('bcryptjs');
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
+      
       const newUser = await storage.createUser(userData);
-      res.status(201).json(newUser);
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
     } catch (error) {
       console.error("Error creating user:", error);
       res.status(400).json({ message: "Erro ao criar usuário" });
@@ -785,8 +795,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const updates = req.body;
       
+      // Hash password if being updated
+      if (updates.password) {
+        const bcrypt = require('bcryptjs');
+        updates.password = await bcrypt.hash(updates.password, 10);
+      }
+      
       const updatedUser = await storage.updateUser(id, updates);
-      res.json(updatedUser);
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(400).json({ message: "Failed to update user" });
@@ -825,8 +844,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (updateData.costCenterId === '' || updateData.costCenterId === undefined) updateData.costCenterId = null;
       if (updateData.managerId === '' || updateData.managerId === undefined) updateData.managerId = null;
 
+      // Hash password if being updated
+      if (updateData.password) {
+        const bcrypt = require('bcryptjs');
+        updateData.password = await bcrypt.hash(updateData.password, 10);
+      }
+
       const updatedUser = await storage.updateUser(targetUserId, updateData);
-      res.json(updatedUser);
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(400).json({ message: "Erro ao atualizar usuário" });
@@ -854,8 +882,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (userData.costCenterId === '' || userData.costCenterId === undefined) userData.costCenterId = null;
       if (userData.managerId === '' || userData.managerId === undefined) userData.managerId = null;
       
+      // Hash password if being updated
+      if (userData.password) {
+        const bcrypt = require('bcryptjs');
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
+      
       const updatedUser = await storage.updateUser(userId, userData);
-      res.json(updatedUser);
+      
+      // Return user data without password
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(400).json({ message: "Erro ao atualizar usuário" });
