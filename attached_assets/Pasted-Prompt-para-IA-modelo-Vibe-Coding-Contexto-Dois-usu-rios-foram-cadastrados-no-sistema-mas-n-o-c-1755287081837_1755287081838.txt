@@ -1,0 +1,103 @@
+Prompt para IA (modelo Vibe Coding)
+Contexto:
+
+Dois usuários foram cadastrados no sistema, mas não conseguem acessar. Após investigação, foi identificado que as senhas deles não foram armazenadas com criptografia, o que pode estar impedindo a autenticação correta. O restante do sistema não deve ser alterado, apenas a lógica de persistência da senha.
+
+Lógica:
+
+Presumimos que o sistema armazena os dados dos usuários em um banco de dados, porém não aplicou hashing (ex: bcrypt) na senha ao cadastrar. Isso é uma falha grave de segurança e precisa ser corrigida. A senha deve ser criptografada no momento da criação do usuário e validada corretamente no login.
+
+Ação:
+
+Corrigir o código responsável pelo cadastro de usuários para que aplique hashing na senha antes de salvar, e garantir que o login utilize a verificação correta com base nesse hash.
+
+Resultados:
+
+As senhas dos usuários devem ser armazenadas criptografadas (com segurança), e os usuários devem conseguir fazer login normalmente. Nenhuma outra parte do sistema deve ser alterada.
+
+Entradas:
+
+Usuários afetados:
+
+fernando@tractionfy.com
+
+eduardo.marciano@gt7.com.br
+
+Ambiente: Replit
+Framework: presumivelmente Node.js com Express (ou outro backend JS)
+
+Formato:
+
+Aplicar o modelo de tarefas com checklist para execução das etapas
+
+A cada etapa, explicar detalhadamente o que foi alterado
+
+Utilizar o mínimo de alterações possível, com foco na clareza e segurança
+
+✅ Requisitos Funcionais:
+
+Corrigir o cadastro de usuários para que as senhas sejam armazenadas com hash seguro (ex: bcrypt)
+
+Corrigir a lógica de login para comparar a senha usando a verificação de hash
+
+Garantir que os registros existentes sem hash sejam tratados (se necessário)
+
+🗃️ Banco de Dados:
+
+Não é necessário criar uma nova tabela, mas é preciso garantir que a coluna de senha já esteja preparada para armazenar o hash
+
+Sem necessidade de novos relacionamentos
+
+Seguir o padrão atual do projeto, apenas ajustar a lógica de persistência da senha
+
+💾 Persistência:
+
+A senha deve ser automaticamente criptografada antes de ser salva na base
+
+O cadastro deve validar se o campo de senha está presente
+
+Implementar feedback em caso de erro (senha vazia, ou problema de hash)
+
+🔐 Controle de Acesso:
+
+A autenticação deve utilizar bcrypt.compare (ou equivalente) para validar a senha no login
+
+Nenhum dado sensível deve ser logado no console
+
+Os campos de senha nunca devem ser retornados em nenhuma API
+
+🎨 Frontend:
+
+Nenhuma alteração é necessária no frontend neste momento, desde que o backend funcione corretamente
+
+⚠️ Importante:
+
+Não altere nenhuma outra parte do sistema
+
+Teste todas as funções de criação, edição e login de usuários
+
+Valide e trate os campos obrigatórios (como email e senha) com mensagens amigáveis
+
+Aplique boas práticas de segurança (não exponha hashes, evite logs de senhas)
+
+Garanta que os cadastros de usuários listem corretamente no painel (se existir um)
+
+Regras do Vibe Coding
+
+Primeiro, pense no problema, leia a documentação e crie um plano
+
+O plano deve ter uma lista de tarefas que você pode marcar como concluídas
+
+Antes de começar a trabalhar, entre em contato comigo e eu verificarei o plano
+
+Em seguida, comece a trabalhar nas tarefas, marcando-as como concluídas conforme você avança
+
+A cada passo, explique detalhadamente o que foi feito
+
+Mantenha as alterações simples e localizadas
+
+Revise o código para garantir que está seguro e sem vazamento de dados
+
+Nunca exponha informações confidenciais
+
+Explique o funcionamento como um engenheiro sênior ensinando
