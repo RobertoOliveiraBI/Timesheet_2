@@ -1,0 +1,146 @@
+Recuperação e alteração de senha de usuários
+Contexto:
+
+Estamos desenvolvendo uma aplicação com painel administrativo onde o admin pode gerenciar usuários, e os próprios usuários têm acesso a um sistema com autenticação. No momento, não há funcionalidade para alterar senhas manualmente, nem mecanismo de recuperação de senha por e-mail em caso de esquecimento.
+
+Lógica:
+
+Precisamos implementar duas funcionalidades essenciais para qualquer sistema com usuários:
+
+Um modo seguro e prático de alterar a senha de um usuário diretamente pelo admin no modal de edição
+
+Um mecanismo de “esqueci minha senha” que permita ao usuário redefinir sua senha por um token enviado via e-mail
+
+Esses recursos aumentam a usabilidade, segurança e confiabilidade do sistema, alinhando com boas práticas de UX e compliance básico com normas de autenticação.
+
+Ação:
+
+Criar um plano detalhado com tarefas simples e objetivas para:
+
+ Adicionar campo de nova senha no modal de edição do admin
+
+ Atualizar a senha do usuário no banco após confirmação
+
+ Criar fluxo de recuperação de senha via e-mail com token
+
+ Validar token de redefinição e permitir nova senha
+
+ Garantir segurança com criptografia (ex: bcrypt)
+
+ Implementar logs e mensagens visuais
+
+Resultados:
+
+Permitir que:
+
+Admins alterem senhas diretamente de forma segura
+
+Usuários recuperem o acesso sem intervenção de suporte
+
+Entradas:
+
+Modal de edição já existente no painel admin
+
+Tela de login já funcionando
+
+Estrutura de usuários com campo de senha
+
+Formato:
+
+A resposta deve seguir este modelo:
+
+Plano de tarefas marcado com checkboxes
+
+Instruções passo a passo para backend, frontend e banco de dados
+
+Explicações curtas do que foi alterado
+
+Validações de segurança incluídas
+
+Nenhuma alteração em outros módulos além dos citados
+
+Informações Adicionais:
+
+Criptografia recomendada: bcrypt
+
+Tokens temporários devem expirar após 30 min
+
+Envio de e-mail pode ser simulado via console inicialmente
+
+Papel:
+
+Você é um engenheiro sênior orientando um júnior, com foco em clareza, segurança e simplicidade. Evite alterações complexas, separe bem cada etapa e trate todos os campos e erros potenciais.
+
+✅ Requisitos Funcionais:
+
+Permitir alteração de senha via painel admin
+
+Permitir redefinição de senha via e-mail em caso de esquecimento
+
+🗃️ Banco de Dados:
+
+Verificar se a tabela usuarios já contém o campo senha (criptografado)
+
+Criar nova tabela tokens_recuperacao com os campos:
+
+usuario_id (relacionado com usuarios)
+
+token
+
+data_expiracao
+
+Indexar o token para performance e segurança
+
+💾 Persistência:
+
+Dados devem ser salvos:
+
+Manualmente via botão “Salvar” no modal admin
+
+Após confirmação da nova senha no fluxo de recuperação
+
+Validação: campo de senha obrigatório, mínimo de 6 caracteres
+
+🔐 Controle de Acesso:
+
+Somente admin pode alterar senha de outro usuário
+
+Qualquer usuário com e-mail cadastrado pode iniciar a recuperação de senha
+
+Tokens devem expirar em 30 minutos
+
+Token não pode ser reutilizado
+
+Senha nova deve substituir a anterior criptografada
+
+🎨 Frontend:
+
+Admin:
+
+No modal de edição do usuário, adicionar campo opcional: "Nova senha"
+
+Campo visível apenas para admins
+
+Mostrar confirmação de sucesso após envio
+
+Usuário:
+
+Adicionar link “Esqueci minha senha” na tela de login
+
+Criar tela de inserção de e-mail
+
+Criar tela de redefinição com token recebido por e-mail
+
+Validar e dar feedback visual sobre sucesso/erro
+
+⚠️ Observações Finais:
+
+Não altere nenhuma outra parte do sistema
+
+Teste todas as funções de criação, edição e listagem de usuários e cadastros
+
+Verifique se todos os CRUDs e tabelas necessárias existem
+
+Sempre trate campos nulos, strings e validações para evitar quebras
+
+Documente cada etapa com clareza, explique suas decisões e valide a segurança
