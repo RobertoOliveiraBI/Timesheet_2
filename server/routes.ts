@@ -29,7 +29,7 @@ import {
   campaignCosts,
 } from "@shared/schema";
 import { z } from "zod";
-import { eq, and, asc, desc, gte, lte, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, gte, lte, inArray, sql } from "drizzle-orm";
 import { format } from "date-fns";
 
 // Middleware to check authentication
@@ -1084,11 +1084,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const clientId = parseInt(req.params.id);
+      
+      // Verifica se existem horas lançadas antes de tentar deletar
+      const timeEntriesCount = await db
+        .select({ count: sql`count(*)` })
+        .from(timeEntries)
+        .innerJoin(campaignsTable, eq(timeEntries.campaignId, campaignsTable.id))
+        .where(eq(campaignsTable.clientId, clientId));
+      
+      const hasTimeEntries = Number(timeEntriesCount[0].count) > 0;
+      
       await storage.deleteClient(clientId);
-      res.json({ message: "Cliente removido com sucesso" });
+      
+      if (hasTimeEntries) {
+        res.json({ message: "Cliente desativado com sucesso (possui horas lançadas)" });
+      } else {
+        res.json({ message: "Cliente removido com sucesso" });
+      }
     } catch (error) {
       console.error("Error deleting client:", error);
-      res.status(400).json({ message: "Erro ao remover cliente" });
+      res.status(400).json({ message: "Erro ao processar cliente" });
     }
   });
 

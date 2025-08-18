@@ -825,11 +825,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteEconomicGroup(id: number): Promise<void> {
+    // Primeiro verifica se existe grupo "Não Informado"
+    let [naoInformadoGroup] = await db.select().from(economicGroups).where(eq(economicGroups.name, "Não Informado"));
+    
+    // Se não existir, cria o grupo "Não Informado"
+    if (!naoInformadoGroup) {
+      [naoInformadoGroup] = await db.insert(economicGroups).values({
+        name: "Não Informado",
+        description: "Grupo padrão para clientes sem grupo específico"
+      }).returning();
+    }
+    
+    // Move todos os clientes do grupo a ser deletado para "Não Informado"
+    await db
+      .update(clients)
+      .set({ economicGroupId: naoInformadoGroup.id })
+      .where(eq(clients.economicGroupId, id));
+    
+    // Agora pode deletar o grupo
     await db.delete(economicGroups).where(eq(economicGroups.id, id));
   }
 
   async deleteClient(id: number): Promise<void> {
-    await db.delete(clients).where(eq(clients.id, id));
+    // Verifica se existem horas lançadas para campanhas deste cliente
+    const timeEntriesCount = await db
+      .select({ count: sql`count(*)` })
+      .from(timeEntries)
+      .innerJoin(campaigns, eq(timeEntries.campaignId, campaigns.id))
+      .where(eq(campaigns.clientId, id));
+    
+    const hasTimeEntries = Number(timeEntriesCount[0].count) > 0;
+    
+    if (hasTimeEntries) {
+      // Se tem horas lançadas, apenas desativa o cliente
+      await db
+        .update(clients)
+        .set({ isActive: false })
+        .where(eq(clients.id, id));
+    } else {
+      // Se não tem horas, pode deletar completamente
+      await db.delete(clients).where(eq(clients.id, id));
+    }
   }
 
   async deleteCampaign(id: number): Promise<void> {

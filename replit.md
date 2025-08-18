@@ -58,6 +58,7 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 - **Data Integrity**: Robust handling of data editing with proper HTTP methods and cache invalidation.
 - **Date Display Fix**: Corrected timezone issues in date formatting across all components.
 - **Performance**: Optimized query invalidation and real-time data updates across all modules.
+- **Smart Group and Client Deletion (2025-08-18)**: Enhanced deletion logic that preserves referential integrity. Economic groups with dependent clients are automatically moved to "Não Informado" group before deletion. Clients with logged time entries are deactivated instead of deleted, while clients without time entries are fully removed.
 
 ## External Dependencies
 
