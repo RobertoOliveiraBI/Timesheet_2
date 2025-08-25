@@ -1,0 +1,267 @@
+Segue um prompt completo, pronto para colar no Replit (ou em qualquer agente coder), já no formato do seu modelo e com as “Regras do Vibe Coding”. Mantive tudo objetivo e acionável para o seu projeto Timesheet\_2.
+
+---
+
+# Regras do vibe coding
+
+1. Primeiro, pense no problema, leia a documentação e crie um plano.
+2. O plano deve ter uma lista de tarefas que você pode marcar como concluídas.
+3. Antes de começar a trabalhar, entre em contato comigo e eu verificarei o plano.
+4. Em seguida, comece a trabalhar nas tarefas, marcando-as como concluídas conforme você avança.
+5. A cada passo, forneça uma explicação detalhada das alterações que você fez.
+6. Mantenha cada tarefa e alteração o mais simples possível. Evite mudanças massivas.
+7. Aviso de segurança: verifique todo o código e siga boas práticas de segurança.
+8. Certifique-se de não vazar informações sensíveis nem criar vulnerabilidades.
+9. Explique a funcionalidade e o código criado em detalhes, como um engenheiro sênior ensinando.
+
+---
+
+## Contexto
+
+Projeto **Timesheet\_2** com backend **TypeScript/Express**, **Postgres via Drizzle** e frontend React. Precisamos de um **módulo de backup em CSV** de todas as tabelas, disparado por:
+
+1. endpoint administrativo manual;
+2. primeiro login do dia (backup diário).
+
+## Lógica
+
+Centralizar a lógica de backup em `server/backup.ts`. A função `backupAllTables()` deve:
+
+* Descobrir todas as tabelas expostas em `@shared/schema` (Drizzle).
+* Ler dados via `db` (Drizzle), converter para CSV com `json2csv`.
+* Persistir cada CSV em `backups/<nome_tabela>-<YYYY-MM-DD>.csv` (criando a pasta se necessário).
+
+A função `runDailyBackupIfNeeded()` deve:
+
+* Carregar `last_backup_date` de `system_config`.
+* Se `last_backup_date` < data de hoje, executar `backupAllTables()` e atualizar `last_backup_date`.
+
+## Ação
+
+Implementar:
+
+* `server/backup.ts` com `backupAllTables()` e `runDailyBackupIfNeeded()`.
+* Rota **protegida** `POST /api/admin/backup` em `server/routes.ts` chamando `backupAllTables()`.
+* Chamada a `runDailyBackupIfNeeded()` no fluxo de login em `server/auth.ts`.
+* Botão “**Gerar backup CSV**” na área administrativa (`client/src/components/AdminSection.tsx` ou equivalente) que chama a rota e exibe toast de sucesso/erro.
+* Tratamento robusto de erros e criação automática do diretório `backups/`.
+
+## Resultados
+
+* CSV de **todas** as tabelas, um arquivo por tabela, nomeado com a data.
+* Endpoint administrativo funcional e protegido.
+* Backup diário automático no primeiro login.
+* Botão na UI admin para backup manual com feedback visual.
+
+## Entradas
+
+* Esquemas do Drizzle em `@shared/schema`.
+* Conexão `db` existente.
+* Tabela `system_config` contendo `last_backup_date` (criar se não existir).
+
+## Formato (o que você deve me retornar)
+
+* **Plano de tarefas (checklist)**
+* **Diffs** por arquivo modificado/criado
+* **Blocos de código completos** por arquivo
+* **Comandos** (instalação de deps, migrações)
+* **Notas de segurança** e **testes manuais/automáticos**
+
+## Informações Adicionais
+
+* Dependências sugeridas: `json2csv`, `fs-extra`, `date-fns` (ou equivalente para formatar datas).
+* Padronize tipos TypeScript, JSDoc/TSDoc e logs no servidor.
+
+## Papel
+
+Aja como **Desenvolvedor Sênior Full-Stack** responsável por backend (Express/Drizzle) e frontend (React/TS).
+
+---
+
+### ✅ Requisitos Funcionais
+
+1. Gerar **backup CSV** de todas as tabelas do Drizzle:
+
+   * Manualmente via `POST /api/admin/backup` (apenas administradores).
+   * Automaticamente no **primeiro login do dia** (comparar com `last_backup_date`).
+2. Criar diretório `backups/` se ausente.
+3. Nome de arquivo: `<tabela>-<YYYY-MM-DD>.csv`.
+4. Logs claros no servidor sobre início/fim/erros do backup.
+5. Botão “Gerar backup CSV” na UI admin com toast de sucesso/erro.
+
+---
+
+### 🗃️ Banco de Dados
+
+1. **Nova tabela** (se ausente): `system_config(id pk, last_backup_date date not null default (current_date))`.
+2. **Relacionamentos**: não requer relacionamentos; é tabela de configuração global (single row).
+3. **Padrões do projeto**: usar Drizzle para schema/migração; nomear campos em `snake_case`.
+
+---
+
+### 💾 Persistência
+
+* **Autosave**: não se aplica diretamente; backups são operações atômicas.
+* **Salvar manual**: via botão “Gerar backup CSV” (UI) chamando o endpoint.
+* **Validações**:
+
+  * Checar existência de `system_config` e linha de config; criar/seed se necessário.
+  * Validar permissões (admin) no endpoint.
+  * Garantir escrita atômica dos arquivos e tratamento de erro por tabela (um erro não impede as demais).
+
+---
+
+### 🔐 Controle de Acesso
+
+* Proteger `POST /api/admin/backup` com middleware de autenticação/autorização já usado no projeto (ex.: `requireAuth`, `requireRole('admin')`).
+* No login, a chamada `runDailyBackupIfNeeded()` ocorre **no servidor** após autenticação; não expor nada sensível ao cliente.
+* Não logar dados pessoais; apenas mensagens genéricas de execução e contagem de tabelas/linhas.
+
+---
+
+### 🎨 Frontend
+
+1. Em `client/src/components/AdminSection.tsx` (ou similar):
+
+   * Adicionar botão “Gerar backup CSV”.
+   * Chamar `POST /api/admin/backup` via fetch/axios.
+   * Exibir **toast** de sucesso/erro; desabilitar botão enquanto requisitando.
+   * Mostrar último backup (data) lendo de um endpoint já existente ou criar `GET /api/admin/backup/status` (opcional).
+
+---
+
+## Plano (Checklist)
+
+* [ ] Mapear tabelas a partir de `@shared/schema`.
+* [ ] Implementar `server/backup.ts` com:
+
+  * [ ] `backupAllTables()`
+  * [ ] `runDailyBackupIfNeeded()`
+  * [ ] Utilitários de data, CSV e filesystem
+* [ ] Criar/confirmar `system_config` e seed da linha única.
+* [ ] Expor `POST /api/admin/backup` protegido em `server/routes.ts`.
+* [ ] Integrar `runDailyBackupIfNeeded()` no `server/auth.ts` pós-login.
+* [ ] Adicionar botão e chamadas na UI admin com toast.
+* [ ] Testes manuais e (se possível) unitários.
+* [ ] Documentar e revisar segurança.
+
+---
+
+## Implementação (o que gerar)
+
+### Dependências
+
+* Adicionar ao backend:
+
+  * `json2csv`
+  * `fs-extra`
+  * `date-fns` (ou usar `Intl.DateTimeFormat`/`toISOString` + slice para `YYYY-MM-DD`)
+* Tipos (se usar): `@types/fs-extra`
+
+### Estrutura e Assinaturas
+
+**`server/backup.ts`**
+
+* `async function backupAllTables(): Promise<{ ok: true; files: string[] } | { ok: false; error: string }>`
+* `async function runDailyBackupIfNeeded(): Promise<{ ran: boolean; date: string } | { ran: false; reason: string }>`
+* Exportar ambas.
+
+**Regras principais**
+
+* Detectar tabelas a partir de `@shared/schema` (ex.: iterar chaves cujos valores sejam objetos de tabela Drizzle).
+* Para cada tabela:
+
+  * `const rows = await db.select().from(table).all()` (ajuste conforme Drizzle/driver).
+  * Converter para CSV com `json2csv` (cuidar de campos nulos/arrays/JSON).
+  * `fs.ensureDir('backups')` e `fs.writeFile(path, csv)`.
+* Data: `YYYY-MM-DD` (timezone do servidor).
+
+**`server/routes.ts`**
+
+* `router.post('/api/admin/backup', requireAuth, requireRole('admin'), async (req, res) => { ... })`
+
+**`server/auth.ts`**
+
+* Após autenticar:
+
+  * `const result = await runDailyBackupIfNeeded();`
+  * Logar `result` no servidor.
+
+**Frontend (`AdminSection.tsx`)**
+
+* Botão “Gerar backup CSV”
+* `await fetch('/api/admin/backup', { method: 'POST', credentials: 'include' })`
+* Toast de sucesso/erro
+* Estado de carregamento
+
+### Migração Drizzle (se `system_config` não existir)
+
+* Criar tabela `system_config` com campos:
+
+  * `id` (pk, por exemplo ‘global’)
+  * `last_backup_date` (date not null)
+* Seed inicial se não houver linha: `id='global'`, `last_backup_date` = data de ontem (para forçar primeiro backup).
+
+---
+
+## Testes
+
+**Manuais**
+
+1. Remova/defina `last_backup_date` como ontem e faça login → deve gerar backups e logs.
+2. Faça login novamente no mesmo dia → não deve gerar backup.
+3. Clique no botão admin → deve gerar backups independentemente da data.
+4. Simule falha de permissão (usuário não-admin) → 403.
+5. Apague diretório `backups/` e gere backup → diretório recriado.
+6. Apague/force erro em uma tabela → outras tabelas ainda geram CSV e o erro é logado.
+
+**Automatizados (opcional)**
+
+* Stub de `db` e `fs-extra` para validar que `backupAllTables()` escreve um arquivo por tabela e formata o nome corretamente.
+
+---
+
+## Segurança
+
+* Endpoint protegido por autenticação e role de admin.
+* Sem dados sensíveis nos logs.
+* Arquivos salvos em diretório interno do servidor, sem exposição pública.
+* Rate-limit opcional no endpoint admin.
+* Trate exceções por tabela (não parar o processo inteiro).
+
+---
+
+## Comandos
+
+* Instalação:
+
+  * `npm i json2csv fs-extra date-fns`
+  * `npm i -D @types/fs-extra` (se necessário)
+* Migração Drizzle: gerar e aplicar (siga o padrão do projeto).
+
+---
+
+## Critérios de Aceite
+
+* Arquivos CSV por tabela são criados em `backups/` com nome `<tabela>-<YYYY-MM-DD>.csv`.
+* `POST /api/admin/backup` retorna 200 em sucesso, 4xx/5xx em erro, e é inacessível a não-admins.
+* `runDailyBackupIfNeeded()` executa apenas uma vez por dia no primeiro login válido.
+* UI admin exibe botão funcional e feedback ao usuário.
+* Código tipado, comentado e com tratamento de erros.
+
+---
+
+### Auditoria rápida de CRUDs e tabelas (checagens solicitadas)
+
+* Confirme que **CRUDs** essenciais (usuários, categorias, clientes etc.) existem e listagens não quebram com `null`/tipos (aplicar `?? ''`/mapeamento).
+* Verifique se **todas as tabelas necessárias** existem no banco (Drizzle migrations em ordem).
+* Normalize formatação para campos numéricos/strings nas listagens e no CSV (converter números/decimais corretamente; strings sem quebras inesperadas).
+
+---
+
+**Inicie retornando:**
+
+1. O **plano** acima como checklist,
+2. A lista de **arquivos a alterar/criar**,
+3. Os **diffs** e o **código completo** proposto para cada arquivo,
+4. **Como testar** (passo a passo) e os **riscos**/mitigações.
