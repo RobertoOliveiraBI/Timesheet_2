@@ -1,6 +1,8 @@
 import { db } from "./db";
-import { users, economicGroups, clients, campaigns, taskTypes } from "@shared/schema";
+import { users, economicGroups, clients, campaigns, taskTypes, systemConfig } from "@shared/schema";
 import { hashPassword } from "./auth";
+import { format } from "date-fns";
+import { eq } from "drizzle-orm";
 
 async function seed() {
   console.log("🌱 Criando dados iniciais...");
@@ -18,8 +20,6 @@ async function seed() {
         role: "MASTER",
         position: "Diretor Geral",
         isManager: true,
-        department: "Criação",
-        costCenter: "GTodos",
         contractType: "CLT",
         isActive: true,
       })
@@ -36,8 +36,6 @@ async function seed() {
         position: "Designer",
         isManager: false,
         managerId: masterUser?.id,
-        department: "Design",
-        costCenter: "GBrasil",
         contractType: "PJ",
         isActive: true,
       })
@@ -95,6 +93,33 @@ async function seed() {
       await db.insert(taskTypes)
         .values(taskType)
         .onConflictDoNothing();
+    }
+
+    // ✨ INICIALIZAÇÃO DO SISTEMA DE BACKUP
+    console.log("🔧 Inicializando configuração de backup...");
+    
+    // Verificar se já existe configuração de backup
+    const backupConfigExists = await db
+      .select()
+      .from(systemConfig)
+      .where(eq(systemConfig.key, 'last_backup_date'))
+      .limit(1);
+    
+    if (backupConfigExists.length === 0) {
+      // Criar com data de ontem para forçar primeiro backup no próximo login
+      const yesterday = format(new Date(Date.now() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+      
+      await db
+        .insert(systemConfig)
+        .values({
+          key: 'last_backup_date',
+          value: yesterday
+        })
+        .onConflictDoNothing();
+        
+      console.log(`📅 Configuração de backup inicializada - última data: ${yesterday}`);
+    } else {
+      console.log(`📅 Configuração de backup já existe - última data: ${backupConfigExists[0].value}`);
     }
 
     console.log("✅ Dados iniciais criados com sucesso!");

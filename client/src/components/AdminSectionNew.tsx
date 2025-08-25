@@ -35,6 +35,7 @@ export function AdminSection() {
   const [selectedModal, setSelectedModal] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [campaignAccessModal, setCampaignAccessModal] = useState<{ isOpen: boolean; campaign: any }>({ isOpen: false, campaign: null });
+  const [isBackupLoading, setIsBackupLoading] = useState(false);
   const [searchTerms, setSearchTerms] = useState({
     users: "",
     groups: "",
@@ -225,6 +226,42 @@ export function AdminSection() {
     setSelectedItem(null);
   };
 
+  // ✨ FUNÇÃO DE BACKUP MANUAL
+  const handleManualBackup = async () => {
+    setIsBackupLoading(true);
+    try {
+      const response = await fetch('/api/admin/backup', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `Erro ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "✅ Backup concluído!",
+        description: `${result.count} arquivos CSV gerados - ${result.timestamp}`,
+        duration: 5000,
+      });
+      
+    } catch (error) {
+      console.error('Erro no backup:', error);
+      toast({
+        variant: "destructive",
+        title: "❌ Erro no backup",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        duration: 7000,
+      });
+    } finally {
+      setIsBackupLoading(false);
+    }
+  };
+
   // Funções de filtro para busca
   const filteredUsers = users.filter(user => 
     user.firstName?.toLowerCase().includes(searchTerms.users.toLowerCase()) ||
@@ -303,11 +340,12 @@ export function AdminSection() {
       action: () => openModal("campaign"),
     },
     {
-      title: "Nova Tarefa",
-      description: "Tarefa específica de campanha",
-      icon: Briefcase,
-      color: "bg-teal-500",
-      action: () => openModal("campaignTask"),
+      title: "Backup CSV",
+      description: "Gerar backup de todas as tabelas",
+      icon: Download,
+      color: "bg-indigo-600",
+      action: handleManualBackup,
+      loading: isBackupLoading,
     },
   ];
 
@@ -329,12 +367,20 @@ export function AdminSection() {
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-center space-y-2"
                 onClick={action.action}
+                disabled={action.loading}
+                data-testid={`button-${action.title.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 <div className={`w-12 h-12 rounded-lg ${action.color} flex items-center justify-center text-white`}>
-                  <action.icon className="w-6 h-6" />
+                  {action.loading ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <action.icon className="w-6 h-6" />
+                  )}
                 </div>
                 <div className="text-center">
-                  <p className="font-medium text-sm">{action.title}</p>
+                  <p className="font-medium text-sm">
+                    {action.loading ? 'Processando...' : action.title}
+                  </p>
                   <p className="text-xs text-slate-500">{action.description}</p>
                 </div>
               </Button>

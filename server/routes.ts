@@ -2216,6 +2216,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const csvImportModule = await import('./csvImportRoutes');
   csvImportModule.setupCsvImportRoutes(app, storage);
 
+  // ====== BACKUP CSV ROUTES ======
+  const { backupAllTables } = await import('./backup');
+  
+  /**
+   * POST /api/admin/backup - Gera backup manual de todas as tabelas
+   * Acesso: Apenas usuários MASTER e ADMIN
+   */
+  app.post('/api/admin/backup', requireAuth, async (req: any, res) => {
+    try {
+      // Verificar permissões de administrador
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ 
+          message: "Acesso negado - apenas administradores podem gerar backups" 
+        });
+      }
+
+      console.log(`[BACKUP API] 🚀 Backup manual solicitado por ${user.email} (${user.role})`);
+      
+      // Executar backup de todas as tabelas
+      const result = await backupAllTables();
+      
+      if (!result.ok) {
+        return res.status(500).json({ 
+          message: "Erro ao gerar backup", 
+          error: result.error 
+        });
+      }
+
+      // Resposta de sucesso
+      const response = {
+        success: true,
+        message: "Backup gerado com sucesso",
+        files: result.files,
+        count: result.files.length,
+        timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+        generatedBy: user.email
+      };
+
+      console.log(`[BACKUP API] ✅ Backup concluído: ${result.files.length} arquivos para ${user.email}`);
+      
+      res.json(response);
+
+    } catch (error) {
+      console.error("[BACKUP API] ❌ Erro na rota de backup:", error);
+      res.status(500).json({ 
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -138,10 +138,25 @@ export function setupAuth(app: Express) {
       }
 
       // Log the user in
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) {
           console.error("Erro no login:", err);
           return next(err);
+        }
+        
+        // ✨ EXECUTAR BACKUP DIÁRIO SE NECESSÁRIO
+        try {
+          const { runDailyBackupIfNeeded } = await import('./backup');
+          const backupResult = await runDailyBackupIfNeeded();
+          
+          if (backupResult.ran) {
+            console.log(`[LOGIN] ✅ Backup diário executado para ${user.email} - ${backupResult.date}`);
+          } else {
+            console.log(`[LOGIN] ℹ️  Backup diário: ${'reason' in backupResult ? backupResult.reason : 'não necessário'} (${user.email})`);
+          }
+        } catch (backupError) {
+          console.error(`[LOGIN] ⚠️  Erro no backup diário para ${user.email}:`, backupError);
+          // Não bloquear login por falha de backup
         }
         
         // Return user data (excluding password)
