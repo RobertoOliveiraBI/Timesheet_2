@@ -1,5 +1,5 @@
 import { db } from './db';
-import { writeFile, ensureDir } from 'fs-extra';
+import { promises as fs, existsSync, mkdirSync } from 'fs';
 import { format } from 'date-fns';
 import { Parser } from 'json2csv';
 import { 
@@ -113,7 +113,9 @@ export async function backupAllTables(): Promise<{ ok: true; files: string[] } |
     const backupDir = 'backups';
     
     // Criar diretório de backup se não existir
-    await ensureDir(backupDir);
+    if (!existsSync(backupDir)) {
+      mkdirSync(backupDir, { recursive: true });
+    }
     
     const createdFiles: string[] = [];
     const errors: string[] = [];
@@ -154,7 +156,7 @@ export async function backupAllTables(): Promise<{ ok: true; files: string[] } |
         const filePath = `${backupDir}/${fileName}`;
         
         // Salvar arquivo
-        await writeFile(filePath, csv, 'utf8');
+        await fs.writeFile(filePath, csv, 'utf8');
         createdFiles.push(fileName);
         
         console.log(`[BACKUP] ✅ ${tableName}: ${rows.length} registros → ${fileName}`);
