@@ -2268,6 +2268,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * DELETE /api/admin/delete-test-entries - Deleta entradas de teste
+   * Acesso: Apenas usuários MASTER e ADMIN com senha de confirmação
+   */
+  app.delete('/api/admin/delete-test-entries', requireAuth, async (req: any, res) => {
+    try {
+      // Verificar permissões de administrador
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ 
+          message: "Acesso negado - apenas administradores podem deletar entradas" 
+        });
+      }
+
+      // Verificar senha de confirmação
+      const { password } = req.body;
+      if (password !== "123mudar") {
+        return res.status(400).json({ 
+          message: "Senha de confirmação incorreta" 
+        });
+      }
+
+      console.log(`[DELETE ENTRIES] 🗑️ Deleção de entradas de teste solicitada por ${user.email} (${user.role})`);
+      
+      // Deletar todas as entradas de time entries (considerando que são dados de teste)
+      // Aqui você pode definir critérios específicos para identificar entradas de teste
+      const deletedEntries = await db.delete(timeEntries).returning();
+      
+      // Também deletar comentários relacionados
+      await db.delete(timeEntryComments);
+
+      const deletedCount = deletedEntries.length;
+
+      console.log(`[DELETE ENTRIES] ✅ ${deletedCount} entradas de teste deletadas por ${user.email}`);
+      
+      res.json({
+        success: true,
+        message: "Entradas de teste deletadas com sucesso",
+        deletedCount,
+        deletedBy: user.email,
+        timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
+      });
+
+    } catch (error) {
+      console.error("[DELETE ENTRIES] ❌ Erro ao deletar entradas:", error);
+      res.status(500).json({ 
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

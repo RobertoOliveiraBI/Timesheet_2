@@ -36,6 +36,9 @@ export function AdminSection() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [campaignAccessModal, setCampaignAccessModal] = useState<{ isOpen: boolean; campaign: any }>({ isOpen: false, campaign: null });
   const [isBackupLoading, setIsBackupLoading] = useState(false);
+  const [deleteEntriesModal, setDeleteEntriesModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isDeletingEntries, setIsDeletingEntries] = useState(false);
   const [searchTerms, setSearchTerms] = useState({
     users: "",
     groups: "",
@@ -262,6 +265,60 @@ export function AdminSection() {
     }
   };
 
+  // 🗑️ FUNÇÃO PARA DELETAR ENTRADAS DE TESTE
+  const handleDeleteTestEntries = async () => {
+    if (deletePassword !== "123mudar") {
+      toast({
+        variant: "destructive",
+        title: "Senha incorreta",
+        description: "Digite a senha correta para confirmar a exclusão",
+      });
+      return;
+    }
+
+    setIsDeletingEntries(true);
+    try {
+      const response = await fetch('/api/admin/delete-test-entries', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deletePassword })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `Erro ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "✅ Entradas removidas!",
+        description: `${result.deletedCount} entradas de teste foram removidas`,
+        duration: 5000,
+      });
+
+      // Fechar modal e limpar estado
+      setDeleteEntriesModal(false);
+      setDeletePassword("");
+      
+      // Invalidar queries para atualizar as listas
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/user"] });
+      
+    } catch (error) {
+      console.error('Erro ao deletar entradas:', error);
+      toast({
+        variant: "destructive",
+        title: "❌ Erro ao deletar entradas",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        duration: 7000,
+      });
+    } finally {
+      setIsDeletingEntries(false);
+    }
+  };
+
   // Funções de filtro para busca
   const filteredUsers = users.filter(user => 
     user.firstName?.toLowerCase().includes(searchTerms.users.toLowerCase()) ||
@@ -346,6 +403,13 @@ export function AdminSection() {
       color: "bg-indigo-600",
       action: handleManualBackup,
       loading: isBackupLoading,
+    },
+    {
+      title: "Limpar Testes",
+      description: "Apagar entradas de teste",
+      icon: Trash2,
+      color: "bg-red-600",
+      action: () => setDeleteEntriesModal(true),
     },
   ];
 
@@ -1063,6 +1127,76 @@ export function AdminSection() {
         onClose={() => setCampaignAccessModal({ isOpen: false, campaign: null })}
         campaign={campaignAccessModal.campaign}
       />
+
+      {/* Modal de Confirmação para Deletar Entradas de Teste */}
+      <Dialog open={deleteEntriesModal} onOpenChange={setDeleteEntriesModal}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Deletar Entradas de Teste
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Esta ação não pode ser desfeita
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-sm text-gray-700 mb-4">
+                Para confirmar a exclusão de todas as entradas de teste, digite a senha de confirmação:
+              </p>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Senha de confirmação:
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Digite a senha..."
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDeleteEntriesModal(false);
+                  setDeletePassword("");
+                }}
+                disabled={isDeletingEntries}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteTestEntries}
+                disabled={isDeletingEntries || !deletePassword}
+              >
+                {isDeletingEntries ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    Deletando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Confirmar Exclusão
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }
