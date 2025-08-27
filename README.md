@@ -91,6 +91,7 @@ RASCUNHO → SALVO → VALIDACAO → APROVADO
 - `POST /api/campaigns` - Criar campanha
 - `POST /api/users` - Criar usuário
 - `PATCH /api/campaigns/:id` - Atualizar campanha
+- `POST /api/admin/clear-data` - Limpar dados de teste (requer confirmação por senha)
 
 ## ✅ Problema Resolvido: Select de Clientes
 
@@ -182,6 +183,12 @@ curl -X GET http://localhost:5000/api/clients \
 3. ✅ **Select de clientes corrigido** - Dados carregam corretamente
 4. ✅ **Interface administrativa** - Gestão completa de entidades
 5. ✅ **Workflow de aprovação** - Sistema de 5 status implementado
+
+### Funcionalidade de Limpeza de Dados (Nova)
+- ✅ **Sistema de limpeza com confirmação**: Permite deletar dados de teste com senha de confirmação
+- ✅ **Proteção por senha**: Requer senha "123mudar" para confirmar exclusões
+- ✅ **Interface administrativa**: Disponível apenas para roles MASTER e ADMIN
+- ✅ **Limpeza seletiva**: Remove entradas cadastradas durante testes
 
 ### Próximos Desenvolvimentos Sugeridos
 1. **Teste completo do fluxo de timesheet** - Validar criação de entradas
