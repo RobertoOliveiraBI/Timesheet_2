@@ -1257,7 +1257,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Campanha removida com sucesso" });
     } catch (error) {
       console.error("Error deleting campaign:", error);
-      res.status(400).json({ message: "Erro ao remover campanha" });
+      const errorMessage = error instanceof Error ? error.message : "Erro ao remover campanha";
+      res.status(400).json({ message: errorMessage });
     }
   });
 

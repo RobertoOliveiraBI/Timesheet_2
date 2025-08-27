@@ -869,9 +869,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteCampaign(id: number): Promise<void> {
-    // Delete campaign users first
+    // Check if campaign has time entries
+    const timeEntryCount = await db
+      .select({ count: sql`count(*)` })
+      .from(timeEntries)
+      .where(eq(timeEntries.campaignId, id));
+    
+    const hasTimeEntries = Number(timeEntryCount[0].count) > 0;
+    
+    if (hasTimeEntries) {
+      throw new Error("Não é possível deletar campanha com lançamentos de horas. Desative a campanha em vez de deletá-la.");
+    }
+    
+    // Delete campaign costs first (to avoid foreign key constraint)
+    await db.delete(campaignCosts).where(eq(campaignCosts.campaignId, id));
+    
+    // Delete campaign tasks
+    await db.delete(campaignTasks).where(eq(campaignTasks.campaignId, id));
+    
+    // Delete campaign users
     await db.delete(campaignUsers).where(eq(campaignUsers.campaignId, id));
-    // Delete campaign
+    
+    // Finally delete the campaign
     await db.delete(campaigns).where(eq(campaigns.id, id));
   }
 

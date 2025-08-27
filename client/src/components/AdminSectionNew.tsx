@@ -415,8 +415,8 @@ export function AdminSection() {
       loading: isBackupLoading,
     },
     {
-      title: "Limpar Testes",
-      description: "Apagar entradas de teste",
+      title: "Limpar Entradas",
+      description: "Apagar entradas",
       icon: Trash2,
       color: "bg-red-600",
       action: () => setDeleteEntriesModal(true),
