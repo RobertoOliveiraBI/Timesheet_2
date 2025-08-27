@@ -1,8 +1,0 @@
-"id","campaignId","taskTypeId","description","isActive","createdAt"
-3,2,3,"Planejamento da campanha","true","""2025-07-25T00:24:01.019Z"""
-1,2,1,"Criação de criativos para Instagram","true","""2025-07-24T23:42:00.897Z"""
-4,2,1,"Criação de criativos para Youtube","true","""2025-07-25T19:57:58.103Z"""
-2,3,5,"Conversa com o RH","true","""2025-07-25T00:23:43.098Z"""
-5,3,2,"Reunião Interna","true","""2025-07-25T21:09:40.972Z"""
-6,4,1,"Criação de peças","true","""2025-07-28T23:10:22.287Z"""
-7,4,1,"Desenvolvimento de landing page personalizada","true","""2025-08-04T17:12:33.244Z"""
