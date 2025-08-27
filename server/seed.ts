@@ -95,31 +95,31 @@ async function seed() {
         .onConflictDoNothing();
     }
 
-    // ✨ INICIALIZAÇÃO DO SISTEMA DE BACKUP
-    console.log("🔧 Inicializando configuração de backup...");
+    // ✨ INICIALIZAÇÃO DO SISTEMA DE BACKUP MENSAL
+    console.log("🔧 Inicializando configuração de backup mensal...");
     
-    // Verificar se já existe configuração de backup
+    // Verificar se já existe configuração de backup mensal
     const backupConfigExists = await db
       .select()
       .from(systemConfig)
-      .where(eq(systemConfig.key, 'last_backup_date'))
+      .where(eq(systemConfig.key, 'last_backup_month'))
       .limit(1);
     
     if (backupConfigExists.length === 0) {
-      // Criar com data de ontem para forçar primeiro backup no próximo login
-      const yesterday = format(new Date(Date.now() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+      // Criar com mês anterior para forçar primeiro backup no próximo login
+      const lastMonth = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM');
       
       await db
         .insert(systemConfig)
         .values({
-          key: 'last_backup_date',
-          value: yesterday
+          key: 'last_backup_month',
+          value: lastMonth
         })
         .onConflictDoNothing();
         
-      console.log(`📅 Configuração de backup inicializada - última data: ${yesterday}`);
+      console.log(`📅 Configuração de backup mensal inicializada - último mês: ${lastMonth}`);
     } else {
-      console.log(`📅 Configuração de backup já existe - última data: ${backupConfigExists[0].value}`);
+      console.log(`📅 Configuração de backup mensal já existe - último mês: ${backupConfigExists[0].value}`);
     }
 
     console.log("✅ Dados iniciais criados com sucesso!");

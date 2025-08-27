@@ -59,6 +59,7 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 - **Date Display Fix**: Corrected timezone issues in date formatting across all components.
 - **Performance**: Optimized query invalidation and real-time data updates across all modules.
 - **Smart Group and Client Deletion (2025-08-18)**: Enhanced deletion logic that preserves referential integrity. Economic groups with dependent clients are automatically moved to "Não Informado" group before deletion. Clients with logged time entries are deactivated instead of deleted, while clients without time entries are fully removed.
+- **Monthly Backup System (2025-08-27)**: Updated backup file naming from daily format (`table-YYYY-MM-DD.csv`) to monthly format (`table-YYYY-MM.csv`). This prevents daily file accumulation and reduces storage usage by overwriting monthly files instead of creating new ones. Backup tracking configuration updated from `last_backup_date` to `last_backup_month`.
 
 ## External Dependencies
 

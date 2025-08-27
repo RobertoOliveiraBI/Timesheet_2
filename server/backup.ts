@@ -108,7 +108,7 @@ function prepareForCsv(data: any[]): any[] {
  */
 export async function backupAllTables(): Promise<{ ok: true; files: string[] } | { ok: false; error: string }> {
   try {
-    const currentDate = format(new Date(), 'yyyy-MM-dd');
+    const currentMonth = format(new Date(), 'yyyy-MM');
     const currentTime = format(new Date(), 'HH:mm:ss');
     const backupDir = 'backups';
     
@@ -121,7 +121,7 @@ export async function backupAllTables(): Promise<{ ok: true; files: string[] } |
     const errors: string[] = [];
     const tableCount = Object.keys(TABLES_TO_BACKUP).length;
 
-    console.log(`[BACKUP] 🚀 Iniciando backup de ${tableCount} tabelas - ${currentDate} ${currentTime}`);
+    console.log(`[BACKUP] 🚀 Iniciando backup de ${tableCount} tabelas - ${currentMonth} ${currentTime}`);
 
     // Iterar sobre cada tabela e fazer backup
     for (const [tableName, table] of Object.entries(TABLES_TO_BACKUP)) {
@@ -151,8 +151,8 @@ export async function backupAllTables(): Promise<{ ok: true; files: string[] } |
         });
         const csv = parser.parse(csvReadyData);
         
-        // Nome do arquivo: tabela-YYYY-MM-DD.csv
-        const fileName = `${tableName}-${currentDate}.csv`;
+        // Nome do arquivo: tabela-YYYY-MM.csv (formato mensal)
+        const fileName = `${tableName}-${currentMonth}.csv`;
         const filePath = `${backupDir}/${fileName}`;
         
         // Salvar arquivo
@@ -186,31 +186,31 @@ export async function backupAllTables(): Promise<{ ok: true; files: string[] } |
 }
 
 /**
- * Executa backup diário se necessário (baseado na última data de backup)
+ * Executa backup mensal se necessário (baseado no último mês de backup)
  * @returns Promise com resultado da verificação/execução
  */
 export async function runDailyBackupIfNeeded(): Promise<{ ran: boolean; date: string } | { ran: false; reason: string }> {
   try {
-    const today = format(new Date(), 'yyyy-MM-dd');
+    const currentMonth = format(new Date(), 'yyyy-MM');
     const now = format(new Date(), 'HH:mm:ss');
     
-    console.log(`[BACKUP] 🔍 Verificando necessidade de backup diário - ${today} ${now}`);
+    console.log(`[BACKUP] 🔍 Verificando necessidade de backup mensal - ${currentMonth} ${now}`);
     
-    // Buscar configuração da última data de backup
+    // Buscar configuração do último mês de backup
     const configRow = await db
       .select()
       .from(systemConfig)
-      .where(eq(systemConfig.key, 'last_backup_date'))
+      .where(eq(systemConfig.key, 'last_backup_month'))
       .limit(1);
 
-    const lastBackupDate = configRow[0]?.value as string || null;
+    const lastBackupMonth = configRow[0]?.value as string || null;
     
-    // Se já foi executado hoje, pular
-    if (lastBackupDate === today) {
-      return { ran: false, reason: `Backup diário já executado hoje (${today})` };
+    // Se já foi executado neste mês, pular
+    if (lastBackupMonth === currentMonth) {
+      return { ran: false, reason: `Backup mensal já executado neste mês (${currentMonth})` };
     }
 
-    console.log(`[BACKUP] 📅 Última data de backup: ${lastBackupDate || 'nunca'} - Executando backup...`);
+    console.log(`[BACKUP] 📅 Último mês de backup: ${lastBackupMonth || 'nunca'} - Executando backup...`);
     
     // Executar backup completo
     const backupResult = await backupAllTables();
@@ -219,38 +219,38 @@ export async function runDailyBackupIfNeeded(): Promise<{ ran: boolean; date: st
       return { ran: false, reason: `Falha na execução do backup: ${backupResult.error}` };
     }
 
-    // Atualizar/criar registro da última data de backup
+    // Atualizar/criar registro do último mês de backup
     try {
       if (configRow.length > 0) {
         // Atualizar registro existente
         await db
           .update(systemConfig)
           .set({ 
-            value: today, 
+            value: currentMonth, 
             updatedAt: new Date() 
           })
-          .where(eq(systemConfig.key, 'last_backup_date'));
+          .where(eq(systemConfig.key, 'last_backup_month'));
       } else {
         // Criar novo registro
         await db
           .insert(systemConfig)
           .values({ 
-            key: 'last_backup_date', 
-            value: today 
+            key: 'last_backup_month', 
+            value: currentMonth 
           });
       }
     } catch (configError) {
-      console.error(`[BACKUP] ⚠️  Erro ao atualizar data do backup: ${configError}`);
+      console.error(`[BACKUP] ⚠️  Erro ao atualizar mês do backup: ${configError}`);
       // Não falhar todo o processo por conta disso
     }
 
     const finalTime = format(new Date(), 'HH:mm:ss');
-    console.log(`[BACKUP] ✅ Backup diário concluído com sucesso ${finalTime}: ${backupResult.files.length} arquivos`);
+    console.log(`[BACKUP] ✅ Backup mensal concluído com sucesso ${finalTime}: ${backupResult.files.length} arquivos`);
     
-    return { ran: true, date: today };
+    return { ran: true, date: currentMonth };
 
   } catch (error) {
-    const errorMsg = `Erro na verificação/execução do backup diário: ${error instanceof Error ? error.message : String(error)}`;
+    const errorMsg = `Erro na verificação/execução do backup mensal: ${error instanceof Error ? error.message : String(error)}`;
     console.error(`[BACKUP] ❌ ${errorMsg}`);
     return { ran: false, reason: errorMsg };
   }
@@ -265,21 +265,21 @@ export async function initializeBackupConfig(): Promise<void> {
     const configExists = await db
       .select()
       .from(systemConfig)
-      .where(eq(systemConfig.key, 'last_backup_date'))
+      .where(eq(systemConfig.key, 'last_backup_month'))
       .limit(1);
     
     if (configExists.length === 0) {
-      // Criar com data de ontem para forçar primeiro backup
-      const yesterday = format(new Date(Date.now() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+      // Criar com mês anterior para forçar primeiro backup
+      const lastMonth = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM');
       
       await db
         .insert(systemConfig)
         .values({
-          key: 'last_backup_date',
-          value: yesterday
+          key: 'last_backup_month',
+          value: lastMonth
         });
       
-      console.log(`[BACKUP] 🔧 Configuração inicial criada - última data definida como ${yesterday}`);
+      console.log(`[BACKUP] 🔧 Configuração inicial criada - último mês definido como ${lastMonth}`);
     }
   } catch (error) {
     console.error(`[BACKUP] ❌ Erro ao inicializar configuração: ${error}`);

@@ -1,0 +1,7 @@
+"id","campaignId","userId","subject","description","referenceMonth","amount","notes","cnpjFornecedor","razaoSocial","categoryId","status","createdAt","updatedAt","inactivatedAt","inactivatedBy"
+2,3,1,"Teste de API Backend","Descrição 2","2025-04","200000.00","","","","","INATIVO","""2025-07-31T20:58:44.097Z""","""2025-07-31T22:14:54.497Z""","""2025-07-31T22:14:54.497Z""",1
+5,4,1,"RECEPCIONISTA DE EVENTO","Staff","2025-07","1500.00","","23247788/0001-09","PARK",13,"ATIVO","""2025-08-01T00:25:36.670Z""","""2025-08-01T14:59:09.784Z""","",""
+4,4,1,"Lanche","Lanche para o pessoal que ficou após o horário","2025-07","578.00","","33456765/0001-23","Tomato Ltda",19,"ATIVO","""2025-07-31T22:29:59.161Z""","""2025-08-01T15:18:44.713Z""","",""
+3,2,1,"FOTOGRAFO","USO DE FOTOS NO EVENTO","2025-07","24560.00","","","","","INATIVO","""2025-07-31T22:26:26.671Z""","""2025-08-01T15:19:53.446Z""","""2025-08-01T15:19:53.446Z""",1
+6,2,1,"FOTO","SEM DESCRIÇÃO 2","2025-07","12000.00","","44556667/0001-34","FAROFA LTDA",1,"ATIVO","""2025-08-01T15:20:41.185Z""","""2025-08-01T15:20:55.030Z""","",""
+7,4,1,"pi","","2025-08","5000.00","","","",1,"ATIVO","""2025-08-15T17:01:05.235Z""","""2025-08-15T17:01:05.235Z""","",""
