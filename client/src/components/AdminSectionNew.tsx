@@ -45,6 +45,11 @@ export function AdminSection() {
   const [deleteEntriesModal, setDeleteEntriesModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeletingEntries, setIsDeletingEntries] = useState(false);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; item: any; type: string }>({ 
+    isOpen: false, 
+    item: null, 
+    type: '' 
+  });
   const [searchTerms, setSearchTerms] = useState({
     users: "",
     groups: "",
@@ -190,6 +195,11 @@ export function AdminSection() {
 
 
 
+  // Função para abrir modal de confirmação
+  const openDeleteConfirmModal = (type: string, item: any) => {
+    setDeleteConfirmModal({ isOpen: true, type, item });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: async ({ type, id }: { type: string; id: number }) => {
       const endpoints = {
@@ -215,15 +225,27 @@ export function AdminSection() {
         costCenter: ["/api/cost-centers"],
       };
       queryClient.invalidateQueries({ queryKey: queries[variables.type as keyof typeof queries] });
+      setDeleteConfirmModal({ isOpen: false, item: null, type: '' });
       toast({ title: "Item removido com sucesso!" });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || "Erro ao remover item";
       toast({
         title: "Erro ao remover item",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmModal.item && deleteConfirmModal.type) {
+      deleteMutation.mutate({ 
+        type: deleteConfirmModal.type, 
+        id: deleteConfirmModal.item.id 
+      });
+    }
+  };
 
   const openModal = (modalType: string, item?: any) => {
     setSelectedModal(modalType);
@@ -554,7 +576,8 @@ export function AdminSection() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteMutation.mutate({ type: "user", id: user.id })}
+                          onClick={() => openDeleteConfirmModal("user", user)}
+                          data-testid={`button-delete-user-${user.id}`}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -618,7 +641,12 @@ export function AdminSection() {
                       <Button variant="ghost" size="sm" onClick={() => openModal("economicGroup", group)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "group", id: group.id })}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmModal("group", group)}
+                        data-testid={`button-delete-group-${group.id}`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -674,7 +702,12 @@ export function AdminSection() {
                       <Button variant="ghost" size="sm" onClick={() => openModal("client", client)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "client", id: client.id })}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmModal("client", client)}
+                        data-testid={`button-delete-client-${client.id}`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -734,7 +767,12 @@ export function AdminSection() {
                       <Button variant="ghost" size="sm" onClick={() => openModal("campaign", campaign)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "campaign", id: campaign.id })}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmModal("campaign", campaign)}
+                        data-testid={`button-delete-campaign-${campaign.id}`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -798,7 +836,12 @@ export function AdminSection() {
                       <Button variant="ghost" size="sm" onClick={() => openModal("taskType", taskType)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "taskType", id: taskType.id })}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmModal("taskType", taskType)}
+                        data-testid={`button-delete-tasktype-${taskType.id}`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -951,7 +994,8 @@ export function AdminSection() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteMutation.mutate({ type: "campaignTask", id: task.id })}
+                          onClick={() => openDeleteConfirmModal("campaignTask", task)}
+                          data-testid={`button-delete-campaigntask-${task.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1018,7 +1062,12 @@ export function AdminSection() {
                       <Button variant="ghost" size="sm" onClick={() => openModal("department", department)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "department", id: department.id })}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmModal("department", department)}
+                        data-testid={`button-delete-department-${department.id}`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -1082,7 +1131,12 @@ export function AdminSection() {
                       <Button variant="ghost" size="sm" onClick={() => openModal("costCenter", costCenter)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate({ type: "costCenter", id: costCenter.id })}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => openDeleteConfirmModal("costCenter", costCenter)}
+                        data-testid={`button-delete-costcenter-${costCenter.id}`}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -1204,6 +1258,87 @@ export function AdminSection() {
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Confirmar Exclusão
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Deleção */}
+      <Dialog open={deleteConfirmModal.isOpen} onOpenChange={(open) => {
+        if (!open) setDeleteConfirmModal({ isOpen: false, item: null, type: '' });
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold">
+                  Confirmar Exclusão
+                </DialogTitle>
+                <DialogDescription>
+                  Esta ação não pode ser desfeita
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {deleteConfirmModal.type === 'campaign' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover a campanha <strong>"{deleteConfirmModal.item.name}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'user' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover o usuário <strong>"{deleteConfirmModal.item.firstName} {deleteConfirmModal.item.lastName}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'client' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover o cliente <strong>"{deleteConfirmModal.item.tradeName || deleteConfirmModal.item.companyName}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'group' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover o grupo <strong>"{deleteConfirmModal.item.name}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'taskType' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover o tipo de tarefa <strong>"{deleteConfirmModal.item.name}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'campaignTask' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover a tarefa <strong>"{deleteConfirmModal.item.description}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'department' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover o departamento <strong>"{deleteConfirmModal.item.name}"</strong>?</>
+              )}
+              {deleteConfirmModal.type === 'costCenter' && deleteConfirmModal.item && (
+                <>Tem certeza que deseja remover o centro de custo <strong>"{deleteConfirmModal.item.name}"</strong>?</>
+              )}
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmModal({ isOpen: false, item: null, type: '' })}
+              disabled={deleteMutation.isPending}
+              data-testid="button-cancel-confirm-delete"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+              data-testid="button-confirm-final-delete"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  Removendo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Sim, Remover
                 </>
               )}
             </Button>
