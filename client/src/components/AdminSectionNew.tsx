@@ -298,9 +298,13 @@ export function AdminSection() {
 
       const result = await response.json();
       
+      const message = result.deletedCommentsCount > 0 
+        ? `${result.deletedCount} entradas e ${result.deletedCommentsCount} comentários removidos`
+        : `${result.deletedCount} entradas de teste foram removidas`;
+      
       toast({
         title: "✅ Entradas removidas!",
-        description: `${result.deletedCount} entradas de teste foram removidas`,
+        description: message,
         duration: 5000,
       });
 

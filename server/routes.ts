@@ -2292,21 +2292,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log(`[DELETE ENTRIES] 🗑️ Deleção de entradas de teste solicitada por ${user.email} (${user.role})`);
       
-      // Deletar todas as entradas de time entries (considerando que são dados de teste)
+      // Primeiro, deletar comentários relacionados (para evitar violação de chave estrangeira)
+      const deletedComments = await db.delete(timeEntryComments).returning();
+      console.log(`[DELETE ENTRIES] 🗑️ ${deletedComments.length} comentários deletados`);
+      
+      // Depois, deletar todas as entradas de time entries (considerando que são dados de teste)
       // Aqui você pode definir critérios específicos para identificar entradas de teste
       const deletedEntries = await db.delete(timeEntries).returning();
-      
-      // Também deletar comentários relacionados
-      await db.delete(timeEntryComments);
 
       const deletedCount = deletedEntries.length;
+      const deletedCommentsCount = deletedComments.length;
 
-      console.log(`[DELETE ENTRIES] ✅ ${deletedCount} entradas de teste deletadas por ${user.email}`);
+      console.log(`[DELETE ENTRIES] ✅ ${deletedCount} entradas de teste e ${deletedCommentsCount} comentários deletados por ${user.email}`);
       
       res.json({
         success: true,
         message: "Entradas de teste deletadas com sucesso",
         deletedCount,
+        deletedCommentsCount,
         deletedBy: user.email,
         timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss')
       });
