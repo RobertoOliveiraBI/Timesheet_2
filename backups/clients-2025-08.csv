@@ -1,5 +1,4 @@
 "id","companyName","tradeName","cnpj","email","economicGroupId","isActive","createdAt"
-3,"Gotcha","GTodos","11.222.333/0001-44","ajup@gmail.com",1,"true","""2025-07-24T23:43:02.183Z"""
 5,"NIKY INSTITUICAO DE PAGAMENTO SA","NIKY.","11.512.962/0001-46","",5,"true","""2025-08-18T20:24:11.743Z"""
 7,"ALLP FIT FRANQUEADORA LTDA","ALLP FIT FRANQUEADORA LTDA","51.159.562/0001-13","",5,"true","""2025-08-18T20:24:11.743Z"""
 8,"ELYTRON SECURITY CONSULTORIA DE TECNOLOGIA S.A.","ELYTRON SECURITY CONSULTORIA DE TECNOLOGIA S.A.","30.763.603/0001-06","",5,"true","""2025-08-18T20:24:11.743Z"""
@@ -23,3 +22,4 @@
 27,"ALIMENTOS ZAELI LTDA","ALIMENTOS ZAELI LTDA","77.917.680/0001-37","",5,"true","""2025-08-18T20:26:44.378Z"""
 4,"Zaeli","Zaeli Ltda","49.366.277/0001-21","roberto.oliveira@zaeli.com",5,"true","""2025-07-24T23:44:16.468Z"""
 2,"Cliente teste","Teste Ltda","11.222.333/0001-44","eeep@gmail.com",5,"false","""2025-07-24T23:00:33.506Z"""
+3,"Gotcha","GTodos","11.222.333/0001-44","ajup@gmail.com",5,"true","""2025-07-24T23:43:02.183Z"""
