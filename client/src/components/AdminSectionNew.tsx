@@ -3,7 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Dialog } from "@/components/ui/dialog";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -1130,72 +1136,75 @@ export function AdminSection() {
 
       {/* Modal de Confirmação para Deletar Entradas de Teste */}
       <Dialog open={deleteEntriesModal} onOpenChange={setDeleteEntriesModal}>
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">
+                <DialogTitle className="text-lg font-semibold">
                   Deletar Entradas de Teste
-                </h3>
-                <p className="text-sm text-gray-500">
+                </DialogTitle>
+                <DialogDescription>
                   Esta ação não pode ser desfeita
-                </p>
+                </DialogDescription>
               </div>
             </div>
+          </DialogHeader>
 
-            <div className="mb-6">
-              <p className="text-sm text-gray-700 mb-4">
-                Para confirmar a exclusão de todas as entradas de teste, digite a senha de confirmação:
-              </p>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Senha de confirmação:
-                </label>
-                <Input
-                  type="password"
-                  placeholder="Digite a senha..."
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setDeleteEntriesModal(false);
-                  setDeletePassword("");
-                }}
-                disabled={isDeletingEntries}
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteTestEntries}
-                disabled={isDeletingEntries || !deletePassword}
-              >
-                {isDeletingEntries ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                    Deletando...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Confirmar Exclusão
-                  </>
-                )}
-              </Button>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Para confirmar a exclusão de todas as entradas de teste, digite a senha de confirmação:
+            </p>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Senha de confirmação:
+              </label>
+              <Input
+                type="password"
+                placeholder="Digite a senha..."
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                className="w-full"
+                data-testid="input-delete-password"
+              />
             </div>
           </div>
-        </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteEntriesModal(false);
+                setDeletePassword("");
+              }}
+              disabled={isDeletingEntries}
+              data-testid="button-cancel-delete"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteTestEntries}
+              disabled={isDeletingEntries || !deletePassword}
+              data-testid="button-confirm-delete"
+            >
+              {isDeletingEntries ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                  Deletando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Confirmar Exclusão
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   );
