@@ -1,17 +1,17 @@
 import {
   users,
-  economic_groups,
+  economicGroups,
   clients,
   campaigns,
-  campaign_users,
-  task_types,
-  campaign_tasks,
-  time_entries,
-  time_entry_comments,
-  campaign_costs,
+  campaignUsers,
+  taskTypes,
+  campaignTasks,
+  timeEntries,
+  timeEntryComments,
+  campaignCosts,
   departments,
-  cost_centers,
-  cost_categories,
+  costCenters,
+  costCategories,
   type User,
   type InsertUser,
   type InsertEconomicGroup,
@@ -38,7 +38,7 @@ import {
   type CampaignCostWithRelations,
   type InsertCostCategory,
   type CostCategory,
-  system_config,
+  systemConfig,
   type SystemConfig,
   type InsertSystemConfig,
   type Department,
@@ -546,10 +546,10 @@ export class MssqlStorage implements IStorage {
 
   async respondToComment(time_entry_id: number, user_id: number, comment: string): Promise<{comment: TimeEntryComment, updatedEntry: TimeEntry}> {
     const newComment = await this.createTimeEntryComment({
-      time_entry_id,
-      user_id,
+      timeEntryId: time_entry_id,
+      userId: user_id,
       comment,
-      comment_type: 'COLLABORATOR_RESPONSE'
+      commentType: 'COLLABORATOR_RESPONSE'
     });
 
     const updatedEntry = await this.updateTimeEntry(time_entry_id, {

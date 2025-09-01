@@ -122,7 +122,19 @@ export function DailyReportSection() {
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString + 'T00:00:00'), "dd/MM/yyyy", { locale: ptBR });
+    if (!dateString || dateString.trim() === '') {
+      return 'Data inválida';
+    }
+    
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      if (isNaN(date.getTime())) {
+        return 'Data inválida';
+      }
+      return format(date, "dd/MM/yyyy", { locale: ptBR });
+    } catch (error) {
+      return 'Data inválida';
+    }
   };
 
   const getBalanceColor = (status: string) => {
