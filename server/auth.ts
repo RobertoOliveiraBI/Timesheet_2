@@ -3,10 +3,10 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
-import { storage } from "./storage";
+import { mssqlStorage as storage } from "./storage-mssql";
 import { User as SelectUser } from "@shared/schema";
-import ConnectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+// Temporarily use memory store for sessions until SQL Server sessions are configured
+import MemoryStore from "memorystore";
 
 declare global {
   namespace Express {
@@ -22,15 +22,13 @@ async function comparePasswords(supplied: string, stored: string) {
   return bcrypt.compare(supplied, stored);
 }
 
-const PgSession = ConnectPgSimple(session);
+const MemStore = MemoryStore(session);
 
 export function setupAuth(app: Express) {
   app.use(
     session({
-      store: new PgSession({
-        pool: pool,
-        tableName: "sessions",
-        createTableIfMissing: false, // Don't auto-create table since we manage it with Drizzle
+      store: new MemStore({
+        checkPeriod: 86400000, // prune expired entries every 24h
       }),
       secret: process.env.SESSION_SECRET || "your-secret-key",
       resave: false,

@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "./db";
-import { storage } from "./storage";
+import { mssqlStorage as storage } from "./storage-mssql";
 import { setupAuth } from "./auth";
 import { 
   insertEconomicGroupSchema,
