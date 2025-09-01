@@ -6,6 +6,51 @@ const debug = createDebug('app:db');
 let pool: sql.ConnectionPool | null = null;
 
 /**
+ * Parseia uma URL MSSQL para objeto de configuração
+ * Formato: mssql://usuario:senha@servidor:porta/database?opções
+ */
+function parseMssqlUrl(url: string): sql.config {
+  try {
+    const parsed = new URL(url);
+    
+    // Extrair componentes básicos
+    const server = parsed.hostname;
+    const port = parsed.port ? parseInt(parsed.port) : 1433;
+    const database = parsed.pathname.replace('/', '');
+    const user = decodeURIComponent(parsed.username);
+    const password = decodeURIComponent(parsed.password);
+    
+    // Extrair opções da query string
+    const options = parsed.searchParams;
+    const encrypt = options.get('encrypt') === 'true';
+    const trustServerCertificate = options.get('trustServerCertificate') === 'true';
+    
+    debug('Parsando URL MSSQL:', { server, port, database, user: user.substring(0, 3) + '***' });
+    
+    return {
+      server,
+      port,
+      database,
+      user,
+      password,
+      options: {
+        encrypt,
+        trustServerCertificate,
+        connectionTimeout: 30000,
+        requestTimeout: 30000,
+        pool: {
+          max: 10,
+          min: 0,
+          idleTimeoutMillis: 30000
+        }
+      }
+    } as sql.config;
+  } catch (error) {
+    throw new Error(`Erro ao parsear MSSQL_URL: ${error instanceof Error ? error.message : 'URL inválida'}`);
+  }
+}
+
+/**
  * Obtém ou cria um pool de conexão MSSQL reutilizável
  * Usa a variável de ambiente MSSQL_URL para conectar ao Azure SQL Server
  */
@@ -28,8 +73,12 @@ export async function getMssql(): Promise<sql.ConnectionPool> {
   debug('Conectando ao MSSQL (Azure SQL Server)...');
   
   try {
+    // Parsear URL do SQL Server para configuração
+    const config = parseMssqlUrl(connStr);
+    debug('Configuração SQL Server:', { server: config.server, database: config.database, user: config.user });
+    
     // Criar pool de conexão
-    pool = new sql.ConnectionPool(connStr);
+    pool = new sql.ConnectionPool(config);
     
     // Eventos de debug
     pool.on('connect', () => {

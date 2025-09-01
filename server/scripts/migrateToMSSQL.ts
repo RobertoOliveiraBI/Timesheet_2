@@ -363,17 +363,15 @@ async function migrateToMSSQL(): Promise<void> {
   }
 }
 
-// Executar migração se chamado diretamente
-if (require.main === module) {
-  migrateToMSSQL()
-    .then(() => {
-      console.log('✅ Migração concluída com sucesso!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ Erro na migração:', error);
-      process.exit(1);
-    });
-}
+// Executar migração diretamente
+migrateToMSSQL()
+  .then(() => {
+    console.log('✅ Migração concluída com sucesso!');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Erro na migração:', error);
+    process.exit(1);
+  });
 
 export { migrateToMSSQL, getPostgresTableMetadata, createTablesInSqlServer, migrateTableData };
