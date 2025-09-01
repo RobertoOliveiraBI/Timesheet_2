@@ -15,11 +15,14 @@ const TYPE_MAPPINGS: Record<string, string> = {
   'integer': 'INT',
   'bigint': 'BIGINT',
   'varchar': 'NVARCHAR',
+  'character varying': 'NVARCHAR',
   'text': 'NVARCHAR(MAX)',
   'boolean': 'BIT',
   'json': 'NVARCHAR(MAX)',
   'jsonb': 'NVARCHAR(MAX)',
   'timestamp': 'DATETIME2',
+  'timestamp without time zone': 'DATETIME2',
+  'timestamp with time zone': 'DATETIMEOFFSET',
   'timestamptz': 'DATETIMEOFFSET',
   'date': 'DATE',
   'decimal': 'DECIMAL',
@@ -58,8 +61,12 @@ async function getPostgresTableMetadata(): Promise<TableInfo[]> {
     `);
 
     const tables: TableInfo[] = [];
+    
+    // Verificar estrutura do resultado
+    debugMigrate('Estrutura do resultado das tabelas:', tablesResult);
+    const tableRows = Array.isArray(tablesResult) ? tablesResult : (tablesResult as any).rows || [];
 
-    for (const table of tablesResult as unknown as any[]) {
+    for (const table of tableRows) {
       const tableName = table.table_name as string;
       debugMigrate(`Lendo colunas da tabela: ${tableName}`);
 
@@ -78,9 +85,11 @@ async function getPostgresTableMetadata(): Promise<TableInfo[]> {
         ORDER BY ordinal_position
       `);
 
+      const columnRows = Array.isArray(columnsResult) ? columnsResult : (columnsResult as any).rows || [];
+      
       tables.push({
         table_name: tableName,
-        columns: columnsResult as any as ColumnInfo[]
+        columns: columnRows as ColumnInfo[]
       });
     }
 
@@ -90,6 +99,44 @@ async function getPostgresTableMetadata(): Promise<TableInfo[]> {
     debugMigrate('Erro ao ler metadados do PostgreSQL:', error);
     throw error;
   }
+}
+
+/**
+ * Limpa valores padrão específicos do PostgreSQL
+ */
+function cleanDefaultValue(defaultValue: string | null): string | null {
+  if (!defaultValue) return null;
+  
+  // Lista de valores problemáticos para remover completamente
+  const problematicPatterns = [
+    /without\s+time\s+zone/gi,
+    /with\s+time\s+zone/gi,
+    /nextval\([^)]+\)/gi,
+    /::[\w\s\(\)]+/g, // Cast operators mais amplos
+    /'[^']*'::[\w\s]+/g, // Strings com cast
+  ];
+  
+  // Se contém padrões problemáticos, remover completamente
+  for (const pattern of problematicPatterns) {
+    if (pattern.test(defaultValue)) {
+      debugMigrate(`Removendo valor padrão problemático: ${defaultValue}`);
+      return null;
+    }
+  }
+  
+  // Substituições simples para valores seguros
+  let cleaned = defaultValue
+    .replace(/now\(\)/gi, 'SYSUTCDATETIME()')
+    .replace(/current_timestamp/gi, 'SYSUTCDATETIME()')
+    .replace(/gen_random_uuid\(\)/gi, 'NEWID()')
+    .replace(/\btrue\b/gi, '1') // Boolean true → 1
+    .replace(/\bfalse\b/gi, '0') // Boolean false → 0
+    .trim();
+  
+  // Se ficou vazio após limpeza, retornar null
+  if (!cleaned || cleaned === "''" || cleaned === 'NULL') return null;
+  
+  return cleaned;
 }
 
 /**
@@ -126,6 +173,13 @@ function generateCreateTableDDL(table: TableInfo, schema = 'TMS'): string {
     
     let columnDef = `    [${column.column_name}] ${sqlServerType} ${nullable}`;
     
+    // Adicionar valores padrão limpos
+    const cleanDefault = cleanDefaultValue(column.column_default);
+    if (cleanDefault && !sqlServerType.includes('IDENTITY')) {
+      debugMigrate(`Default para ${column.column_name}: "${column.column_default}" → "${cleanDefault}"`);
+      columnDef += ` DEFAULT ${cleanDefault}`;
+    }
+    
     // Adicionar constraints especiais
     if (column.column_name === 'id' && sqlServerType.includes('IDENTITY')) {
       columnDef += ' PRIMARY KEY';
@@ -134,7 +188,7 @@ function generateCreateTableDDL(table: TableInfo, schema = 'TMS'): string {
     return columnDef;
   }).join(',\n');
 
-  return `
+  const ddl = `
 IF NOT EXISTS (SELECT * FROM sys.tables t 
                JOIN sys.schemas s ON t.schema_id = s.schema_id 
                WHERE s.name = '${schema}' AND t.name = '${table.table_name}')
@@ -147,6 +201,9 @@ END
 ELSE
     PRINT 'Tabela [${schema}].[${table.table_name}] já existe';
 `;
+
+  debugMigrate(`DDL gerado para ${table.table_name}:`, ddl);
+  return ddl;
 }
 
 /**
