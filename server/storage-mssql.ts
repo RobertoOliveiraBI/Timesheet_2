@@ -58,7 +58,7 @@ const debug = createDebug('app:db');
  * Converte operations Drizzle para queries SQL Server nativas
  */
 export class MssqlStorage implements IStorage {
-  private schema = 'public'; // Usar schema public onde estão as tabelas
+  private schema = 'TMS'; // Usar schema TMS onde estão as tabelas no Azure SQL Server
 
   /**
    * Helper para executar query parametrizada
@@ -172,7 +172,7 @@ export class MssqlStorage implements IStorage {
     try {
       const users = await this.executeQuery<User>(`
         SELECT u.*
-        FROM usuarios u
+        FROM [${this.schema}].[users] u
         WHERE u.id = @id
       `, { id });
       
@@ -187,7 +187,7 @@ export class MssqlStorage implements IStorage {
     try {
       const users = await this.executeQuery<User>(`
         SELECT u.*
-        FROM usuarios u
+        FROM [${this.schema}].[users] u
         WHERE u.email = @email
       `, { email });
       
