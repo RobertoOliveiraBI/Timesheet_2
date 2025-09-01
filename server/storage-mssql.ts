@@ -1,17 +1,17 @@
 import {
   users,
-  economicGroups,
+  economic_groups,
   clients,
   campaigns,
-  campaignUsers,
-  taskTypes,
-  campaignTasks,
-  timeEntries,
-  timeEntryComments,
-  campaignCosts,
+  campaign_users,
+  task_types,
+  campaign_tasks,
+  time_entries,
+  time_entry_comments,
+  campaign_costs,
   departments,
-  costCenters,
-  costCategories,
+  cost_centers,
+  cost_categories,
   type User,
   type InsertUser,
   type InsertEconomicGroup,
@@ -38,7 +38,7 @@ import {
   type CampaignCostWithRelations,
   type InsertCostCategory,
   type CostCategory,
-  systemConfig,
+  system_config,
   type SystemConfig,
   type InsertSystemConfig,
   type Department,
@@ -228,18 +228,18 @@ export class MssqlStorage implements IStorage {
 
   // Economic Groups
   async createEconomicGroup(group: InsertEconomicGroup): Promise<EconomicGroup> {
-    return await this.executeInsert<EconomicGroup>('economicGroups', group);
+    return await this.executeInsert<EconomicGroup>('economic_groups', group);
   }
 
   async getEconomicGroups(): Promise<EconomicGroup[]> {
     return await this.executeQuery<EconomicGroup>(`
-      SELECT * FROM [${this.schema}].[economicGroups]
+      SELECT * FROM [${this.schema}].[economic_groups]
       ORDER BY [name]
     `);
   }
 
   async updateEconomicGroup(id: number, group: Partial<InsertEconomicGroup>): Promise<EconomicGroup> {
-    return await this.executeUpdate<EconomicGroup>('economicGroups', id, group);
+    return await this.executeUpdate<EconomicGroup>('economic_groups', id, group);
   }
 
   // Clients
@@ -282,7 +282,7 @@ export class MssqlStorage implements IStorage {
         eg.name as economicGroup_name
       FROM [${this.schema}].[campaigns] c
       INNER JOIN [${this.schema}].[clients] cl ON c.clientId = cl.id
-      LEFT JOIN [${this.schema}].[economicGroups] eg ON cl.economicGroupId = eg.id
+      LEFT JOIN [${this.schema}].[economic_groups] eg ON cl.economicGroupId = eg.id
       WHERE c.isActive = 1
       ORDER BY c.createdAt DESC
     `);
@@ -297,8 +297,8 @@ export class MssqlStorage implements IStorage {
         eg.name as economicGroup_name
       FROM [${this.schema}].[campaigns] c
       INNER JOIN [${this.schema}].[clients] cl ON c.clientId = cl.id
-      LEFT JOIN [${this.schema}].[economicGroups] eg ON cl.economicGroupId = eg.id
-      INNER JOIN [${this.schema}].[campaignUsers] cu ON c.id = cu.campaignId
+      LEFT JOIN [${this.schema}].[economic_groups] eg ON cl.economicGroupId = eg.id
+      INNER JOIN [${this.schema}].[campaign_users] cu ON c.id = cu.campaignId
       WHERE cu.userId = @userId AND c.isActive = 1
       ORDER BY c.createdAt DESC
     `, { userId });
@@ -309,36 +309,36 @@ export class MssqlStorage implements IStorage {
   }
 
   async addUserToCampaign(campaignId: number, userId: number): Promise<void> {
-    await this.executeInsert('campaignUsers', { campaignId, userId });
+    await this.executeInsert('campaign_users', { campaignId, userId });
   }
 
   async removeUserFromCampaign(campaignId: number, userId: number): Promise<void> {
     await this.executeQuery(`
-      DELETE FROM [${this.schema}].[campaignUsers]
+      DELETE FROM [${this.schema}].[campaign_users]
       WHERE [campaignId] = @campaignId AND [userId] = @userId
     `, { campaignId, userId });
   }
 
   // Task Types
   async createTaskType(taskType: InsertTaskType): Promise<TaskType> {
-    return await this.executeInsert<TaskType>('taskTypes', taskType);
+    return await this.executeInsert<TaskType>('task_types', taskType);
   }
 
   async getTaskTypes(): Promise<TaskType[]> {
     return await this.executeQuery<TaskType>(`
-      SELECT * FROM [${this.schema}].[taskTypes]
+      SELECT * FROM [${this.schema}].[task_types]
       WHERE [isActive] = 1
       ORDER BY [name]
     `);
   }
 
   async updateTaskType(id: number, taskType: Partial<InsertTaskType>): Promise<TaskType> {
-    return await this.executeUpdate<TaskType>('taskTypes', id, taskType);
+    return await this.executeUpdate<TaskType>('task_types', id, taskType);
   }
 
   // Campaign Tasks
   async createCampaignTask(campaignTask: InsertCampaignTask): Promise<CampaignTask> {
-    return await this.executeInsert<CampaignTask>('campaignTasks', campaignTask);
+    return await this.executeInsert<CampaignTask>('campaign_tasks', campaignTask);
   }
 
   async getCampaignTasks(campaignId?: number): Promise<CampaignTaskWithRelations[]> {
@@ -351,25 +351,25 @@ export class MssqlStorage implements IStorage {
         c.name as campaign_name,
         tt.name as taskType_name,
         tt.isBillable as taskType_isBillable
-      FROM [${this.schema}].[campaignTasks] ct
+      FROM [${this.schema}].[campaign_tasks] ct
       INNER JOIN [${this.schema}].[campaigns] c ON ct.campaignId = c.id
-      INNER JOIN [${this.schema}].[taskTypes] tt ON ct.taskTypeId = tt.id
+      INNER JOIN [${this.schema}].[task_types] tt ON ct.taskTypeId = tt.id
       ${whereClause}
       ORDER BY ct.[description]
     `, params);
   }
 
   async updateCampaignTask(id: number, campaignTask: Partial<InsertCampaignTask>): Promise<CampaignTask> {
-    return await this.executeUpdate<CampaignTask>('campaignTasks', id, campaignTask);
+    return await this.executeUpdate<CampaignTask>('campaign_tasks', id, campaignTask);
   }
 
   async deleteCampaignTask(id: number): Promise<void> {
-    await this.executeUpdate('campaignTasks', id, { isActive: false });
+    await this.executeUpdate('campaign_tasks', id, { isActive: false });
   }
 
   // Time Entries - implementação simplificada
   async createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
-    return await this.executeInsert<TimeEntry>('timeEntries', timeEntry);
+    return await this.executeInsert<TimeEntry>('time_entries', timeEntry);
   }
 
   async getTimeEntries(userId?: number, status?: string, fromDate?: string, toDate?: string): Promise<TimeEntryWithRelations[]> {
@@ -406,12 +406,12 @@ export class MssqlStorage implements IStorage {
         cl.companyName as client_companyName,
         ct.description as campaignTask_description,
         tt.name as taskType_name
-      FROM [${this.schema}].[timeEntries] te
+      FROM [${this.schema}].[time_entries] te
       INNER JOIN [${this.schema}].[users] u ON te.userId = u.id
       INNER JOIN [${this.schema}].[campaigns] c ON te.campaignId = c.id
       INNER JOIN [${this.schema}].[clients] cl ON c.clientId = cl.id
-      INNER JOIN [${this.schema}].[campaignTasks] ct ON te.campaignTaskId = ct.id
-      INNER JOIN [${this.schema}].[taskTypes] tt ON ct.taskTypeId = tt.id
+      INNER JOIN [${this.schema}].[campaign_tasks] ct ON te.campaignTaskId = ct.id
+      INNER JOIN [${this.schema}].[task_types] tt ON ct.taskTypeId = tt.id
       ${whereClause}
       ORDER BY te.[date] DESC, te.createdAt DESC
     `, params);
@@ -419,12 +419,12 @@ export class MssqlStorage implements IStorage {
 
   // Implementações simplificadas para os métodos restantes da interface
   async deleteTimeEntry(id: number): Promise<void> {
-    await this.executeQuery(`DELETE FROM [${this.schema}].[timeEntries] WHERE id = @id`, { id });
+    await this.executeQuery(`DELETE FROM [${this.schema}].[time_entries] WHERE id = @id`, { id });
   }
 
   async getTimeEntry(id: number): Promise<TimeEntry | undefined> {
     const entries = await this.executeQuery<TimeEntry>(`
-      SELECT * FROM [${this.schema}].[timeEntries] WHERE id = @id
+      SELECT * FROM [${this.schema}].[time_entries] WHERE id = @id
     `, { id });
     return entries[0];
   }
@@ -451,12 +451,12 @@ export class MssqlStorage implements IStorage {
           cl.companyName as client_companyName,
           ct.description as campaignTask_description,
           tt.name as taskType_name
-        FROM [${this.schema}].[timeEntries] te
+        FROM [${this.schema}].[time_entries] te
         INNER JOIN [${this.schema}].[users] u ON te.userId = u.id
         INNER JOIN [${this.schema}].[campaigns] c ON te.campaignId = c.id
         INNER JOIN [${this.schema}].[clients] cl ON c.clientId = cl.id
-        INNER JOIN [${this.schema}].[campaignTasks] ct ON te.campaignTaskId = ct.id
-        INNER JOIN [${this.schema}].[taskTypes] tt ON ct.taskTypeId = tt.id
+        INNER JOIN [${this.schema}].[campaign_tasks] ct ON te.campaignTaskId = ct.id
+        INNER JOIN [${this.schema}].[task_types] tt ON ct.taskTypeId = tt.id
         WHERE te.status = 'VALIDACAO' AND te.userId IN (${userIds.map(id => `'${id}'`).join(',')})
         ORDER BY te.[date] ASC, te.createdAt ASC
       `);
@@ -466,14 +466,14 @@ export class MssqlStorage implements IStorage {
   }
 
   async updateTimeEntry(id: number, timeEntry: any): Promise<TimeEntry> {
-    return await this.executeUpdate<TimeEntry>('timeEntries', id, {
+    return await this.executeUpdate<TimeEntry>('time_entries', id, {
       ...timeEntry,
       updatedAt: new Date()
     });
   }
 
   async submitTimeEntry(id: number, userId: number): Promise<TimeEntry> {
-    return await this.executeUpdate<TimeEntry>('timeEntries', id, {
+    return await this.executeUpdate<TimeEntry>('time_entries', id, {
       status: 'VALIDACAO',
       submittedAt: new Date(),
       updatedAt: new Date()
@@ -482,7 +482,7 @@ export class MssqlStorage implements IStorage {
 
   async approveTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry> {
     if (comment?.trim()) {
-      await this.executeInsert('timeEntryComments', {
+      await this.executeInsert('time_entry_comments', {
         timeEntryId: id,
         userId: reviewerId,
         comment: comment.trim(),
@@ -490,7 +490,7 @@ export class MssqlStorage implements IStorage {
       });
     }
 
-    return await this.executeUpdate<TimeEntry>('timeEntries', id, {
+    return await this.executeUpdate<TimeEntry>('time_entries', id, {
       status: 'APROVADO',
       reviewedBy: reviewerId,
       reviewedAt: new Date(),
@@ -501,7 +501,7 @@ export class MssqlStorage implements IStorage {
 
   async rejectTimeEntry(id: number, reviewerId: number, comment?: string): Promise<TimeEntry> {
     if (comment?.trim()) {
-      await this.executeInsert('timeEntryComments', {
+      await this.executeInsert('time_entry_comments', {
         timeEntryId: id,
         userId: reviewerId,
         comment: comment.trim(),
@@ -509,7 +509,7 @@ export class MssqlStorage implements IStorage {
       });
     }
 
-    return await this.executeUpdate<TimeEntry>('timeEntries', id, {
+    return await this.executeUpdate<TimeEntry>('time_entries', id, {
       status: 'RASCUNHO',
       reviewedBy: reviewerId,
       reviewedAt: new Date(),
@@ -519,7 +519,7 @@ export class MssqlStorage implements IStorage {
   }
 
   async returnApprovedToSaved(id: number, reviewedBy: number, comment?: string): Promise<TimeEntry> {
-    return await this.executeUpdate<TimeEntry>('timeEntries', id, {
+    return await this.executeUpdate<TimeEntry>('time_entries', id, {
       status: 'SALVO',
       reviewComment: comment,
       updatedAt: new Date()
@@ -528,7 +528,7 @@ export class MssqlStorage implements IStorage {
 
   // Time Entry Comments
   async createTimeEntryComment(comment: InsertTimeEntryComment): Promise<TimeEntryComment> {
-    return await this.executeInsert<TimeEntryComment>('timeEntryComments', comment);
+    return await this.executeInsert<TimeEntryComment>('time_entry_comments', comment);
   }
 
   async getTimeEntryComments(timeEntryId: number): Promise<Array<TimeEntryComment & { user: User }>> {
@@ -537,7 +537,7 @@ export class MssqlStorage implements IStorage {
         tec.*,
         u.firstName + ' ' + u.lastName as user_name,
         u.email as user_email
-      FROM [${this.schema}].[timeEntryComments] tec
+      FROM [${this.schema}].[time_entry_comments] tec
       INNER JOIN [${this.schema}].[users] u ON tec.userId = u.id
       WHERE tec.timeEntryId = @timeEntryId
       ORDER BY tec.createdAt ASC
@@ -589,9 +589,9 @@ export class MssqlStorage implements IStorage {
         SUM(CASE WHEN tt.isBillable = 0 THEN CAST(te.hours AS FLOAT) ELSE 0 END) as nonBillableHours,
         SUM(CASE WHEN te.status = 'APROVADO' THEN CAST(te.hours AS FLOAT) ELSE 0 END) as approvedHours,
         SUM(CASE WHEN te.status = 'VALIDACAO' THEN CAST(te.hours AS FLOAT) ELSE 0 END) as pendingHours
-      FROM [${this.schema}].[timeEntries] te
-      INNER JOIN [${this.schema}].[campaignTasks] ct ON te.campaignTaskId = ct.id
-      INNER JOIN [${this.schema}].[taskTypes] tt ON ct.taskTypeId = tt.id
+      FROM [${this.schema}].[time_entries] te
+      INNER JOIN [${this.schema}].[campaign_tasks] ct ON te.campaignTaskId = ct.id
+      INNER JOIN [${this.schema}].[task_types] tt ON ct.taskTypeId = tt.id
       ${whereClause}
     `, params);
     
@@ -623,7 +623,7 @@ export class MssqlStorage implements IStorage {
   // System config (implementação básica)
   async getSystemConfig(): Promise<Record<string, any>> {
     const configs = await this.executeQuery(`
-      SELECT [key], [value] FROM [${this.schema}].[systemConfig]
+      SELECT [key], [value] FROM [${this.schema}].[system_config]
     `);
     
     const result: Record<string, any> = {};
@@ -636,7 +636,7 @@ export class MssqlStorage implements IStorage {
   async updateSystemConfig(config: Record<string, any>): Promise<void> {
     for (const [key, value] of Object.entries(config)) {
       const mergeQuery = buildMergeQuery(
-        'systemConfig',
+        'system_config',
         ['key'],
         { key, value: JSON.stringify(value), updatedAt: new Date() },
         this.schema
@@ -658,7 +658,7 @@ export class MssqlStorage implements IStorage {
   }
 
   async deleteEconomicGroup(id: number): Promise<void> {
-    await this.executeQuery(`DELETE FROM [${this.schema}].[economicGroups] WHERE id = @id`, { id });
+    await this.executeQuery(`DELETE FROM [${this.schema}].[economic_groups] WHERE id = @id`, { id });
   }
 
   async deleteClient(id: number): Promise<void> {
@@ -670,7 +670,7 @@ export class MssqlStorage implements IStorage {
   }
 
   async deleteTaskType(id: number): Promise<void> {
-    await this.executeQuery(`DELETE FROM [${this.schema}].[taskTypes] WHERE id = @id`, { id });
+    await this.executeQuery(`DELETE FROM [${this.schema}].[task_types] WHERE id = @id`, { id });
   }
 
   // Departments
@@ -698,45 +698,45 @@ export class MssqlStorage implements IStorage {
   // Cost Centers
   async getCostCenters(): Promise<CostCenter[]> {
     return await this.executeQuery<CostCenter>(`
-      SELECT * FROM [${this.schema}].[costCenters] ORDER BY [name]
+      SELECT * FROM [${this.schema}].[cost_centers] ORDER BY [name]
     `);
   }
 
   async createCostCenter(costCenter: InsertCostCenter): Promise<CostCenter> {
-    return await this.executeInsert<CostCenter>('costCenters', costCenter);
+    return await this.executeInsert<CostCenter>('cost_centers', costCenter);
   }
 
   async updateCostCenter(id: number, costCenter: Partial<InsertCostCenter>): Promise<CostCenter> {
-    return await this.executeUpdate<CostCenter>('costCenters', id, {
+    return await this.executeUpdate<CostCenter>('cost_centers', id, {
       ...costCenter,
       updatedAt: new Date()
     });
   }
 
   async deleteCostCenter(id: number): Promise<void> {
-    await this.executeQuery(`DELETE FROM [${this.schema}].[costCenters] WHERE id = @id`, { id });
+    await this.executeQuery(`DELETE FROM [${this.schema}].[cost_centers] WHERE id = @id`, { id });
   }
 
   // Cost Categories
   async getCostCategories(): Promise<CostCategory[]> {
     return await this.executeQuery<CostCategory>(`
-      SELECT * FROM [${this.schema}].[costCategories] ORDER BY [name]
+      SELECT * FROM [${this.schema}].[cost_categories] ORDER BY [name]
     `);
   }
 
   async createCostCategory(category: InsertCostCategory): Promise<CostCategory> {
-    return await this.executeInsert<CostCategory>('costCategories', category);
+    return await this.executeInsert<CostCategory>('cost_categories', category);
   }
 
   async updateCostCategory(id: number, category: Partial<InsertCostCategory>): Promise<CostCategory> {
-    return await this.executeUpdate<CostCategory>('costCategories', id, {
+    return await this.executeUpdate<CostCategory>('cost_categories', id, {
       ...category,
       updatedAt: new Date()
     });
   }
 
   async deleteCostCategory(id: number): Promise<void> {
-    await this.executeQuery(`DELETE FROM [${this.schema}].[costCategories] WHERE id = @id`, { id });
+    await this.executeQuery(`DELETE FROM [${this.schema}].[cost_categories] WHERE id = @id`, { id });
   }
 
   // Campaign Costs (implementação simplificada)
@@ -778,29 +778,29 @@ export class MssqlStorage implements IStorage {
         cl.companyName as client_companyName,
         u.firstName + ' ' + u.lastName as user_name,
         cat.name as category_name
-      FROM [${this.schema}].[campaignCosts] cc
+      FROM [${this.schema}].[campaign_costs] cc
       INNER JOIN [${this.schema}].[campaigns] c ON cc.campaignId = c.id
       INNER JOIN [${this.schema}].[clients] cl ON c.clientId = cl.id
       INNER JOIN [${this.schema}].[users] u ON cc.userId = u.id
-      LEFT JOIN [${this.schema}].[costCategories] cat ON cc.categoryId = cat.id
+      LEFT JOIN [${this.schema}].[cost_categories] cat ON cc.categoryId = cat.id
       ${whereClause}
       ORDER BY cc.createdAt DESC
     `, params);
   }
 
   async createCampaignCost(campaignCost: InsertCampaignCost): Promise<CampaignCost> {
-    return await this.executeInsert<CampaignCost>('campaignCosts', campaignCost);
+    return await this.executeInsert<CampaignCost>('campaign_costs', campaignCost);
   }
 
   async updateCampaignCost(id: number, campaignCost: Partial<InsertCampaignCost>): Promise<CampaignCost> {
-    return await this.executeUpdate<CampaignCost>('campaignCosts', id, {
+    return await this.executeUpdate<CampaignCost>('campaign_costs', id, {
       ...campaignCost,
       updatedAt: new Date()
     });
   }
 
   async inactivateCampaignCost(id: number, userId: number): Promise<CampaignCost> {
-    return await this.executeUpdate<CampaignCost>('campaignCosts', id, {
+    return await this.executeUpdate<CampaignCost>('campaign_costs', id, {
       status: 'INATIVO',
       inactivatedAt: new Date(),
       inactivatedBy: userId,
@@ -809,7 +809,7 @@ export class MssqlStorage implements IStorage {
   }
 
   async reactivateCampaignCost(id: number): Promise<CampaignCost> {
-    return await this.executeUpdate<CampaignCost>('campaignCosts', id, {
+    return await this.executeUpdate<CampaignCost>('campaign_costs', id, {
       status: 'ATIVO',
       inactivatedAt: null,
       inactivatedBy: null,
@@ -852,7 +852,7 @@ export class MssqlStorage implements IStorage {
       SELECT 
         SUM(CAST([amount] AS DECIMAL(12,2))) as total,
         COUNT(*) as count
-      FROM [${this.schema}].[campaignCosts]
+      FROM [${this.schema}].[campaign_costs]
       ${whereClause}
     `, params);
     
