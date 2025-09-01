@@ -58,7 +58,7 @@ const debug = createDebug('app:db');
  * Converte operations Drizzle para queries SQL Server nativas
  */
 export class MssqlStorage implements IStorage {
-  private schema = 'TMS'; // Usar schema TMS por padrão, fallback para dbo se necessário
+  private schema = 'public'; // Usar schema public onde estão as tabelas
 
   /**
    * Helper para executar query parametrizada
@@ -169,35 +169,33 @@ export class MssqlStorage implements IStorage {
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    const users = await this.executeQuery<User>(`
-      SELECT u.*, 
-             d.name as department_name,
-             cc.name as cost_center_name,
-             m.firstName + ' ' + m.lastName as manager_name
-      FROM [${this.schema}].[users] u
-      LEFT JOIN [${this.schema}].[departments] d ON u.departmentId = d.id
-      LEFT JOIN [${this.schema}].[costCenters] cc ON u.costCenterId = cc.id
-      LEFT JOIN [${this.schema}].[users] m ON u.managerId = m.id
-      WHERE u.id = @id
-    `, { id });
-    
-    return users[0];
+    try {
+      const users = await this.executeQuery<User>(`
+        SELECT u.*
+        FROM usuarios u
+        WHERE u.id = @id
+      `, { id });
+      
+      return users[0];
+    } catch (error) {
+      debug('Erro ao buscar usuário:', error);
+      throw new Error(`Erro ao buscar usuário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const users = await this.executeQuery<User>(`
-      SELECT u.*, 
-             d.name as department_name,
-             cc.name as cost_center_name,
-             m.firstName + ' ' + m.lastName as manager_name
-      FROM [${this.schema}].[users] u
-      LEFT JOIN [${this.schema}].[departments] d ON u.departmentId = d.id
-      LEFT JOIN [${this.schema}].[costCenters] cc ON u.costCenterId = cc.id
-      LEFT JOIN [${this.schema}].[users] m ON u.managerId = m.id
-      WHERE u.email = @email
-    `, { email });
-    
-    return users[0];
+    try {
+      const users = await this.executeQuery<User>(`
+        SELECT u.*
+        FROM usuarios u
+        WHERE u.email = @email
+      `, { email });
+      
+      return users[0];
+    } catch (error) {
+      debug('Erro ao buscar usuário por email:', error);
+      throw new Error(`Erro ao buscar usuário por email: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
   }
 
   async createUser(userData: InsertUser): Promise<User> {

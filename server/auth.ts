@@ -24,6 +24,14 @@ async function comparePasswords(supplied: string, stored: string) {
 
 const MemStore = MemoryStore(session);
 
+// Middleware to check authentication
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  next();
+}
+
 export function setupAuth(app: Express) {
   app.use(
     session({
@@ -48,12 +56,21 @@ export function setupAuth(app: Express) {
       async (email, password, done) => {
         try {
           const user = await storage.getUserByEmail(email);
-          if (!user || !(await comparePasswords(password, user.password))) {
-            return done(null, false);
+          if (!user) {
+            console.log('Login falhou: usuário não encontrado para email:', email);
+            return done(null, false, { message: 'Email ou senha incorretos' });
           }
+          
+          if (!(await comparePasswords(password, user.password))) {
+            console.log('Login falhou: senha incorreta para email:', email);
+            return done(null, false, { message: 'Email ou senha incorretos' });
+          }
+          
+          console.log('Login bem-sucedido para email:', email);
           return done(null, user);
         } catch (error) {
-          return done(error);
+          console.error('Erro no login:', error);
+          return done(new Error('Erro interno do servidor. Verifique a conexão com o banco de dados.'));
         }
       }
     )
@@ -109,40 +126,50 @@ export function setupAuth(app: Express) {
     }
   });
 
-
-
-
-
-  // Login endpoint with email/password
-  app.post("/api/login", async (req, res, next) => {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email e senha são obrigatórios" });
-    }
-
-    try {
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(401).json({ message: "Email ou senha inválidos" });
-      }
-
-      // Check password
-      const isValidPassword = await comparePasswords(password, user.password);
-      
-      if (!isValidPassword) {
-        return res.status(401).json({ message: "Email ou senha inválidos" });
-      }
-
-      // Log the user in
-      req.login(user, async (err) => {
-        if (err) {
-          console.error("Erro no login:", err);
-          return next(err);
+  // Login endpoint
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        console.error("Login error:", err);
+        
+        // Provide user-friendly error messages
+        if (err.message.includes('Invalid column name')) {
+          return res.status(500).json({ 
+            message: "Erro de configuração do banco de dados. As tabelas não estão configuradas corretamente no SQL Server.",
+            details: "Contacte o administrador do sistema."
+          });
+        }
+        if (err.message.includes('timeout')) {
+          return res.status(500).json({ 
+            message: "Timeout na conexão com o banco de dados. Tente novamente em alguns instantes.",
+          });
+        }
+        if (err.message.includes('MSSQL_URL')) {
+          return res.status(500).json({ 
+            message: "Configuração de banco de dados ausente. Contacte o administrador.",
+          });
         }
         
-        // ✨ EXECUTAR BACKUP DIÁRIO SE NECESSÁRIO
+        return res.status(500).json({ 
+          message: "Erro interno do servidor. Se o problema persistir, contacte o suporte.",
+          details: err.message 
+        });
+      }
+      if (!user) {
+        return res.status(401).json({ 
+          message: info?.message || "Email ou senha incorretos" 
+        });
+      }
+      req.logIn(user, async (err) => {
+        if (err) {
+          console.error("Session error:", err);
+          return res.status(500).json({ 
+            message: "Erro ao criar sessão de usuário",
+            details: err.message 
+          });
+        }
+        
+        // Execute daily backup if needed
         try {
           const { runDailyBackupIfNeeded } = await import('./backup');
           const backupResult = await runDailyBackupIfNeeded();
@@ -154,70 +181,49 @@ export function setupAuth(app: Express) {
           }
         } catch (backupError) {
           console.error(`[LOGIN] ⚠️  Erro no backup diário para ${user.email}:`, backupError);
-          // Não bloquear login por falha de backup
+          // Don't block login due to backup failure
         }
         
-        // Return user data (excluding password)
-        const { password: _, ...userWithoutPassword } = user;
+        const { password, ...userWithoutPassword } = user;
         res.json(userWithoutPassword);
       });
-    } catch (error) {
-      console.error("Erro no login:", error);
-      res.status(500).json({ message: "Erro interno do servidor" });
-    }
+    })(req, res, next);
   });
 
-  // Logout endpoints
-  app.post("/api/logout", (req, res, next) => {
+  // Logout endpoint
+  app.post("/api/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
-        console.error("Erro no logout:", err);
-        return next(err);
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Erro ao fazer logout" });
       }
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Erro ao destruir sessão:", err);
-        }
-        res.clearCookie('connect.sid');
-        res.json({ message: "Logout realizado com sucesso" });
-      });
-    });
-  });
-
-  app.get("/api/logout", (req, res, next) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Erro no logout:", err);
-        return next(err);
-      }
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Erro ao destruir sessão:", err);
-        }
-        res.clearCookie('connect.sid');
-        res.redirect('/');
-      });
+      res.json({ message: "Logout realizado com sucesso" });
     });
   });
 
   // Get current user
-  app.get("/api/user", async (req, res) => {
-    if (!req.user) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    
+  app.get("/api/user", requireAuth, async (req, res) => {
     try {
-      // Get enriched user data with relations
+      // Get enriched user data with department and manager info
       const enrichedUser = await storage.getUser((req.user as any).id);
+      
       if (!enrichedUser) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(404).json({ error: "Usuário não encontrado" });
       }
       
-      // Return user data without sensitive information but with enriched relations
-      const { password, ...userWithoutPassword } = enrichedUser as any;
+      const { password, ...userWithoutPassword } = enrichedUser;
       res.json(userWithoutPassword);
     } catch (error) {
       console.error("Error fetching enriched user data:", error);
+      
+      // Provide specific error messages
+      if (error instanceof Error && error.message.includes('Invalid column name')) {
+        return res.status(500).json({ 
+          error: "Erro de configuração do banco de dados",
+          message: "As tabelas do usuário não estão configuradas corretamente."
+        });
+      }
+      
       // Fallback to basic user data
       const { password, ...userWithoutPassword } = req.user as any;
       res.json(userWithoutPassword);
