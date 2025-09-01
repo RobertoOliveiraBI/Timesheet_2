@@ -318,7 +318,7 @@ export function WeeklyTimesheetForm() {
                 <th className="text-left p-2 font-medium text-sm">Tarefa</th>
                 <th className="text-left p-2 font-medium text-sm">Centro de Resultado</th>
                 {weekDays.map((day, index) => (
-                  <th key={day.toISOString()} className="text-center p-2 font-medium text-sm min-w-20">
+                  <th key={index} className="text-center p-2 font-medium text-sm min-w-20">
                     {formatDate(day)}
                   </th>
                 ))}
@@ -327,7 +327,7 @@ export function WeeklyTimesheetForm() {
             </thead>
             <tbody>
               {timeEntries.map((entry, index) => (
-                <tr key={`entry-${index}-${entry.clientId}-${entry.campaignId}-${entry.campaignTaskId}`} className="border-b hover:bg-slate-50">
+                <tr key={index} className="border-b hover:bg-slate-50">
                   <td className="p-2">
                     <Select 
                       value={entry.clientId} 

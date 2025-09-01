@@ -745,7 +745,7 @@ export function TimesheetSemanal() {
                 <th className="border border-gray-300 p-3 text-left text-sm font-medium w-48">Campanha</th>
                 <th className="border border-gray-300 p-3 text-left text-sm font-medium w-48">Tarefa</th>
                 {diasSemana.map((dia, index) => (
-                  <th key={dia.toISOString()} className="border border-gray-300 p-3 text-center text-sm font-medium w-24">
+                  <th key={index} className="border border-gray-300 p-3 text-center text-sm font-medium w-24">
                     <div>{format(dia, "EEE", { locale: ptBR })}</div>
                     <div className="text-xs text-gray-500">{format(dia, "dd/MM")}</div>
                   </th>

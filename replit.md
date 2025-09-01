@@ -6,7 +6,7 @@ Tractionfy Timesheet SaaS is a comprehensive timesheet management application fo
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 Design library: Using shadcn/ui components for consistent, professional UI
-Authentication: Simple email/password system using SQL Server Azure database
+Authentication: Simple email/password system using PostgreSQL database
 Language: Interface completely in Portuguese
 UI/UX: Minimalist design, single header, weekly timesheet table format
 
@@ -23,16 +23,14 @@ The application follows a modern full-stack architecture with clear separation b
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js
-- **Database**: SQL Server Azure with custom storage implementation
-- **Database ORM**: Custom SQL Server storage layer implementing IStorage interface
+- **Database ORM**: Drizzle ORM with PostgreSQL
 - **Authentication**: Simple email/password authentication with hashed passwords
-- **Session Management**: Memory-backed sessions using memorystore and passport.js
+- **Session Management**: PostgreSQL-backed sessions using connect-pg-simple and passport.js
 
 ### Database Architecture
-- **Primary Database**: SQL Server Azure (TMS schema)
-- **Connection Management**: MSSQL connection pooling with retry logic and graceful shutdown
-- **Schema Management**: Custom SQL Server implementation with type conversions and MERGE operations
-- **Security**: Encrypted connections with trustServerCertificate validation
+- **Primary Database**: PostgreSQL via Neon serverless
+- **Schema Management**: Drizzle Kit for migrations and schema generation
+- **Connection**: WebSocket-enabled connection pooling for serverless compatibility
 
 ### Key Components
 
@@ -64,13 +62,12 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 - **Smart Group and Client Deletion (2025-08-18)**: Enhanced deletion logic that preserves referential integrity. Economic groups with dependent clients are automatically moved to "Não Informado" group before deletion. Clients with logged time entries are deactivated instead of deleted, while clients without time entries are fully removed.
 - **Monthly Backup System (2025-08-27)**: Updated backup file naming from daily format (`table-YYYY-MM-DD.csv`) to monthly format (`table-YYYY-MM.csv`). This prevents daily file accumulation and reduces storage usage by overwriting monthly files instead of creating new ones. Backup tracking configuration updated from `last_backup_date` to `last_backup_month`.
 - **Data Cleanup System with Password Confirmation (2025-08-28)**: Added secure data cleanup functionality for removing test entries. Requires password confirmation ("123mudar") and is restricted to MASTER and ADMIN roles. Provides safe way to clear test data while maintaining data integrity.
-- **Database Correction and Duplicate User Cleanup (2025-09-01)**: Corrected system documentation to accurately reflect SQL Server Azure as the primary database (not PostgreSQL). Removed 92 duplicate user records from the database, restoring clean state with 46 unique users. Updated architecture documentation to reflect proper SQL Server configuration with MSSQL connection pooling and TMS schema.
 
 ## External Dependencies
 
 ### Core Infrastructure
-- **mssql**: SQL Server Azure database connectivity
-- **Custom Storage Layer**: Type-safe SQL Server operations implementing IStorage interface
+- **@neondatabase/serverless**: PostgreSQL database connectivity
+- **drizzle-orm**: Type-safe database operations and migrations
 - **passport**: Authentication middleware and strategy management
 
 ### UI Framework
@@ -87,4 +84,4 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 ### Authentication
 - **openid-client**: OIDC protocol implementation
 - **express-session**: Session management middleware
-- **memorystore**: Memory-backed session store for SQL Server compatibility
+- **connect-pg-simple**: PostgreSQL session store

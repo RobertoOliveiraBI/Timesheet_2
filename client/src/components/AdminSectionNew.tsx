@@ -459,7 +459,7 @@ export function AdminSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {quickActions.map((action, index) => (
               <Button
-                key={action.title}
+                key={index}
                 variant="outline"
                 className="h-auto p-4 flex flex-col items-center space-y-2"
                 onClick={action.action}

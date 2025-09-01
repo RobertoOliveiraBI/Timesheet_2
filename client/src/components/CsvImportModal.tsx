@@ -309,7 +309,7 @@ export function CsvImportModal({ isOpen, onClose, selectedEntity, entityName }: 
                 <ScrollArea className="h-64">
                   <div className="space-y-2">
                     {results.map((result, index) => (
-                      <div key={`result-${result.rowNumber || index}-${result.success}`} className="flex items-start gap-2 p-2 rounded border">
+                      <div key={index} className="flex items-start gap-2 p-2 rounded border">
                         {result.success ? (
                           <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
                         ) : (
