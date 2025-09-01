@@ -1,0 +1,3 @@
+"id","name","description","contractStartDate","contractEndDate","contractValue","clientId","costCenterId","isActive","createdAt"
+3,"Interno","Coisas internas","2025-07-01","2025-12-31","",3,2,"true","""2025-07-25T00:23:27.110Z"""
+2,"Campanha Teste","Descrição","2025-07-01","2025-12-31","25000.00",27,3,"true","""2025-07-24T23:26:14.592Z"""
