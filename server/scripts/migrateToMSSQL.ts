@@ -3,6 +3,17 @@ import { getMssql, closeMssql, buildMergeQuery, convertBoolean, normalizeString,
 import { db } from '../db';
 import { sql as drizzleSql } from 'drizzle-orm';
 import sql from 'mssql';
+import { Client } from 'pg';
+
+// Configuração do PostgreSQL de produção
+const POSTGRES_PROD_CONFIG = {
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: parseInt(process.env.POSTGRES_PORT || '5432'),
+  database: process.env.POSTGRES_DATABASE || process.env.POSTGRES_DB || 'defaultdb',
+  user: process.env.POSTGRES_USER || 'postgres',
+  password: process.env.POSTGRES_PASSWORD,
+  ssl: process.env.POSTGRES_SSL === 'true' ? { rejectUnauthorized: false } : false
+};
 
 // Configurar debug namespaces
 const debugDb = createDebug('app:db');
@@ -279,11 +290,22 @@ function convertValue(value: any, dataType: string): any {
 }
 
 /**
+ * Cria conexão direta com PostgreSQL de produção
+ */
+async function createPostgresConnection(): Promise<Client> {
+  const client = new Client(POSTGRES_PROD_CONFIG);
+  await client.connect();
+  debugMigrate('Conectado ao PostgreSQL de produção');
+  return client;
+}
+
+/**
  * Migra dados de uma tabela específica
  */
 async function migrateTableData(
   table: TableInfo,
   mssqlPool: sql.ConnectionPool,
+  pgClient: Client,
   batchSize = 1000,
   schema = 'TMS'
 ): Promise<void> {
@@ -291,8 +313,8 @@ async function migrateTableData(
   
   try {
     // Contar registros no PostgreSQL
-    const countResult = await db.execute(drizzleSql`SELECT COUNT(*) as count FROM ${drizzleSql.identifier(table.table_name)}`);
-    const totalRows = Number((countResult as any)[0]?.count || 0);
+    const countResult = await pgClient.query(`SELECT COUNT(*) as count FROM "${table.table_name}"`);
+    const totalRows = Number(countResult.rows[0]?.count || 0);
     
     if (totalRows === 0) {
       debugMigrate(`Tabela ${table.table_name} está vazia, pulando migração de dados`);
@@ -306,12 +328,12 @@ async function migrateTableData(
     
     while (offset < totalRows) {
       // Buscar lote do PostgreSQL
-      const batchResult = await db.execute(drizzleSql`
-        SELECT * FROM ${drizzleSql.identifier(table.table_name)}
-        LIMIT ${batchSize} OFFSET ${offset}
-      `);
+      const batchResult = await pgClient.query(`
+        SELECT * FROM "${table.table_name}"
+        LIMIT $1 OFFSET $2
+      `, [batchSize, offset]);
       
-      const batchArray = batchResult as unknown as any[];
+      const batchArray = batchResult.rows;
       if (batchArray.length === 0) break;
       
       // Iniciar transação
