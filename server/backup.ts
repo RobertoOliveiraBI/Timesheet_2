@@ -208,7 +208,10 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     mariadbConnection = await mysql.createConnection(mariadbConnectionString);
     console.log('🔗 Conectado ao MariaDB para backup espelho');
 
-    // ⚠️ ORDEM CRÍTICA: Deletar tabelas filhas PRIMEIRO para evitar violação de FK
+    // ⚠️ DESABILITAR checks de FK temporariamente para evitar problemas com auto-referências
+    console.log('🔧 Desabilitando foreign key checks temporariamente...');
+    await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 0');
+    
     console.log('🔄 Iniciando deleção em ordem segura...');
     
     // 1. Deletar dados dependentes primeiro (ordem inversa das dependências)
@@ -219,7 +222,7 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     await mariadbConnection.execute('DELETE FROM campaign_users');
     await mariadbConnection.execute('DELETE FROM campaigns');
     await mariadbConnection.execute('DELETE FROM clients');
-    await mariadbConnection.execute('DELETE FROM users');
+    await mariadbConnection.execute('DELETE FROM users'); // Agora pode deletar devido auto-referência manager_id
     await mariadbConnection.execute('DELETE FROM task_types');
     await mariadbConnection.execute('DELETE FROM cost_categories');
     await mariadbConnection.execute('DELETE FROM economic_groups');
@@ -419,8 +422,14 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     if (campaignCosts.length > 0) {
       for (const cost of campaignCosts) {
         await mariadbConnection.execute(
-          'INSERT INTO campaign_costs (id, campaign_id, cost_category_id, description, amount, cost_date, is_approved, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [cost.id, cost.campaignId, cost.costCategoryId, cost.description, cost.amount, cost.costDate, cost.isApproved, cost.notes, cost.createdAt, cost.updatedAt]
+          `INSERT INTO campaign_costs (id, campaign_id, user_id, subject, description, reference_month, amount, notes, 
+           cnpj_fornecedor, razao_social, category_id, status, created_at, updated_at, inactivated_at, inactivated_by) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            cost.id, cost.campaignId, cost.userId, cost.subject, cost.description, cost.referenceMonth, 
+            cost.amount, cost.notes, cost.cnpjFornecedor, cost.razaoSocial, cost.categoryId, cost.status,
+            cost.createdAt, cost.updatedAt, cost.inactivatedAt, cost.inactivatedBy
+          ]
         );
       }
       backedUpTables.push('campaign_costs');
@@ -435,6 +444,10 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       ['last_backup_date', now.toISOString(), now]
     );
 
+    // ✅ REABILITAR foreign key checks após operação bem-sucedida
+    console.log('🔧 Reabilitando foreign key checks...');
+    await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 1');
+    
     console.log(`🎉 Backup MariaDB completo! ${totalRecords} registros espelhados em ${backedUpTables.length} tabelas.`);
 
     return {
@@ -453,6 +466,12 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     };
   } finally {
     if (mariadbConnection) {
+      try {
+        // ⚠️ SEMPRE reabilitar FK checks mesmo em caso de erro
+        await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 1');
+      } catch (fkError) {
+        console.warn('⚠️ Não foi possível reabilitar FK checks:', fkError);
+      }
       await mariadbConnection.end();
     }
   }
