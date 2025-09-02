@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "./db";
 import { storage } from "./storage";
+import { testMariaDBConnection } from "./mariadb-test";
 import { setupAuth } from "./auth";
 import { 
   insertEconomicGroupSchema,
@@ -41,6 +42,21 @@ function requireAuth(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test MariaDB connection endpoint
+  app.get('/api/test-mariadb-connection', async (req, res) => {
+    try {
+      const result = await testMariaDBConnection();
+      res.json(result);
+    } catch (error) {
+      console.error('MariaDB connection test error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'MariaDB connection test failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Setup authentication
   setupAuth(app);
 
