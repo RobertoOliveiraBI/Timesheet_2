@@ -1,4 +1,3 @@
-// MIGRAÇÃO: Conectando ao novo banco de dados em 2025-09-02T18:47:37.436Z
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
