@@ -645,11 +645,3 @@ export type CsvImportTaskType = z.infer<typeof csvImportTaskTypeSchema>;
 export type CsvImportCostCategory = z.infer<typeof csvImportCostCategorySchema>;
 export type CsvImportCampaignTask = z.infer<typeof csvImportCampaignTaskSchema>;
 export type CsvImportCampaignCost = z.infer<typeof csvImportCampaignCostSchema>;
-
-// Tipo para resultado de importação
-export type ImportResult = {
-  success: boolean;
-  rowNumber: number;
-  data?: any;
-  errors?: string[];
-};
