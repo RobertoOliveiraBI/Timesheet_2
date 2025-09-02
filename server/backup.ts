@@ -208,39 +208,47 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     mariadbConnection = await mysql.createConnection(mariadbConnectionString);
     console.log('🔗 Conectado ao MariaDB para backup espelho');
 
-    // 🔧 REMOVER TODAS as foreign key constraints permanentemente (é apenas backup)
-    console.log('🔧 Removendo todas as foreign key constraints do MariaDB...');
+    // 🔧 REMOVER TODAS as constraints permanentemente (é apenas backup - FK e UNIQUE)
+    console.log('🔧 Removendo todas as constraints do MariaDB...');
     
     try {
-      // Buscar todas as foreign keys do schema
-      const [foreignKeys] = await mariadbConnection.execute(`
+      // Buscar todas as constraints do schema (FK e UNIQUE)
+      const [allConstraints] = await mariadbConnection.execute(`
         SELECT 
           TABLE_NAME,
-          CONSTRAINT_NAME
+          CONSTRAINT_NAME,
+          CONSTRAINT_TYPE
         FROM 
           information_schema.TABLE_CONSTRAINTS 
         WHERE 
-          CONSTRAINT_TYPE = 'FOREIGN KEY'
+          CONSTRAINT_TYPE IN ('FOREIGN KEY', 'UNIQUE')
           AND TABLE_SCHEMA = 'traction_timesheet'
       `) as any;
 
-      console.log(`🔍 Encontradas ${foreignKeys.length} foreign key constraints para remover`);
+      console.log(`🔍 Encontradas ${allConstraints.length} constraints para remover`);
 
-      // Remover cada foreign key constraint
-      for (const fk of foreignKeys) {
+      // Remover cada constraint
+      for (const constraint of allConstraints) {
         try {
-          await mariadbConnection.execute(
-            `ALTER TABLE ${fk.TABLE_NAME} DROP FOREIGN KEY ${fk.CONSTRAINT_NAME}`
-          );
-          console.log(`✅ Removida FK: ${fk.TABLE_NAME}.${fk.CONSTRAINT_NAME}`);
+          if (constraint.CONSTRAINT_TYPE === 'FOREIGN KEY') {
+            await mariadbConnection.execute(
+              `ALTER TABLE ${constraint.TABLE_NAME} DROP FOREIGN KEY ${constraint.CONSTRAINT_NAME}`
+            );
+            console.log(`✅ Removida FK: ${constraint.TABLE_NAME}.${constraint.CONSTRAINT_NAME}`);
+          } else if (constraint.CONSTRAINT_TYPE === 'UNIQUE') {
+            await mariadbConnection.execute(
+              `ALTER TABLE ${constraint.TABLE_NAME} DROP INDEX ${constraint.CONSTRAINT_NAME}`
+            );
+            console.log(`✅ Removida UNIQUE: ${constraint.TABLE_NAME}.${constraint.CONSTRAINT_NAME}`);
+          }
         } catch (dropError) {
-          console.log(`⚠️ Erro ao remover FK ${fk.CONSTRAINT_NAME}: ${dropError}`);
+          console.log(`⚠️ Erro ao remover ${constraint.CONSTRAINT_TYPE} ${constraint.CONSTRAINT_NAME}: ${dropError}`);
         }
       }
 
-      console.log('✅ Todas as foreign key constraints removidas do MariaDB');
-    } catch (fkError) {
-      console.log(`⚠️ Erro ao listar/remover FKs: ${fkError}`);
+      console.log('✅ Todas as constraints removidas do MariaDB');
+    } catch (constraintError) {
+      console.log(`⚠️ Erro ao listar/remover constraints: ${constraintError}`);
     }
 
     // Agora limpar dados sem problemas de FK
