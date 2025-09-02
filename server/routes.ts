@@ -2278,6 +2278,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Atualizar último mês de backup no systemConfig
+      const currentMonth = format(new Date(), 'yyyy-MM');
+      try {
+        const configRow = await db
+          .select()
+          .from(systemConfig)
+          .where(eq(systemConfig.key, 'last_backup_month'))
+          .limit(1);
+
+        if (configRow.length > 0) {
+          await db
+            .update(systemConfig)
+            .set({ 
+              value: currentMonth, 
+              updatedAt: new Date() 
+            })
+            .where(eq(systemConfig.key, 'last_backup_month'));
+        } else {
+          await db
+            .insert(systemConfig)
+            .values({ 
+              key: 'last_backup_month', 
+              value: currentMonth 
+            });
+        }
+        console.log(`[BACKUP API] ✅ systemConfig atualizado: last_backup_month = ${currentMonth}`);
+      } catch (configError) {
+        console.error(`[BACKUP API] ⚠️ Erro ao atualizar systemConfig:`, configError);
+      }
+
       // Resposta de sucesso
       const response = {
         success: true,

@@ -291,6 +291,9 @@ export function AdminSection() {
 
       const result = await response.json();
       
+      // Invalidar cache do status de backup para atualizar a data
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/backup-status'] });
+      
       toast({
         title: "✅ Backup CSV concluído!",
         description: `${result.count} arquivos CSV gerados - ${result.timestamp}`,
