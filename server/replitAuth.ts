@@ -24,9 +24,12 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  // Use external PostgreSQL server if DATABASE_URL is not set
+  const DATABASE_URL = process.env.DATABASE_URL || "postgres://roberto:Sf544344$wedf@95.111.233.250:5432/timesheet?sslmode=disable";
+  
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
+    conString: DATABASE_URL,
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
