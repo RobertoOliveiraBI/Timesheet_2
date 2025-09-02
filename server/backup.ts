@@ -540,12 +540,7 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${campaignCosts.length} custos de campanha inseridos`);
     }
 
-    // Atualizar registro de último backup no MariaDB
-    const now = new Date();
-    await mariadbConnection.execute(
-      'INSERT INTO system_config (config_key, config_value, updated_at) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE config_value = VALUES(config_value), updated_at = VALUES(updated_at)',
-      ['last_backup_date', now.toISOString(), now]
-    );
+    // Backup concluído - não precisamos de system_config no MariaDB pois é apenas espelho
 
     console.log(`🎉 Backup MariaDB completo! ${totalRecords} registros espelhados em ${backedUpTables.length} tabelas.`);
 
