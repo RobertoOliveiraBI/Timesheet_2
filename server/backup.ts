@@ -208,58 +208,58 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     mariadbConnection = await mysql.createConnection(mariadbConnectionString);
     console.log('🔗 Conectado ao MariaDB para backup espelho');
 
-    // ⚠️ DESABILITAR checks de FK temporariamente para evitar problemas com auto-referências
-    console.log('🔧 Desabilitando foreign key checks temporariamente...');
-    await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 0');
+    // 🔧 REMOVER TODAS as foreign key constraints permanentemente (é apenas backup)
+    console.log('🔧 Removendo todas as foreign key constraints do MariaDB...');
     
-    // ✅ Verificar se FK checks foram desabilitados
-    const [fkCheckResult] = await mariadbConnection.execute('SELECT @@foreign_key_checks') as any;
-    console.log(`🔍 FK checks status: ${JSON.stringify(fkCheckResult)}`);
-    
-    console.log('🔄 Iniciando deleção em ordem segura com TRUNCATE...');
-    
-    // 1. Usar TRUNCATE que ignora FK constraints quando possível
     try {
-      await mariadbConnection.execute('TRUNCATE TABLE time_entries');
-      await mariadbConnection.execute('TRUNCATE TABLE time_entry_comments');
-      await mariadbConnection.execute('TRUNCATE TABLE campaign_costs');
-      await mariadbConnection.execute('TRUNCATE TABLE campaign_tasks');
-      await mariadbConnection.execute('TRUNCATE TABLE campaign_users');
-      await mariadbConnection.execute('TRUNCATE TABLE campaigns');
-      await mariadbConnection.execute('TRUNCATE TABLE clients');
-      await mariadbConnection.execute('TRUNCATE TABLE users');
-      await mariadbConnection.execute('TRUNCATE TABLE task_types');
-      await mariadbConnection.execute('TRUNCATE TABLE cost_categories');
-      await mariadbConnection.execute('TRUNCATE TABLE economic_groups');
-      await mariadbConnection.execute('TRUNCATE TABLE departments');
-      await mariadbConnection.execute('TRUNCATE TABLE cost_centers');
-      await mariadbConnection.execute('TRUNCATE TABLE sessions');
-      console.log('✅ TRUNCATE bem-sucedido');
-    } catch (truncateError) {
-      console.log('⚠️ TRUNCATE falhou, tentando DELETE individual...');
-      // Fallback para DELETE em ordem específica para auto-referências
-      
-      // Primeiro, definir manager_id como NULL para quebrar auto-referência
-      await mariadbConnection.execute('UPDATE users SET manager_id = NULL WHERE manager_id IS NOT NULL');
-      console.log('✅ Auto-referências de manager_id removidas');
-      
-      // Agora deletar normalmente
-      await mariadbConnection.execute('DELETE FROM time_entries');
-      await mariadbConnection.execute('DELETE FROM time_entry_comments'); 
-      await mariadbConnection.execute('DELETE FROM campaign_costs');
-      await mariadbConnection.execute('DELETE FROM campaign_tasks');
-      await mariadbConnection.execute('DELETE FROM campaign_users');
-      await mariadbConnection.execute('DELETE FROM campaigns');
-      await mariadbConnection.execute('DELETE FROM clients');
-      await mariadbConnection.execute('DELETE FROM users');
-      await mariadbConnection.execute('DELETE FROM task_types');
-      await mariadbConnection.execute('DELETE FROM cost_categories');
-      await mariadbConnection.execute('DELETE FROM economic_groups');
-      await mariadbConnection.execute('DELETE FROM departments');
-      await mariadbConnection.execute('DELETE FROM cost_centers');
-      await mariadbConnection.execute('DELETE FROM sessions');
-      console.log('✅ DELETE individual bem-sucedido');
+      // Buscar todas as foreign keys do schema
+      const [foreignKeys] = await mariadbConnection.execute(`
+        SELECT 
+          TABLE_NAME,
+          CONSTRAINT_NAME
+        FROM 
+          information_schema.TABLE_CONSTRAINTS 
+        WHERE 
+          CONSTRAINT_TYPE = 'FOREIGN KEY'
+          AND TABLE_SCHEMA = 'traction_timesheet'
+      `) as any;
+
+      console.log(`🔍 Encontradas ${foreignKeys.length} foreign key constraints para remover`);
+
+      // Remover cada foreign key constraint
+      for (const fk of foreignKeys) {
+        try {
+          await mariadbConnection.execute(
+            `ALTER TABLE ${fk.TABLE_NAME} DROP FOREIGN KEY ${fk.CONSTRAINT_NAME}`
+          );
+          console.log(`✅ Removida FK: ${fk.TABLE_NAME}.${fk.CONSTRAINT_NAME}`);
+        } catch (dropError) {
+          console.log(`⚠️ Erro ao remover FK ${fk.CONSTRAINT_NAME}: ${dropError}`);
+        }
+      }
+
+      console.log('✅ Todas as foreign key constraints removidas do MariaDB');
+    } catch (fkError) {
+      console.log(`⚠️ Erro ao listar/remover FKs: ${fkError}`);
     }
+
+    // Agora limpar dados sem problemas de FK
+    console.log('🔄 Limpando dados das tabelas...');
+    
+    await mariadbConnection.execute('DELETE FROM time_entries');
+    await mariadbConnection.execute('DELETE FROM time_entry_comments'); 
+    await mariadbConnection.execute('DELETE FROM campaign_costs');
+    await mariadbConnection.execute('DELETE FROM campaign_tasks');
+    await mariadbConnection.execute('DELETE FROM campaign_users');
+    await mariadbConnection.execute('DELETE FROM campaigns');
+    await mariadbConnection.execute('DELETE FROM clients');
+    await mariadbConnection.execute('DELETE FROM users');
+    await mariadbConnection.execute('DELETE FROM task_types');
+    await mariadbConnection.execute('DELETE FROM cost_categories');
+    await mariadbConnection.execute('DELETE FROM economic_groups');
+    await mariadbConnection.execute('DELETE FROM departments');
+    await mariadbConnection.execute('DELETE FROM cost_centers');
+    await mariadbConnection.execute('DELETE FROM sessions');
     
     console.log('✅ Deleção segura concluída, iniciando inserção...');
 
@@ -475,10 +475,6 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       ['last_backup_date', now.toISOString(), now]
     );
 
-    // ✅ REABILITAR foreign key checks após operação bem-sucedida
-    console.log('🔧 Reabilitando foreign key checks...');
-    await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 1');
-    
     console.log(`🎉 Backup MariaDB completo! ${totalRecords} registros espelhados em ${backedUpTables.length} tabelas.`);
 
     return {
@@ -497,12 +493,6 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     };
   } finally {
     if (mariadbConnection) {
-      try {
-        // ⚠️ SEMPRE reabilitar FK checks mesmo em caso de erro
-        await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 1');
-      } catch (fkError) {
-        console.warn('⚠️ Não foi possível reabilitar FK checks:', fkError);
-      }
       await mariadbConnection.end();
     }
   }
