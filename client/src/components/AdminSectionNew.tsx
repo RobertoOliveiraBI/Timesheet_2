@@ -567,18 +567,40 @@ export function AdminSection() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <h4 className="font-medium text-sm text-slate-700">Backup CSV (Mensal)</h4>
-              <p className="text-sm text-slate-500">
-                {backupStatusData?.lastCsvBackup 
-                  ? `Último: ${new Date(backupStatusData.lastCsvBackup).toLocaleDateString('pt-BR')}` 
-                  : 'Nunca executado'}
-              </p>
+              {backupStatusData?.lastCsvBackup ? (
+                <div className="space-y-1">
+                  <p className="text-sm text-slate-600 font-medium">
+                    ✅ Último backup: {new Date(backupStatusData.lastCsvBackup).toLocaleDateString('pt-BR')}
+                  </p>
+                  {backupStatusData?.lastCsvBackupTimestamp && (
+                    <p className="text-xs text-slate-500">
+                      {new Date(backupStatusData.lastCsvBackupTimestamp).toLocaleString('pt-BR')}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">❌ Nunca executado</p>
+              )}
             </div>
             <div className="space-y-2">
               <h4 className="font-medium text-sm text-slate-700">Backup MariaDB (Automático)</h4>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <p className="text-sm text-slate-500">
-                  {backupStatusData?.nextScheduledBackup || 'Agendamento ativo'}
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <p className="text-sm text-slate-600 font-medium">Agendamento ativo</p>
+                </div>
+                {backupStatusData?.lastMariadbBackup && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-slate-500">
+                      ✅ Último backup estimado:
+                    </p>
+                    <p className="text-xs text-slate-600 font-medium">
+                      {new Date(backupStatusData.lastMariadbBackup).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs text-slate-500">
+                  {backupStatusData?.nextScheduledBackup || 'Próximo às 12:00 ou 20:00'}
                 </p>
               </div>
             </div>
