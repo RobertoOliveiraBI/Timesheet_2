@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startBackupScheduler } from "./backup";
 
 // Configurar timezone para São Paulo/Brazil (GMT-3)
 process.env.TZ = 'America/Sao_Paulo';
@@ -70,5 +71,8 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Iniciar agendador de backup MariaDB (12:00 e 20:00 BR)
+    startBackupScheduler();
   });
 })();

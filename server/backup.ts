@@ -566,61 +566,67 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
 }
 
 /**
- * Verifica se deve executar backup diário baseado na data
+ * Verifica se deve executar backup baseado no horário (12:00 e 20:00 BR)
  */
-async function shouldRunDailyMariaDBBackup(): Promise<boolean> {
-  try {
-    const mariadbConnection = await mysql.createConnection(mariadbConnectionString);
-    const [rows] = await mariadbConnection.execute(
-      'SELECT config_value FROM system_config WHERE config_key = ?',
-      ['last_backup_date']
-    ) as any;
-    await mariadbConnection.end();
-
-    if (rows.length === 0) return true; // Nunca fez backup
-
-    const lastBackup = new Date(rows[0].config_value);
-    const today = new Date();
-    
-    // Verifica se é um dia diferente
-    return today.toDateString() !== lastBackup.toDateString();
-  } catch (error) {
-    console.error('Erro ao verificar último backup MariaDB:', error);
-    return true; // Em caso de erro, executar backup
-  }
+function shouldRunScheduledBackup(): boolean {
+  const now = new Date();
+  // Converter para horário de Brasília (UTC-3)
+  const brasiliaTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+  const hour = brasiliaTime.getHours();
+  const minute = brasiliaTime.getMinutes();
+  
+  // Executar às 12:00 ou 20:00 (com margem de 5 minutos)
+  return (hour === 12 || hour === 20) && minute < 5;
 }
 
 /**
  * Executa backup diário se necessário com suporte a MariaDB
  * @returns Promise com resultado da verificação/execução
  */
+// Controle para agendamento automático
+let lastBackupHour = -1;
+
+/**
+ * Executa backup agendado para 12:00 e 20:00 BR
+ */
+async function runScheduledMariaDBBackup(): Promise<void> {
+  try {
+    const now = new Date();
+    const brasiliaTime = new Date(now.getTime() - (3 * 60 * 60 * 1000));
+    const hour = brasiliaTime.getHours();
+    
+    if (shouldRunScheduledBackup() && lastBackupHour !== hour) {
+      console.log(`🔄 [AGENDADO] Backup MariaDB às ${hour}:00 (Brasília)...`);
+      
+      const backupResult = await backupDataToMariaDB();
+      
+      if (backupResult.success) {
+        lastBackupHour = hour;
+        console.log(`✅ [AGENDADO] Backup ${hour}:00 concluído! ${backupResult.recordsBackedUp} registros.`);
+      } else {
+        console.error(`❌ [AGENDADO] Erro backup ${hour}:00:`, backupResult.error);
+      }
+    }
+  } catch (error) {
+    console.error(`❌ [AGENDADO] Erro inesperado:`, error);
+  }
+}
+
+/**
+ * Inicia agendador automático (12:00 e 20:00 BR)
+ */
+export function startBackupScheduler(): void {
+  console.log('🕒 Agendador MariaDB iniciado (12:00 e 20:00 Brasília)');
+  setInterval(runScheduledMariaDBBackup, 60 * 1000);
+}
+
 async function runMariaDBBackupIfNeeded(): Promise<{ ran: boolean; date: string; type: string } | { ran: false; reason: string }> {
   try {
-    const shouldBackup = await shouldRunDailyMariaDBBackup();
-    
-    if (!shouldBackup) {
-      return {
-        ran: false,
-        reason: 'Backup MariaDB já executado hoje'
-      };
-    }
-
-    console.log('🔄 Executando backup diário no MariaDB...');
-    const backupResult = await backupDataToMariaDB();
-    
-    if (backupResult.success) {
-      return {
-        ran: true,
-        date: new Date().toISOString(),
-        type: 'MariaDB'
-      };
-    } else {
-      return {
-        ran: false,
-        reason: `Falha no backup MariaDB: ${backupResult.error}`
-      };
-    }
-
+    // Removido controle por data - agora usa agendamento por horário
+    return {
+      ran: false,
+      reason: 'Backup agendado automaticamente às 12:00 e 20:00 BR'
+    };
   } catch (error) {
     console.error('Erro no backup MariaDB:', error);
     return {
