@@ -739,13 +739,34 @@ export async function runManualMariaDBBackup(): Promise<{ success: boolean; mess
     const backupResult = await backupDataToMariaDB();
     
     if (backupResult.success) {
+      // ✅ Salvar timestamp do backup MariaDB bem-sucedido
+      const now = new Date();
+      try {
+        await db.insert(systemConfig)
+          .values({
+            key: 'last_mariadb_backup',
+            value: JSON.stringify(now.toISOString()),
+            updatedAt: now
+          })
+          .onConflictDoUpdate({
+            target: [systemConfig.key],
+            set: {
+              value: JSON.stringify(now.toISOString()),
+              updatedAt: now
+            }
+          });
+        console.log(`📅 Timestamp MariaDB salvo: ${now.toLocaleString('pt-BR')}`);
+      } catch (timestampError) {
+        console.error('⚠️ Erro ao salvar timestamp MariaDB:', timestampError);
+      }
+
       return {
         success: true,
         message: `Backup MariaDB executado com sucesso! ${backupResult.recordsBackedUp} registros em ${backupResult.tablesBackedUp.length} tabelas.`,
         details: {
           recordsBackedUp: backupResult.recordsBackedUp,
           tablesBackedUp: backupResult.tablesBackedUp,
-          timestamp: new Date().toISOString()
+          timestamp: now.toISOString()
         }
       };
     } else {
