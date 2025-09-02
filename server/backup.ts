@@ -212,23 +212,54 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     console.log('🔧 Desabilitando foreign key checks temporariamente...');
     await mariadbConnection.execute('SET FOREIGN_KEY_CHECKS = 0');
     
-    console.log('🔄 Iniciando deleção em ordem segura...');
+    // ✅ Verificar se FK checks foram desabilitados
+    const [fkCheckResult] = await mariadbConnection.execute('SELECT @@foreign_key_checks') as any;
+    console.log(`🔍 FK checks status: ${JSON.stringify(fkCheckResult)}`);
     
-    // 1. Deletar dados dependentes primeiro (ordem inversa das dependências)
-    await mariadbConnection.execute('DELETE FROM time_entries');
-    await mariadbConnection.execute('DELETE FROM time_entry_comments'); 
-    await mariadbConnection.execute('DELETE FROM campaign_costs');
-    await mariadbConnection.execute('DELETE FROM campaign_tasks');
-    await mariadbConnection.execute('DELETE FROM campaign_users');
-    await mariadbConnection.execute('DELETE FROM campaigns');
-    await mariadbConnection.execute('DELETE FROM clients');
-    await mariadbConnection.execute('DELETE FROM users'); // Agora pode deletar devido auto-referência manager_id
-    await mariadbConnection.execute('DELETE FROM task_types');
-    await mariadbConnection.execute('DELETE FROM cost_categories');
-    await mariadbConnection.execute('DELETE FROM economic_groups');
-    await mariadbConnection.execute('DELETE FROM departments');
-    await mariadbConnection.execute('DELETE FROM cost_centers');
-    await mariadbConnection.execute('DELETE FROM sessions');
+    console.log('🔄 Iniciando deleção em ordem segura com TRUNCATE...');
+    
+    // 1. Usar TRUNCATE que ignora FK constraints quando possível
+    try {
+      await mariadbConnection.execute('TRUNCATE TABLE time_entries');
+      await mariadbConnection.execute('TRUNCATE TABLE time_entry_comments');
+      await mariadbConnection.execute('TRUNCATE TABLE campaign_costs');
+      await mariadbConnection.execute('TRUNCATE TABLE campaign_tasks');
+      await mariadbConnection.execute('TRUNCATE TABLE campaign_users');
+      await mariadbConnection.execute('TRUNCATE TABLE campaigns');
+      await mariadbConnection.execute('TRUNCATE TABLE clients');
+      await mariadbConnection.execute('TRUNCATE TABLE users');
+      await mariadbConnection.execute('TRUNCATE TABLE task_types');
+      await mariadbConnection.execute('TRUNCATE TABLE cost_categories');
+      await mariadbConnection.execute('TRUNCATE TABLE economic_groups');
+      await mariadbConnection.execute('TRUNCATE TABLE departments');
+      await mariadbConnection.execute('TRUNCATE TABLE cost_centers');
+      await mariadbConnection.execute('TRUNCATE TABLE sessions');
+      console.log('✅ TRUNCATE bem-sucedido');
+    } catch (truncateError) {
+      console.log('⚠️ TRUNCATE falhou, tentando DELETE individual...');
+      // Fallback para DELETE em ordem específica para auto-referências
+      
+      // Primeiro, definir manager_id como NULL para quebrar auto-referência
+      await mariadbConnection.execute('UPDATE users SET manager_id = NULL WHERE manager_id IS NOT NULL');
+      console.log('✅ Auto-referências de manager_id removidas');
+      
+      // Agora deletar normalmente
+      await mariadbConnection.execute('DELETE FROM time_entries');
+      await mariadbConnection.execute('DELETE FROM time_entry_comments'); 
+      await mariadbConnection.execute('DELETE FROM campaign_costs');
+      await mariadbConnection.execute('DELETE FROM campaign_tasks');
+      await mariadbConnection.execute('DELETE FROM campaign_users');
+      await mariadbConnection.execute('DELETE FROM campaigns');
+      await mariadbConnection.execute('DELETE FROM clients');
+      await mariadbConnection.execute('DELETE FROM users');
+      await mariadbConnection.execute('DELETE FROM task_types');
+      await mariadbConnection.execute('DELETE FROM cost_categories');
+      await mariadbConnection.execute('DELETE FROM economic_groups');
+      await mariadbConnection.execute('DELETE FROM departments');
+      await mariadbConnection.execute('DELETE FROM cost_centers');
+      await mariadbConnection.execute('DELETE FROM sessions');
+      console.log('✅ DELETE individual bem-sucedido');
+    }
     
     console.log('✅ Deleção segura concluída, iniciando inserção...');
 
