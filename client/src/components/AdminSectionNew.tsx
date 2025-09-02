@@ -569,7 +569,7 @@ export function AdminSection() {
               <span className="text-sm font-medium text-slate-700">Backup CSV:</span>
               {backupStatusData?.lastCsvBackup ? (
                 <span className="text-sm text-slate-600">
-                  ✅ Último backup: {new Date(backupStatusData.lastCsvBackup).toLocaleDateString('pt-BR')} às {backupStatusData?.lastCsvBackupTimestamp ? new Date(backupStatusData.lastCsvBackupTimestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '00:00:00'}
+                  ✅ Último backup: {new Date(backupStatusData.lastCsvBackup).toLocaleDateString('pt-BR')} às {new Date(backupStatusData.lastCsvBackup).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               ) : (
                 <span className="text-sm text-slate-500">❌ Nunca executado</span>

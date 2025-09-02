@@ -2511,7 +2511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const response = {
-        lastCsvBackup: lastCsvBackup ? `${lastCsvBackup}-15` : null, // Formato YYYY-MM-DD
+        lastCsvBackup: csvUpdatedAt || lastBackupTimestamp, // Usar timestamp real
         lastCsvBackupTimestamp: csvUpdatedAt || lastBackupTimestamp,
         mariadbBackupActive: true,
         nextScheduledBackup: "Próximo às 12:00 ou 20:00 (horário de Brasília)",
