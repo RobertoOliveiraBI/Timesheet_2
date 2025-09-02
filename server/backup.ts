@@ -542,7 +542,24 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
 
     // Backup concluído - não precisamos de system_config no MariaDB pois é apenas espelho
 
+    // ✅ Salvar timestamp do backup MariaDB bem-sucedido
+    const now = new Date();
+    await db.insert(systemConfig)
+      .values({
+        key: 'last_mariadb_backup',
+        value: JSON.stringify(now.toISOString()),
+        updatedAt: now
+      })
+      .onConflictDoUpdate({
+        target: [systemConfig.key],
+        set: {
+          value: JSON.stringify(now.toISOString()),
+          updatedAt: now
+        }
+      });
+
     console.log(`🎉 Backup MariaDB completo! ${totalRecords} registros espelhados em ${backedUpTables.length} tabelas.`);
+    console.log(`📅 Timestamp salvo: ${now.toLocaleString('pt-BR')}`);
 
     return {
       success: true,

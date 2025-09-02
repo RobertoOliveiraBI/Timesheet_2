@@ -2493,29 +2493,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const lastBackupTimestamp = lastBackupConfig[0]?.value || null;
 
-      // Para MariaDB, usar estimativa baseada em horários programados
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const noon = new Date(today.getTime() + 12 * 60 * 60 * 1000); // 12:00 hoje
-      const evening = new Date(today.getTime() + 20 * 60 * 60 * 1000); // 20:00 hoje
+      // MariaDB backup status - buscar timestamp real
+      const lastMariadbBackupRecord = await db.select().from(systemConfig)
+        .where(eq(systemConfig.key, 'last_mariadb_backup'))
+        .limit(1);
       
-      let estimatedLastMariaDB = null;
-      if (now >= evening) {
-        estimatedLastMariaDB = evening.toISOString(); // Último foi às 20:00 de hoje
-      } else if (now >= noon) {
-        estimatedLastMariaDB = noon.toISOString(); // Último foi às 12:00 de hoje
-      } else {
-        // Antes das 12:00, último foi às 20:00 de ontem
-        const yesterday20 = new Date(today.getTime() - 4 * 60 * 60 * 1000); // 20:00 ontem
-        estimatedLastMariaDB = yesterday20.toISOString();
+      let lastMariadbBackup: string | null = null;
+      
+      if (lastMariadbBackupRecord.length > 0 && lastMariadbBackupRecord[0]?.value) {
+        try {
+          lastMariadbBackup = JSON.parse(lastMariadbBackupRecord[0].value);
+        } catch (parseError) {
+          console.error('[BACKUP STATUS API] Erro ao parsear last_mariadb_backup:', parseError);
+        }
       }
+
+      const now = new Date();
 
       const response = {
         lastCsvBackup: csvUpdatedAt || lastBackupTimestamp, // Usar timestamp real
         lastCsvBackupTimestamp: csvUpdatedAt || lastBackupTimestamp,
         mariadbBackupActive: true,
         nextScheduledBackup: "Próximo às 12:00 ou 20:00 (horário de Brasília)",
-        lastMariadbBackup: estimatedLastMariaDB,
+        lastMariadbBackup: lastMariadbBackup,
         currentTime: now.toISOString()
       };
 

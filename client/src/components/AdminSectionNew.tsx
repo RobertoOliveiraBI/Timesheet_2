@@ -580,7 +580,7 @@ export function AdminSection() {
               <span className="text-sm font-medium text-slate-700">Backup MariaDB:</span>
               {backupStatusData?.lastMariadbBackup ? (
                 <span className="text-sm text-slate-600">
-                  ✅ Último backup estimado: {new Date(backupStatusData.lastMariadbBackup).toLocaleDateString('pt-BR')} às {new Date(backupStatusData.lastMariadbBackup).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  ✅ Último backup: {new Date(backupStatusData.lastMariadbBackup).toLocaleDateString('pt-BR')} às {new Date(backupStatusData.lastMariadbBackup).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               ) : (
                 <span className="text-sm text-slate-500">🕒 Agendamento ativo (12:00 e 20:00)</span>
