@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { db } from "./db";
 import { storage } from "./storage";
 import { testMariaDBConnection } from "./mariadb-test";
+import { createMariaDBTables } from "./create-mariadb-tables";
 import { setupAuth } from "./auth";
 import { 
   insertEconomicGroupSchema,
@@ -53,6 +54,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         message: 'MariaDB connection test failed',
         error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Create MariaDB tables endpoint
+  app.post('/api/create-mariadb-tables', async (req, res) => {
+    try {
+      const result = await createMariaDBTables();
+      res.json(result);
+    } catch (error) {
+      console.error('MariaDB table creation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao criar tabelas no MariaDB',
+        error: error instanceof Error ? error.message : 'Erro desconhecido'
       });
     }
   });
