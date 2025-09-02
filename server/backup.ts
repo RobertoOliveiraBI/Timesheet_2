@@ -208,10 +208,32 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
     mariadbConnection = await mysql.createConnection(mariadbConnectionString);
     console.log('🔗 Conectado ao MariaDB para backup espelho');
 
-    // 1. Backup Departments
+    // ⚠️ ORDEM CRÍTICA: Deletar tabelas filhas PRIMEIRO para evitar violação de FK
+    console.log('🔄 Iniciando deleção em ordem segura...');
+    
+    // 1. Deletar dados dependentes primeiro (ordem inversa das dependências)
+    await mariadbConnection.execute('DELETE FROM time_entries');
+    await mariadbConnection.execute('DELETE FROM time_entry_comments'); 
+    await mariadbConnection.execute('DELETE FROM campaign_costs');
+    await mariadbConnection.execute('DELETE FROM campaign_tasks');
+    await mariadbConnection.execute('DELETE FROM campaign_users');
+    await mariadbConnection.execute('DELETE FROM campaigns');
+    await mariadbConnection.execute('DELETE FROM clients');
+    await mariadbConnection.execute('DELETE FROM users');
+    await mariadbConnection.execute('DELETE FROM task_types');
+    await mariadbConnection.execute('DELETE FROM cost_categories');
+    await mariadbConnection.execute('DELETE FROM economic_groups');
+    await mariadbConnection.execute('DELETE FROM departments');
+    await mariadbConnection.execute('DELETE FROM cost_centers');
+    await mariadbConnection.execute('DELETE FROM sessions');
+    
+    console.log('✅ Deleção segura concluída, iniciando inserção...');
+
+    // 2. INSERIR na ordem correta: tabelas pai PRIMEIRO
+    
+    // A. Backup Departments (tabela base)
     const departments = await db.select().from(TABLES_TO_BACKUP.departments);
     if (departments.length > 0) {
-      await mariadbConnection.execute('DELETE FROM departments');
       for (const dept of departments) {
         await mariadbConnection.execute(
           'INSERT INTO departments (id, name, description, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
@@ -220,12 +242,12 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       }
       backedUpTables.push('departments');
       totalRecords += departments.length;
+      console.log(`✅ ${departments.length} departamentos inseridos`);
     }
 
-    // 2. Backup Cost Centers
+    // B. Backup Cost Centers (tabela base)
     const costCenters = await db.select().from(TABLES_TO_BACKUP.costCenters);
     if (costCenters.length > 0) {
-      await mariadbConnection.execute('DELETE FROM cost_centers');
       for (const center of costCenters) {
         await mariadbConnection.execute(
           'INSERT INTO cost_centers (id, name, code, description, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -234,12 +256,54 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       }
       backedUpTables.push('cost_centers');
       totalRecords += costCenters.length;
+      console.log(`✅ ${costCenters.length} centros de custo inseridos`);
     }
 
-    // 3. Backup Users (sem senha por segurança)
+    // C. Backup Economic Groups (tabela base)
+    const economicGroups = await db.select().from(TABLES_TO_BACKUP.economicGroups);
+    if (economicGroups.length > 0) {
+      for (const group of economicGroups) {
+        await mariadbConnection.execute(
+          'INSERT INTO economic_groups (id, name, description, created_at) VALUES (?, ?, ?, ?)',
+          [group.id, group.name, group.description, group.createdAt]
+        );
+      }
+      backedUpTables.push('economic_groups');
+      totalRecords += economicGroups.length;
+      console.log(`✅ ${economicGroups.length} grupos econômicos inseridos`);
+    }
+
+    // D. Backup Task Types (tabela base)
+    const taskTypes = await db.select().from(TABLES_TO_BACKUP.taskTypes);
+    if (taskTypes.length > 0) {
+      for (const taskType of taskTypes) {
+        await mariadbConnection.execute(
+          'INSERT INTO task_types (id, name, description, color, is_billable, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [taskType.id, taskType.name, taskType.description, taskType.color, taskType.isBillable, taskType.isActive, taskType.createdAt]
+        );
+      }
+      backedUpTables.push('task_types');
+      totalRecords += taskTypes.length;
+      console.log(`✅ ${taskTypes.length} tipos de tarefa inseridos`);
+    }
+
+    // E. Backup Cost Categories (tabela base)
+    const costCategories = await db.select().from(TABLES_TO_BACKUP.costCategories);
+    if (costCategories.length > 0) {
+      for (const category of costCategories) {
+        await mariadbConnection.execute(
+          'INSERT INTO cost_categories (id, name, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+          [category.id, category.name, category.isActive, category.createdAt, category.updatedAt]
+        );
+      }
+      backedUpTables.push('cost_categories');
+      totalRecords += costCategories.length;
+      console.log(`✅ ${costCategories.length} categorias de custo inseridas`);
+    }
+
+    // F. Backup Users (referencia departments e cost_centers)
     const users = await db.select().from(TABLES_TO_BACKUP.users);
     if (users.length > 0) {
-      await mariadbConnection.execute('DELETE FROM users');
       for (const user of users) {
         await mariadbConnection.execute(
           `INSERT INTO users (id, email, password, first_name, last_name, profile_image_url, role, position, 
@@ -257,26 +321,12 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       }
       backedUpTables.push('users');
       totalRecords += users.length;
+      console.log(`✅ ${users.length} usuários inseridos`);
     }
 
-    // 4. Backup Economic Groups
-    const economicGroups = await db.select().from(TABLES_TO_BACKUP.economicGroups);
-    if (economicGroups.length > 0) {
-      await mariadbConnection.execute('DELETE FROM economic_groups');
-      for (const group of economicGroups) {
-        await mariadbConnection.execute(
-          'INSERT INTO economic_groups (id, name, description, created_at) VALUES (?, ?, ?, ?)',
-          [group.id, group.name, group.description, group.createdAt]
-        );
-      }
-      backedUpTables.push('economic_groups');
-      totalRecords += economicGroups.length;
-    }
-
-    // 5. Backup Clients
+    // G. Backup Clients (referencia economic_groups)
     const clients = await db.select().from(TABLES_TO_BACKUP.clients);
     if (clients.length > 0) {
-      await mariadbConnection.execute('DELETE FROM clients');
       for (const client of clients) {
         await mariadbConnection.execute(
           'INSERT INTO clients (id, company_name, trade_name, cnpj, email, economic_group_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -285,12 +335,12 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       }
       backedUpTables.push('clients');
       totalRecords += clients.length;
+      console.log(`✅ ${clients.length} clientes inseridos`);
     }
 
-    // 6. Backup Campaigns
+    // H. Backup Campaigns (referencia clients e cost_centers)
     const campaigns = await db.select().from(TABLES_TO_BACKUP.campaigns);
     if (campaigns.length > 0) {
-      await mariadbConnection.execute('DELETE FROM campaigns');
       for (const campaign of campaigns) {
         await mariadbConnection.execute(
           'INSERT INTO campaigns (id, name, description, contract_start_date, contract_end_date, contract_value, client_id, cost_center_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
@@ -299,12 +349,40 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       }
       backedUpTables.push('campaigns');
       totalRecords += campaigns.length;
+      console.log(`✅ ${campaigns.length} campanhas inseridas`);
     }
 
-    // 7. Backup Time Entries
+    // I. Backup Campaign Tasks (referencia campaigns e task_types)
+    const campaignTasks = await db.select().from(TABLES_TO_BACKUP.campaignTasks);
+    if (campaignTasks.length > 0) {
+      for (const task of campaignTasks) {
+        await mariadbConnection.execute(
+          'INSERT INTO campaign_tasks (id, campaign_id, task_type_id, description, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [task.id, task.campaignId, task.taskTypeId, task.description, task.isActive, task.createdAt]
+        );
+      }
+      backedUpTables.push('campaign_tasks');
+      totalRecords += campaignTasks.length;
+      console.log(`✅ ${campaignTasks.length} tarefas de campanha inseridas`);
+    }
+
+    // J. Backup Campaign Users (referencia campaigns e users)
+    const campaignUsers = await db.select().from(TABLES_TO_BACKUP.campaignUsers);
+    if (campaignUsers.length > 0) {
+      for (const access of campaignUsers) {
+        await mariadbConnection.execute(
+          'INSERT INTO campaign_users (id, campaign_id, user_id, created_at) VALUES (?, ?, ?, ?)',
+          [access.id, access.campaignId, access.userId, access.createdAt]
+        );
+      }
+      backedUpTables.push('campaign_users');
+      totalRecords += campaignUsers.length;
+      console.log(`✅ ${campaignUsers.length} acessos de campanha inseridos`);
+    }
+
+    // K. Backup Time Entries (referencia users, campaigns, campaign_tasks)
     const timeEntries = await db.select().from(TABLES_TO_BACKUP.timeEntries);
     if (timeEntries.length > 0) {
-      await mariadbConnection.execute('DELETE FROM time_entries');
       for (const entry of timeEntries) {
         await mariadbConnection.execute(
           `INSERT INTO time_entries (id, user_id, date, campaign_id, campaign_task_id, hours, description, 
@@ -319,6 +397,35 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       }
       backedUpTables.push('time_entries');
       totalRecords += timeEntries.length;
+      console.log(`✅ ${timeEntries.length} lançamentos de tempo inseridos`);
+    }
+
+    // L. Backup Time Entry Comments (referencia time_entries)
+    const timeEntryComments = await db.select().from(TABLES_TO_BACKUP.timeEntryComments);
+    if (timeEntryComments.length > 0) {
+      for (const comment of timeEntryComments) {
+        await mariadbConnection.execute(
+          'INSERT INTO time_entry_comments (id, time_entry_id, user_id, comment, created_at) VALUES (?, ?, ?, ?, ?)',
+          [comment.id, comment.timeEntryId, comment.userId, comment.comment, comment.createdAt]
+        );
+      }
+      backedUpTables.push('time_entry_comments');
+      totalRecords += timeEntryComments.length;
+      console.log(`✅ ${timeEntryComments.length} comentários inseridos`);
+    }
+
+    // M. Backup Campaign Costs (referencia campaigns e cost_categories)
+    const campaignCosts = await db.select().from(TABLES_TO_BACKUP.campaignCosts);
+    if (campaignCosts.length > 0) {
+      for (const cost of campaignCosts) {
+        await mariadbConnection.execute(
+          'INSERT INTO campaign_costs (id, campaign_id, cost_category_id, description, amount, cost_date, is_approved, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [cost.id, cost.campaignId, cost.costCategoryId, cost.description, cost.amount, cost.costDate, cost.isApproved, cost.notes, cost.createdAt, cost.updatedAt]
+        );
+      }
+      backedUpTables.push('campaign_costs');
+      totalRecords += campaignCosts.length;
+      console.log(`✅ ${campaignCosts.length} custos de campanha inseridos`);
     }
 
     // Atualizar registro de último backup no MariaDB
