@@ -2250,7 +2250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   csvImportModule.setupCsvImportRoutes(app, storage);
 
   // ====== BACKUP CSV ROUTES ======
-  const { backupAllTables } = await import('./backup');
+  const { backupAllTables, runManualMariaDBBackup, runManualCSVBackup } = await import('./backup');
   
   /**
    * POST /api/admin/backup - Gera backup manual de todas as tabelas
@@ -2294,6 +2294,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     } catch (error) {
       console.error("[BACKUP API] ❌ Erro na rota de backup:", error);
+      res.status(500).json({ 
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  /**
+   * POST /api/admin/backup-mariadb - Gera backup manual no MariaDB
+   * Acesso: Apenas usuários MASTER e ADMIN
+   */
+  app.post('/api/admin/backup-mariadb', requireAuth, async (req: any, res) => {
+    try {
+      // Verificar permissões de administrador
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ 
+          message: "Acesso negado - apenas administradores podem gerar backups" 
+        });
+      }
+
+      console.log(`[BACKUP MARIADB API] 🚀 Backup MariaDB solicitado por ${user.email} (${user.role})`);
+      
+      // Executar backup MariaDB manual
+      const result = await runManualMariaDBBackup();
+      
+      if (!result.success) {
+        return res.status(500).json({ 
+          message: result.message,
+          error: result.details
+        });
+      }
+
+      // Resposta de sucesso
+      const response = {
+        success: true,
+        message: result.message,
+        details: result.details,
+        generatedBy: user.email
+      };
+
+      console.log(`[BACKUP MARIADB API] ✅ Backup MariaDB concluído para ${user.email}`);
+      
+      res.json(response);
+
+    } catch (error) {
+      console.error("[BACKUP MARIADB API] ❌ Erro na rota de backup MariaDB:", error);
       res.status(500).json({ 
         message: "Erro interno do servidor",
         error: error instanceof Error ? error.message : String(error)

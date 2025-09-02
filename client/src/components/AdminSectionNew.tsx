@@ -32,7 +32,8 @@ import {
   Briefcase,
   Tags,
   Search,
-  Copy
+  Copy,
+  Database
 } from "lucide-react";
 import { UserModal, EconomicGroupModal, ClientModal, CampaignModal, TaskTypeModal, CampaignTaskModal, DepartmentModal, CostCenterModal } from "./AdminModals";
 import { CampaignAccessModal } from "./CampaignAccessModal";
@@ -42,6 +43,7 @@ export function AdminSection() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [campaignAccessModal, setCampaignAccessModal] = useState<{ isOpen: boolean; campaign: any }>({ isOpen: false, campaign: null });
   const [isBackupLoading, setIsBackupLoading] = useState(false);
+  const [isMariaDBBackupLoading, setIsMariaDBBackupLoading] = useState(false);
   const [deleteEntriesModal, setDeleteEntriesModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeletingEntries, setIsDeletingEntries] = useState(false);
@@ -257,7 +259,7 @@ export function AdminSection() {
     setSelectedItem(null);
   };
 
-  // ✨ FUNÇÃO DE BACKUP MANUAL
+  // ✨ FUNÇÃO DE BACKUP MANUAL CSV
   const handleManualBackup = async () => {
     setIsBackupLoading(true);
     try {
@@ -275,21 +277,57 @@ export function AdminSection() {
       const result = await response.json();
       
       toast({
-        title: "✅ Backup concluído!",
+        title: "✅ Backup CSV concluído!",
         description: `${result.count} arquivos CSV gerados - ${result.timestamp}`,
         duration: 5000,
       });
       
     } catch (error) {
-      console.error('Erro no backup:', error);
+      console.error('Erro no backup CSV:', error);
       toast({
         variant: "destructive",
-        title: "❌ Erro no backup",
+        title: "❌ Erro no backup CSV",
         description: error instanceof Error ? error.message : "Erro desconhecido",
         duration: 7000,
       });
     } finally {
       setIsBackupLoading(false);
+    }
+  };
+
+  // 🗄️ FUNÇÃO DE BACKUP MARIADB
+  const handleMariaDBBackup = async () => {
+    setIsMariaDBBackupLoading(true);
+    try {
+      const response = await fetch('/api/admin/backup-mariadb', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || `Erro ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "✅ Backup MariaDB concluído!",
+        description: `${result.details.recordsBackedUp} registros espelhados em ${result.details.tablesBackedUp.length} tabelas`,
+        duration: 5000,
+      });
+      
+    } catch (error) {
+      console.error('Erro no backup MariaDB:', error);
+      toast({
+        variant: "destructive",
+        title: "❌ Erro no backup MariaDB",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        duration: 7000,
+      });
+    } finally {
+      setIsMariaDBBackupLoading(false);
     }
   };
 
@@ -435,6 +473,14 @@ export function AdminSection() {
       color: "bg-indigo-600",
       action: handleManualBackup,
       loading: isBackupLoading,
+    },
+    {
+      title: "Backup MariaDB",
+      description: "Espelhar dados no MariaDB",
+      icon: Database,
+      color: "bg-emerald-600",
+      action: handleMariaDBBackup,
+      loading: isMariaDBBackupLoading,
     },
     {
       title: "Limpar Entradas",
