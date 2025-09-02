@@ -273,12 +273,18 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
 
     // 2. INSERIR na ordem correta: tabelas pai PRIMEIRO
     
-    // A. Backup Departments (tabela base)
+    // A. Backup Departments (tabela base) - com ON DUPLICATE KEY UPDATE
     const departments = await db.select().from(TABLES_TO_BACKUP.departments);
     if (departments.length > 0) {
       for (const dept of departments) {
         await mariadbConnection.execute(
-          'INSERT INTO departments (id, name, description, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+          `INSERT INTO departments (id, name, description, is_active, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           name = VALUES(name), 
+           description = VALUES(description), 
+           is_active = VALUES(is_active), 
+           updated_at = VALUES(updated_at)`,
           [dept.id, dept.name, dept.description, dept.isActive, dept.createdAt, dept.updatedAt]
         );
       }
@@ -287,12 +293,19 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${departments.length} departamentos inseridos`);
     }
 
-    // B. Backup Cost Centers (tabela base)
+    // B. Backup Cost Centers (tabela base) - com ON DUPLICATE KEY UPDATE
     const costCenters = await db.select().from(TABLES_TO_BACKUP.costCenters);
     if (costCenters.length > 0) {
       for (const center of costCenters) {
         await mariadbConnection.execute(
-          'INSERT INTO cost_centers (id, name, code, description, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          `INSERT INTO cost_centers (id, name, code, description, is_active, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           name = VALUES(name), 
+           code = VALUES(code), 
+           description = VALUES(description), 
+           is_active = VALUES(is_active), 
+           updated_at = VALUES(updated_at)`,
           [center.id, center.name, center.code, center.description, center.isActive, center.createdAt, center.updatedAt]
         );
       }
@@ -301,12 +314,16 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${costCenters.length} centros de custo inseridos`);
     }
 
-    // C. Backup Economic Groups (tabela base)
+    // C. Backup Economic Groups (tabela base) - com ON DUPLICATE KEY UPDATE
     const economicGroups = await db.select().from(TABLES_TO_BACKUP.economicGroups);
     if (economicGroups.length > 0) {
       for (const group of economicGroups) {
         await mariadbConnection.execute(
-          'INSERT INTO economic_groups (id, name, description, created_at) VALUES (?, ?, ?, ?)',
+          `INSERT INTO economic_groups (id, name, description, created_at) 
+           VALUES (?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           name = VALUES(name), 
+           description = VALUES(description)`,
           [group.id, group.name, group.description, group.createdAt]
         );
       }
@@ -315,12 +332,19 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${economicGroups.length} grupos econômicos inseridos`);
     }
 
-    // D. Backup Task Types (tabela base)
+    // D. Backup Task Types (tabela base) - com ON DUPLICATE KEY UPDATE
     const taskTypes = await db.select().from(TABLES_TO_BACKUP.taskTypes);
     if (taskTypes.length > 0) {
       for (const taskType of taskTypes) {
         await mariadbConnection.execute(
-          'INSERT INTO task_types (id, name, description, color, is_billable, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          `INSERT INTO task_types (id, name, description, color, is_billable, is_active, created_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           name = VALUES(name), 
+           description = VALUES(description), 
+           color = VALUES(color), 
+           is_billable = VALUES(is_billable), 
+           is_active = VALUES(is_active)`,
           [taskType.id, taskType.name, taskType.description, taskType.color, taskType.isBillable, taskType.isActive, taskType.createdAt]
         );
       }
@@ -329,12 +353,17 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${taskTypes.length} tipos de tarefa inseridos`);
     }
 
-    // E. Backup Cost Categories (tabela base)
+    // E. Backup Cost Categories (tabela base) - com ON DUPLICATE KEY UPDATE
     const costCategories = await db.select().from(TABLES_TO_BACKUP.costCategories);
     if (costCategories.length > 0) {
       for (const category of costCategories) {
         await mariadbConnection.execute(
-          'INSERT INTO cost_categories (id, name, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+          `INSERT INTO cost_categories (id, name, is_active, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           name = VALUES(name), 
+           is_active = VALUES(is_active), 
+           updated_at = VALUES(updated_at)`,
           [category.id, category.name, category.isActive, category.createdAt, category.updatedAt]
         );
       }
@@ -343,7 +372,7 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${costCategories.length} categorias de custo inseridas`);
     }
 
-    // F. Backup Users (referencia departments e cost_centers)
+    // F. Backup Users (referencia departments e cost_centers) - com ON DUPLICATE KEY UPDATE
     const users = await db.select().from(TABLES_TO_BACKUP.users);
     if (users.length > 0) {
       for (const user of users) {
@@ -351,7 +380,13 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
           `INSERT INTO users (id, email, password, first_name, last_name, profile_image_url, role, position, 
            is_manager, manager_id, contract_type, cost_center_id, department_id, contract_start_date, 
            contract_end_date, contract_value, company_name, cnpj, monthly_cost, is_active, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE 
+           email = VALUES(email), first_name = VALUES(first_name), last_name = VALUES(last_name),
+           role = VALUES(role), position = VALUES(position), is_manager = VALUES(is_manager),
+           manager_id = VALUES(manager_id), contract_type = VALUES(contract_type), 
+           cost_center_id = VALUES(cost_center_id), department_id = VALUES(department_id),
+           is_active = VALUES(is_active), updated_at = VALUES(updated_at)`,
           [
             user.id, user.email, '[BACKUP_MASKED]', user.firstName, user.lastName, user.profileImageUrl,
             user.role, user.position, user.isManager, user.managerId, user.contractType,
@@ -366,12 +401,17 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${users.length} usuários inseridos`);
     }
 
-    // G. Backup Clients (referencia economic_groups)
+    // G. Backup Clients (referencia economic_groups) - com ON DUPLICATE KEY UPDATE
     const clients = await db.select().from(TABLES_TO_BACKUP.clients);
     if (clients.length > 0) {
       for (const client of clients) {
         await mariadbConnection.execute(
-          'INSERT INTO clients (id, company_name, trade_name, cnpj, email, economic_group_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          `INSERT INTO clients (id, company_name, trade_name, cnpj, email, economic_group_id, is_active, created_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           company_name = VALUES(company_name), trade_name = VALUES(trade_name), 
+           cnpj = VALUES(cnpj), email = VALUES(email), 
+           economic_group_id = VALUES(economic_group_id), is_active = VALUES(is_active)`,
           [client.id, client.companyName, client.tradeName, client.cnpj, client.email, client.economicGroupId, client.isActive, client.createdAt]
         );
       }
@@ -380,12 +420,18 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${clients.length} clientes inseridos`);
     }
 
-    // H. Backup Campaigns (referencia clients e cost_centers)
+    // H. Backup Campaigns (referencia clients e cost_centers) - com ON DUPLICATE KEY UPDATE
     const campaigns = await db.select().from(TABLES_TO_BACKUP.campaigns);
     if (campaigns.length > 0) {
       for (const campaign of campaigns) {
         await mariadbConnection.execute(
-          'INSERT INTO campaigns (id, name, description, contract_start_date, contract_end_date, contract_value, client_id, cost_center_id, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          `INSERT INTO campaigns (id, name, description, contract_start_date, contract_end_date, contract_value, client_id, cost_center_id, is_active, created_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           name = VALUES(name), description = VALUES(description), 
+           contract_start_date = VALUES(contract_start_date), contract_end_date = VALUES(contract_end_date),
+           contract_value = VALUES(contract_value), client_id = VALUES(client_id), 
+           cost_center_id = VALUES(cost_center_id), is_active = VALUES(is_active)`,
           [campaign.id, campaign.name, campaign.description, campaign.contractStartDate, campaign.contractEndDate, campaign.contractValue, campaign.clientId, campaign.costCenterId, campaign.isActive, campaign.createdAt]
         );
       }
@@ -394,12 +440,16 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${campaigns.length} campanhas inseridas`);
     }
 
-    // I. Backup Campaign Tasks (referencia campaigns e task_types)
+    // I. Backup Campaign Tasks (referencia campaigns e task_types) - com ON DUPLICATE KEY UPDATE
     const campaignTasks = await db.select().from(TABLES_TO_BACKUP.campaignTasks);
     if (campaignTasks.length > 0) {
       for (const task of campaignTasks) {
         await mariadbConnection.execute(
-          'INSERT INTO campaign_tasks (id, campaign_id, task_type_id, description, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+          `INSERT INTO campaign_tasks (id, campaign_id, task_type_id, description, is_active, created_at) 
+           VALUES (?, ?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           campaign_id = VALUES(campaign_id), task_type_id = VALUES(task_type_id), 
+           description = VALUES(description), is_active = VALUES(is_active)`,
           [task.id, task.campaignId, task.taskTypeId, task.description, task.isActive, task.createdAt]
         );
       }
@@ -408,12 +458,15 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${campaignTasks.length} tarefas de campanha inseridas`);
     }
 
-    // J. Backup Campaign Users (referencia campaigns e users)
+    // J. Backup Campaign Users (referencia campaigns e users) - com ON DUPLICATE KEY UPDATE
     const campaignUsers = await db.select().from(TABLES_TO_BACKUP.campaignUsers);
     if (campaignUsers.length > 0) {
       for (const access of campaignUsers) {
         await mariadbConnection.execute(
-          'INSERT INTO campaign_users (id, campaign_id, user_id, created_at) VALUES (?, ?, ?, ?)',
+          `INSERT INTO campaign_users (id, campaign_id, user_id, created_at) 
+           VALUES (?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           campaign_id = VALUES(campaign_id), user_id = VALUES(user_id)`,
           [access.id, access.campaignId, access.userId, access.createdAt]
         );
       }
@@ -422,14 +475,18 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${campaignUsers.length} acessos de campanha inseridos`);
     }
 
-    // K. Backup Time Entries (referencia users, campaigns, campaign_tasks)
+    // K. Backup Time Entries (referencia users, campaigns, campaign_tasks) - com ON DUPLICATE KEY UPDATE
     const timeEntries = await db.select().from(TABLES_TO_BACKUP.timeEntries);
     if (timeEntries.length > 0) {
       for (const entry of timeEntries) {
         await mariadbConnection.execute(
           `INSERT INTO time_entries (id, user_id, date, campaign_id, campaign_task_id, hours, description, 
            result_center, status, submitted_at, reviewed_by, reviewed_at, review_comment, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE 
+           user_id = VALUES(user_id), date = VALUES(date), campaign_id = VALUES(campaign_id),
+           campaign_task_id = VALUES(campaign_task_id), hours = VALUES(hours), description = VALUES(description),
+           result_center = VALUES(result_center), status = VALUES(status), updated_at = VALUES(updated_at)`,
           [
             entry.id, entry.userId, entry.date, entry.campaignId, entry.campaignTaskId, entry.hours,
             entry.description, entry.resultCenter, entry.status, entry.submittedAt, entry.reviewedBy,
@@ -442,12 +499,15 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${timeEntries.length} lançamentos de tempo inseridos`);
     }
 
-    // L. Backup Time Entry Comments (referencia time_entries)
+    // L. Backup Time Entry Comments (referencia time_entries) - com ON DUPLICATE KEY UPDATE
     const timeEntryComments = await db.select().from(TABLES_TO_BACKUP.timeEntryComments);
     if (timeEntryComments.length > 0) {
       for (const comment of timeEntryComments) {
         await mariadbConnection.execute(
-          'INSERT INTO time_entry_comments (id, time_entry_id, user_id, comment, created_at) VALUES (?, ?, ?, ?, ?)',
+          `INSERT INTO time_entry_comments (id, time_entry_id, user_id, comment, created_at) 
+           VALUES (?, ?, ?, ?, ?) 
+           ON DUPLICATE KEY UPDATE 
+           time_entry_id = VALUES(time_entry_id), user_id = VALUES(user_id), comment = VALUES(comment)`,
           [comment.id, comment.timeEntryId, comment.userId, comment.comment, comment.createdAt]
         );
       }
@@ -456,14 +516,18 @@ async function backupDataToMariaDB(): Promise<MariaDBBackupResult> {
       console.log(`✅ ${timeEntryComments.length} comentários inseridos`);
     }
 
-    // M. Backup Campaign Costs (referencia campaigns e cost_categories)
+    // M. Backup Campaign Costs (referencia campaigns e cost_categories) - com ON DUPLICATE KEY UPDATE
     const campaignCosts = await db.select().from(TABLES_TO_BACKUP.campaignCosts);
     if (campaignCosts.length > 0) {
       for (const cost of campaignCosts) {
         await mariadbConnection.execute(
           `INSERT INTO campaign_costs (id, campaign_id, user_id, subject, description, reference_month, amount, notes, 
            cnpj_fornecedor, razao_social, category_id, status, created_at, updated_at, inactivated_at, inactivated_by) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE 
+           campaign_id = VALUES(campaign_id), user_id = VALUES(user_id), subject = VALUES(subject),
+           description = VALUES(description), reference_month = VALUES(reference_month), amount = VALUES(amount),
+           notes = VALUES(notes), category_id = VALUES(category_id), status = VALUES(status), updated_at = VALUES(updated_at)`,
           [
             cost.id, cost.campaignId, cost.userId, cost.subject, cost.description, cost.referenceMonth, 
             cost.amount, cost.notes, cost.cnpjFornecedor, cost.razaoSocial, cost.categoryId, cost.status,
