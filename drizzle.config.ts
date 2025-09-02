@@ -1,4 +1,3 @@
-// MIGRAÇÃO: Database URL atualizada para o novo servidor em 2025-09-02T18:47:37.427Z
 import { defineConfig } from "drizzle-kit";
 
 if (!process.env.DATABASE_URL) {

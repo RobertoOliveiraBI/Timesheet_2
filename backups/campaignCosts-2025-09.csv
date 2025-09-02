@@ -1,4 +1,0 @@
-"id","campaignId","userId","subject","description","referenceMonth","amount","notes","cnpjFornecedor","razaoSocial","categoryId","status","createdAt","updatedAt","inactivatedAt","inactivatedBy"
-2,3,1,"Teste de API Backend","Descrição 2","2025-04","200000.00","","","","","INATIVO","""2025-07-31T20:58:44.097Z""","""2025-07-31T22:14:54.497Z""","""2025-07-31T22:14:54.497Z""",1
-3,2,1,"FOTOGRAFO","USO DE FOTOS NO EVENTO","2025-07","24560.00","","","","","INATIVO","""2025-07-31T22:26:26.671Z""","""2025-08-01T15:19:53.446Z""","""2025-08-01T15:19:53.446Z""",1
-6,2,1,"FOTO","SEM DESCRIÇÃO 2","2025-07","12000.00","","44556667/0001-34","FAROFA LTDA",1,"ATIVO","""2025-08-01T15:20:41.185Z""","""2025-08-01T15:20:55.030Z""","",""
