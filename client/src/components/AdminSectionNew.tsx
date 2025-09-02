@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useBackup } from "@/contexts/BackupContext";
 import { apiRequest } from "@/lib/queryClient";
 import { 
   Users, 
@@ -64,6 +65,20 @@ export function AdminSection() {
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { startBackup, finishBackup, backupStatus } = useBackup();
+
+  // 📊 QUERY PARA STATUS DE BACKUP
+  const { data: backupStatusData } = useQuery({
+    queryKey: ['/api/admin/backup-status'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/backup-status', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Erro ao buscar status de backup');
+      return response.json();
+    },
+    refetchInterval: 60000, // Atualizar a cada minuto
+  });
 
   const { data: users = [], error: usersError, isLoading: usersLoading } = useQuery<any[]>({
     queryKey: ["/api/usuarios"],
@@ -298,6 +313,8 @@ export function AdminSection() {
   // 🗄️ FUNÇÃO DE BACKUP MARIADB
   const handleMariaDBBackup = async () => {
     setIsMariaDBBackupLoading(true);
+    startBackup(); // Inicia notificação global
+    
     try {
       const response = await fetch('/api/admin/backup-mariadb', {
         method: 'POST',
@@ -312,6 +329,9 @@ export function AdminSection() {
 
       const result = await response.json();
       
+      // Finalizar backup com data atual
+      finishBackup(new Date().toISOString());
+      
       toast({
         title: "✅ Backup MariaDB concluído!",
         description: `${result.details.recordsBackedUp} registros espelhados em ${result.details.tablesBackedUp.length} tabelas`,
@@ -319,6 +339,7 @@ export function AdminSection() {
       });
       
     } catch (error) {
+      finishBackup(); // Finalizar mesmo com erro
       console.error('Erro no backup MariaDB:', error);
       toast({
         variant: "destructive",
@@ -527,6 +548,37 @@ export function AdminSection() {
                 </div>
               </Button>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Backup Status */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Database className="w-5 h-5 mr-2" />
+            Status dos Backups
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-slate-700">Backup CSV (Mensal)</h4>
+              <p className="text-sm text-slate-500">
+                {backupStatusData?.lastCsvBackup 
+                  ? `Último: ${new Date(backupStatusData.lastCsvBackup).toLocaleDateString('pt-BR')}` 
+                  : 'Nunca executado'}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm text-slate-700">Backup MariaDB (Automático)</h4>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <p className="text-sm text-slate-500">
+                  {backupStatusData?.nextScheduledBackup || 'Agendamento ativo'}
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

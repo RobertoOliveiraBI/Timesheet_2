@@ -4,6 +4,8 @@ import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useSimpleAuth";
+import { BackupProvider } from "@/contexts/BackupContext";
+import { BackupNotificationBar } from "@/components/BackupNotificationBar";
 import Landing from "@/pages/Landing";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
@@ -60,8 +62,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <BackupProvider>
+          <BackupNotificationBar />
+          <Toaster />
+          <Router />
+        </BackupProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

@@ -2403,6 +2403,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  /**
+   * GET /api/admin/backup-status - Obter informações do último backup
+   * Acesso: Apenas usuários MASTER e ADMIN
+   */
+  app.get('/api/admin/backup-status', requireAuth, async (req: any, res) => {
+    try {
+      // Verificar permissões de administrador
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ 
+          message: "Acesso negado - apenas administradores" 
+        });
+      }
+
+      // Buscar última data de backup CSV
+      const csvBackupConfig = await db
+        .select()
+        .from(systemConfig)
+        .where(eq(systemConfig.key, 'last_backup_month'))
+        .limit(1);
+
+      const lastCsvBackup = csvBackupConfig[0]?.value || null;
+
+      // Para MariaDB, não temos controle de data específica, então informamos status
+      const response = {
+        lastCsvBackup: lastCsvBackup ? `${lastCsvBackup}-01` : null, // Formato YYYY-MM-DD
+        mariadbBackupActive: true, // Sempre ativo com agendamento
+        nextScheduledBackup: "Próximo às 12:00 ou 20:00 (horário de Brasília)",
+        lastMariadbBackup: "Agendamento automático ativo"
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      console.error("[BACKUP STATUS API] ❌ Erro:", error);
+      res.status(500).json({ 
+        message: "Erro interno do servidor",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
