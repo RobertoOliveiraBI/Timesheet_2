@@ -140,6 +140,7 @@ export function ApprovalManagement() {
       if (approvedFilters.month !== "all-months") {
         const [year, month] = approvedFilters.month.split("-");
         const startDate = new Date(parseInt(year), parseInt(month) - 1, 1).toISOString().split('T')[0];
+        // Para obter o último dia do mês selecionado, usar o mês seguinte e dia 0
         const endDate = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
         params.append("fromDate", startDate);
         params.append("toDate", endDate);
