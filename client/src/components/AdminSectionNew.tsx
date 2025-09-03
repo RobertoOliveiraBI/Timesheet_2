@@ -335,6 +335,9 @@ export function AdminSection() {
       // Finalizar backup com data atual
       finishBackup(new Date().toISOString());
       
+      // Invalidar cache para atualizar status imediatamente
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/backup-status'] });
+      
       toast({
         title: "✅ Backup MariaDB concluído!",
         description: `${result.details.recordsBackedUp} registros espelhados em ${result.details.tablesBackedUp.length} tabelas`,
