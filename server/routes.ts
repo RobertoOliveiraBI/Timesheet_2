@@ -2502,9 +2502,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (lastMariadbBackupRecord.length > 0 && lastMariadbBackupRecord[0]?.value) {
         try {
-          lastMariadbBackup = JSON.parse(lastMariadbBackupRecord[0].value);
+          // Try to parse as JSON first (for old format), fallback to direct value
+          lastMariadbBackup = lastMariadbBackupRecord[0].value.startsWith('"') 
+            ? JSON.parse(lastMariadbBackupRecord[0].value) 
+            : lastMariadbBackupRecord[0].value;
         } catch (parseError) {
           console.error('[BACKUP STATUS API] Erro ao parsear last_mariadb_backup:', parseError);
+          // Fallback to direct value if JSON parsing fails
+          lastMariadbBackup = lastMariadbBackupRecord[0].value;
         }
       }
 

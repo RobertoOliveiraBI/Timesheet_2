@@ -728,13 +728,13 @@ export async function runManualMariaDBBackup(): Promise<{ success: boolean; mess
         await db.insert(systemConfig)
           .values({
             key: 'last_mariadb_backup',
-            value: JSON.stringify(now.toISOString()),
+            value: now.toISOString(),
             updatedAt: now
           })
           .onConflictDoUpdate({
             target: [systemConfig.key],
             set: {
-              value: JSON.stringify(now.toISOString()),
+              value: now.toISOString(),
               updatedAt: now
             }
           });
