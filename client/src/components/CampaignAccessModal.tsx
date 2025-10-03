@@ -119,10 +119,10 @@ export function CampaignAccessModal({ isOpen, onClose, campaign }: CampaignAcces
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Gerenciar Acesso à Campanha
+            Gerenciar Acesso à Campanha: {campaign.name}
           </DialogTitle>
           <DialogDescription>
-            Configure quais colaboradores têm acesso à campanha "{campaign.name}"
+            Configure quais colaboradores têm acesso a esta campanha
           </DialogDescription>
         </DialogHeader>
 
