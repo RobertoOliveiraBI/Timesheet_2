@@ -27,7 +27,7 @@ interface Comment {
   createdAt: string;
   user: {
     id: number;
-    name: string;
+    name?: string;
     email: string;
     role: string;
   };
@@ -150,7 +150,10 @@ export function CommentModal({
       : <Badge variant="outline" className="text-xs">Colaborador</Badge>;
   };
 
-  const getUserInitials = (name: string) => {
+  const getUserInitials = (name?: string) => {
+    if (!name || name.trim() === '') {
+      return '??';
+    }
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
@@ -199,7 +202,7 @@ export function CommentModal({
                       </Avatar>
                       <div className="flex-1 space-y-2">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">{comment.user.name}</span>
+                          <span className="font-medium text-sm">{comment.user.name?.trim() || 'Usuário'}</span>
                           {getCommentTypeBadge(comment.commentType)}
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />

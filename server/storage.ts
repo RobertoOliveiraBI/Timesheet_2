@@ -1256,6 +1256,7 @@ export class DatabaseStorage implements IStorage {
         createdAt: timeEntryComments.createdAt,
         user: {
           id: users.id,
+          name: sql<string>`COALESCE(${users.firstName}, '') || ' ' || COALESCE(${users.lastName}, '')`,
           email: users.email,
           password: users.password,
           firstName: users.firstName,
