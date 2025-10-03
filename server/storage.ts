@@ -134,6 +134,7 @@ export interface IStorage {
   
   // Departments
   getDepartments(): Promise<Department[]>;
+  getDepartmentByName(name: string): Promise<Department | undefined>;
   createDepartment(department: InsertDepartment): Promise<Department>;
   updateDepartment(id: number, department: Partial<InsertDepartment>): Promise<Department>;
   deleteDepartment(id: number): Promise<void>;
@@ -946,6 +947,15 @@ export class DatabaseStorage implements IStorage {
       .insert(departments)
       .values(departmentData)
       .returning();
+    return department;
+  }
+
+  async getDepartmentByName(name: string): Promise<Department | undefined> {
+    const [department] = await db
+      .select()
+      .from(departments)
+      .where(sql`LOWER(${departments.name}) = LOWER(${name})`)
+      .limit(1);
     return department;
   }
 

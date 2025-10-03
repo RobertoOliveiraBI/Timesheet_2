@@ -1781,6 +1781,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = insertDepartmentSchema.parse(req.body);
+      
+      // Check if name already exists
+      const existingDepartment = await storage.getDepartmentByName(data.name);
+      if (existingDepartment) {
+        return res.status(400).json({ message: "Já existe um departamento com este nome" });
+      }
+      
       const department = await storage.createDepartment(data);
       res.status(201).json(department);
     } catch (error) {
@@ -1798,6 +1805,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const id = parseInt(req.params.id);
       const data = insertDepartmentSchema.partial().parse(req.body);
+      
+      // Check if name is being updated and if it already exists in another department
+      if (data.name) {
+        const existingDepartment = await storage.getDepartmentByName(data.name);
+        if (existingDepartment && existingDepartment.id !== id) {
+          return res.status(400).json({ message: "Já existe um departamento com este nome" });
+        }
+      }
+      
       const updatedDepartment = await storage.updateDepartment(id, data);
       res.json(updatedDepartment);
     } catch (error) {
