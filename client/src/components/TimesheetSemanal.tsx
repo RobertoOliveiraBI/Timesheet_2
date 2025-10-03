@@ -128,9 +128,9 @@ export function TimesheetSemanal() {
 
 
 
-  // Calcular dias da semana (segunda a sábado)
+  // Calcular dias da semana (segunda a domingo)
   const inicioSemana = startOfWeek(semanaAtual, { weekStartsOn: 1 }); // Segunda-feira
-  const diasSemana = Array.from({ length: 6 }, (_, i) => addDays(inicioSemana, i));
+  const diasSemana = Array.from({ length: 7 }, (_, i) => addDays(inicioSemana, i));
 
   // Buscar clientes
   const { data: clientes = [], isLoading: clientesLoading } = useQuery<Cliente[]>({
@@ -165,10 +165,10 @@ export function TimesheetSemanal() {
 
   // Buscar entradas existentes da semana
   const { data: entradasExistentes = [], refetch: refetchEntradas } = useQuery({
-    queryKey: ["/api/timesheet/semana", format(inicioSemana, "yyyy-MM-dd"), format(addDays(inicioSemana, 5), "yyyy-MM-dd")],
+    queryKey: ["/api/timesheet/semana", format(inicioSemana, "yyyy-MM-dd"), format(addDays(inicioSemana, 6), "yyyy-MM-dd")],
     queryFn: async () => {
       try {
-        const url = `/api/timesheet/semana?inicioSemana=${format(inicioSemana, "yyyy-MM-dd")}&fimSemana=${format(addDays(inicioSemana, 5), "yyyy-MM-dd")}`;
+        const url = `/api/timesheet/semana?inicioSemana=${format(inicioSemana, "yyyy-MM-dd")}&fimSemana=${format(addDays(inicioSemana, 6), "yyyy-MM-dd")}`;
         const response = await fetch(url, { credentials: "include" });
         
         if (!response.ok) {
@@ -264,6 +264,7 @@ export function TimesheetSemanal() {
             qui: "0",
             sex: "0",
             sab: "0",
+            dom: "0",
           },
           totalHoras: 0,
         };
@@ -274,7 +275,7 @@ export function TimesheetSemanal() {
       const mapaDias = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
       const diaKey = mapaDias[diaSemana];
 
-      if (diaKey && diaKey !== "dom") {
+      if (diaKey) {
         linhasAgrupadas[chave].horas[diaKey] = entrada.hours.toString();
       }
     }
@@ -326,7 +327,8 @@ export function TimesheetSemanal() {
         qua: "0",
         qui: "0",
         sex: "0",
-        sab: "0"
+        sab: "0",
+        dom: "0"
       },
       totalHoras: 0
     };
@@ -435,7 +437,7 @@ export function TimesheetSemanal() {
   // Formatação de data para exibição
   const formatarDataSemana = () => {
     const inicio = format(diasSemana[0], "dd/MM", { locale: ptBR });
-    const fim = format(diasSemana[5], "dd/MM/yyyy", { locale: ptBR });
+    const fim = format(diasSemana[6], "dd/MM/yyyy", { locale: ptBR });
     return `${inicio} - ${fim}`;
   };
 
@@ -448,7 +450,7 @@ export function TimesheetSemanal() {
         if (!linha.clienteId || !linha.campanhaId || !linha.tarefaId) continue;
         
         for (let i = 0; i < diasSemana.length; i++) {
-          const dia = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab'][i];
+          const dia = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'][i];
           const horas = linha.horas[dia];
           
           if (parseFloat(horas || "0") > 0) {
@@ -831,7 +833,7 @@ export function TimesheetSemanal() {
                   </td>
 
                   {/* Horas por dia */}
-                  {['seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map((dia) => (
+                  {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((dia) => (
                     <td key={dia} className="border border-gray-300 p-2">
                       <Select 
                         value={linha.horas[dia]} 
@@ -876,7 +878,7 @@ export function TimesheetSemanal() {
                   <td colSpan={3} className="border border-gray-300 p-3 text-right">
                     Total Geral:
                   </td>
-                  {['seg', 'ter', 'qua', 'qui', 'sex', 'sab'].map((dia) => (
+                  {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((dia) => (
                     <td key={dia} className="border border-gray-300 p-3 text-center">
                       {calcularTotalDia(dia).toFixed(2)}h
                     </td>
