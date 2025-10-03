@@ -899,6 +899,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteTimeEntry(id: number): Promise<void> {
+    // Deletar comentários associados primeiro (para evitar violação de foreign key)
+    await db.delete(timeEntryComments).where(eq(timeEntryComments.timeEntryId, id));
+    
+    // Depois deletar a entrada de horas
     await db.delete(timeEntries).where(eq(timeEntries.id, id));
   }
 
