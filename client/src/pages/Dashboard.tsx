@@ -12,6 +12,7 @@ import { ApprovalManagement } from "@/components/ApprovalManagement";
 import { ReportsSection } from "@/components/ReportsSection";
 import CampaignCostsModule from "@/components/CampaignCostsModule";
 import { CsvImportPage } from "@/pages/CsvImportPage";
+import { ReviewAlertModal } from "@/components/ReviewAlertModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -222,6 +223,7 @@ export default function Dashboard() {
   
   return (
     <Layout>
+      <ReviewAlertModal />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">{headerProps.title}</h1>
         <p className="text-slate-600 mt-1">{headerProps.subtitle}</p>
