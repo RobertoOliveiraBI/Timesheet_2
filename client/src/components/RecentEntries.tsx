@@ -4,12 +4,18 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, Edit, Trash2, RefreshCw, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { needsReview } from "@/lib/statusUtils";
 
 const statusConfig = {
   DRAFT: { label: "Rascunho", variant: "secondary" as const },
+  RASCUNHO: { label: "Rascunho", variant: "secondary" as const },
+  SALVO: { label: "Salvo", variant: "secondary" as const },
   PENDING: { label: "Pendente", variant: "secondary" as const },
+  VALIDACAO: { label: "Em Validação", variant: "default" as const },
   APPROVED: { label: "Aprovado", variant: "default" as const },
+  APROVADO: { label: "Aprovado", variant: "default" as const },
   REJECTED: { label: "Rejeitado", variant: "destructive" as const },
+  REJEITADO: { label: "Rejeitado", variant: "destructive" as const },
 };
 
 const taskTypeColors: Record<string, string> = {
@@ -117,9 +123,16 @@ export function RecentEntries() {
                       {formatHours(entry.hours)}
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={statusConfig[entry.status as keyof typeof statusConfig]?.variant}>
-                        {statusConfig[entry.status as keyof typeof statusConfig]?.label || entry.status}
-                      </Badge>
+                      <div className="inline-flex items-center gap-1">
+                        <Badge variant={statusConfig[entry.status as keyof typeof statusConfig]?.variant}>
+                          {statusConfig[entry.status as keyof typeof statusConfig]?.label || entry.status}
+                        </Badge>
+                        {needsReview(entry) && (
+                          <Badge className="bg-red-100 text-red-800 border-red-200" data-testid={`badge-revisar-${entry.id}`}>
+                            ⚠️ Revisar
+                          </Badge>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm space-x-2">
                       {entry.status === 'APPROVED' ? (

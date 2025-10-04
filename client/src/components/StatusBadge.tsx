@@ -1,8 +1,14 @@
 interface StatusBadgeProps {
   status: string;
+  needsReview?: boolean;
+  entryId?: number;
 }
 
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, needsReview = false, entryId }: StatusBadgeProps) {
+  if (needsReview && !entryId) {
+    console.warn('StatusBadge: entryId is required when needsReview is true');
+  }
+  
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "RASCUNHO":
@@ -37,8 +43,15 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   const config = getStatusConfig(status);
 
   return (
-    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${config.className}`}>
-      {config.label}
-    </span>
+    <div className="inline-flex items-center gap-1" data-testid={`status-badge-${status.toLowerCase()}`}>
+      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full border ${config.className}`}>
+        {config.label}
+      </span>
+      {needsReview && entryId && (
+        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full border bg-red-100 text-red-800 border-red-200" data-testid={`badge-revisar-${entryId}`}>
+          ⚠️ Revisar
+        </span>
+      )}
+    </div>
   );
 }

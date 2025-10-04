@@ -13,7 +13,7 @@ import { Plus, Trash2, Save, Send, ChevronLeft, ChevronRight, Calendar, Edit, X,
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getStatusConfig } from "@/lib/statusUtils";
+import { getStatusConfig, needsReview } from "@/lib/statusUtils";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
 import { CommentModal } from "./CommentModal";
@@ -65,6 +65,8 @@ interface EntradaSalva {
   campanhaNome: string;
   tarefaNome: string;
   reviewComment?: string;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
 }
 
 export function TimesheetSemanal() {
@@ -202,7 +204,9 @@ export function TimesheetSemanal() {
         clienteNome: entrada.campaign?.client?.tradeName || entrada.campaign?.client?.companyName || 'Cliente não informado',
         campanhaNome: entrada.campaign?.name || 'Campanha não informada',
         tarefaNome: entrada.campaignTask?.description || 'Tarefa não informada',
-        reviewComment: entrada.reviewComment
+        reviewComment: entrada.reviewComment,
+        submittedAt: entrada.submittedAt,
+        reviewedAt: entrada.reviewedAt
       }));
     },
     staleTime: 2 * 60 * 1000,
@@ -1115,7 +1119,7 @@ export function TimesheetSemanal() {
                               {entrada.hours}h
                             </td>
                             <td className="p-3 text-center">
-                              <StatusBadge status={entrada.status} />
+                              <StatusBadge status={entrada.status} needsReview={needsReview(entrada)} entryId={entrada.id} />
                             </td>
                             <td className="p-3 text-center">
                               <div className="flex items-center justify-center gap-1">

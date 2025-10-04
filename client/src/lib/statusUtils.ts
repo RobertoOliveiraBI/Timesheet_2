@@ -32,3 +32,13 @@ export const getStatusConfig = (status: string): StatusConfig => {
 export const getStatusLabel = (status: string): string => {
   return getStatusConfig(status).label;
 };
+
+export interface TimeEntryWithReview {
+  status: string;
+  submittedAt?: string | null;
+  reviewedAt?: string | null;
+}
+
+export const needsReview = (entry: TimeEntryWithReview): boolean => {
+  return entry.status === 'RASCUNHO' && (!!entry.submittedAt || !!entry.reviewedAt);
+};

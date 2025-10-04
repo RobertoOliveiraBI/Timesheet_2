@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Calendar, Building, Target, Briefcase, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { needsReview } from "@/lib/statusUtils";
 
 interface EntradaHoras {
   id: number;
@@ -147,6 +148,11 @@ export function ListaEntradasHoras() {
                                   <Clock className="h-4 w-4 text-slate-400" />
                                   <span className="font-medium">{formatarHoras(entrada.hours)}</span>
                                 </div>
+                                {needsReview(entrada) && (
+                                  <Badge className="bg-red-100 text-red-800 border-red-200" data-testid={`badge-revisar-${entrada.id}`}>
+                                    ⚠️ Revisar
+                                  </Badge>
+                                )}
                               </div>
 
                               {/* Informações do projeto */}
