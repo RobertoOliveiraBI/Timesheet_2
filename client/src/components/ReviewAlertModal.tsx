@@ -24,6 +24,18 @@ interface TimeEntry {
   clienteNome?: string;
   campanhaNome?: string;
   tarefaNome?: string;
+  campaign?: {
+    name: string;
+    client: {
+      companyName: string;
+      tradeName?: string;
+    };
+  };
+  campaignTask?: {
+    taskType: {
+      name: string;
+    };
+  };
 }
 
 export function ReviewAlertModal() {
@@ -117,13 +129,13 @@ export function ReviewAlertModal() {
 
                       <div className="text-sm space-y-1">
                         <p className="text-gray-700">
-                          <span className="font-medium">Cliente:</span> {entry.clienteNome}
+                          <span className="font-medium">Cliente:</span> {entry.clienteNome || entry.campaign?.client?.tradeName || entry.campaign?.client?.companyName || 'N/A'}
                         </p>
                         <p className="text-gray-700">
-                          <span className="font-medium">Campanha:</span> {entry.campanhaNome}
+                          <span className="font-medium">Campanha:</span> {entry.campanhaNome || entry.campaign?.name || 'N/A'}
                         </p>
                         <p className="text-gray-700">
-                          <span className="font-medium">Tarefa:</span> {entry.tarefaNome}
+                          <span className="font-medium">Tarefa:</span> {entry.tarefaNome || entry.campaignTask?.taskType?.name || 'N/A'}
                         </p>
                       </div>
 
