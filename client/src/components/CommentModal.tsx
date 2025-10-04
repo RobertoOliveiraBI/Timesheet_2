@@ -180,6 +180,24 @@ export function CommentModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Mensagem do Gestor (reviewComment legado) */}
+        {timeEntry.reviewComment && (
+          <div className="p-3 bg-orange-50 border-l-4 border-orange-400 rounded mb-4">
+            <div className="flex items-start gap-2">
+              <MessageCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-orange-800 mb-1">Mensagem do Gestor:</p>
+                <p className="text-sm text-orange-700 whitespace-pre-wrap">{timeEntry.reviewComment}</p>
+                {timeEntry.reviewedAt && (
+                  <p className="text-xs text-orange-600 mt-2">
+                    {format(new Date(timeEntry.reviewedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-4">
           {/* Comments List */}
           {isLoading ? (

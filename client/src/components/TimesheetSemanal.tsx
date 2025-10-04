@@ -1155,13 +1155,14 @@ export function TimesheetSemanal() {
                                       size="sm"
                                       onClick={() => abrirModalComentario(entrada)}
                                       className={`h-8 w-8 p-0 hover:bg-blue-50 ${
-                                        entradasComComentarios.has(entrada.id) 
+                                        entradasComComentarios.has(entrada.id) || entrada.reviewComment
                                           ? "bg-blue-600 text-white hover:bg-blue-700" 
                                           : "text-blue-600"
                                       }`}
-                                      title={entradasComComentarios.has(entrada.id) ? "Comentários (tem comentários)" : "Comentários"}
+                                      title={entrada.reviewComment ? "Ver mensagem do gestor" : entradasComComentarios.has(entrada.id) ? "Comentários (tem comentários)" : "Comentários"}
+                                      data-testid={`button-comentarios-${entrada.id}`}
                                     >
-                                      <MessageCircle className={`h-4 w-4 ${entradasComComentarios.has(entrada.id) ? "fill-current" : ""}`} />
+                                      <MessageCircle className={`h-4 w-4 ${entradasComComentarios.has(entrada.id) || entrada.reviewComment ? "fill-current" : ""}`} />
                                     </Button>
                                     <Button
                                       variant="ghost"
@@ -1248,6 +1249,19 @@ export function TimesheetSemanal() {
                 <p>{entradaEditando.tarefaNome}</p>
               </div>
             </div>
+
+            {/* Mensagem do Gestor */}
+            {entradaEditando.reviewComment && (
+              <div className="p-3 bg-orange-50 border-l-4 border-orange-400 rounded">
+                <div className="flex items-start gap-2">
+                  <MessageCircle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-orange-800 mb-1">Mensagem do Gestor:</p>
+                    <p className="text-sm text-orange-700">{entradaEditando.reviewComment}</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div>
               <Label htmlFor="horas">Horas</Label>
