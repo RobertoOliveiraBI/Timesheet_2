@@ -10,7 +10,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { User, Edit3, Mail, Calendar, Building, DollarSign } from "lucide-react";
+import { User, Edit3, Mail, Calendar, Building, DollarSign, Lock } from "lucide-react";
 
 interface UpdateUserData {
   firstName?: string;
@@ -23,12 +23,23 @@ interface UpdateUserData {
   cnpj?: string;
 }
 
+interface PasswordData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UpdateUserData>({});
+  const [passwordData, setPasswordData] = useState<PasswordData>({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
 
   // Debug: Log user data
   console.log("Profile Page - User data:", user);
@@ -59,6 +70,35 @@ export default function ProfilePage() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest("POST", "/api/change-password", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Erro ao alterar senha");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      toast({
+        title: "Senha alterada",
+        description: "Sua senha foi alterada com sucesso",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erro ao alterar senha",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = () => {
     setFormData({
       firstName: user?.firstName || "",
@@ -80,6 +120,40 @@ export default function ProfilePage() {
   const handleCancel = () => {
     setIsEditing(false);
     setFormData({});
+  };
+
+  const handleChangePassword = () => {
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos de senha",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast({
+        title: "Senhas não conferem",
+        description: "A nova senha e a confirmação devem ser iguais",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A nova senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+    });
   };
 
   if (isLoading) {
@@ -364,6 +438,68 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Change Password Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5" />
+              Alterar Senha
+            </CardTitle>
+            <CardDescription>
+              Atualize sua senha de acesso ao sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Senha Atual</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  placeholder="Digite sua senha atual"
+                  data-testid="input-current-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Nova Senha</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  placeholder="Digite a nova senha"
+                  data-testid="input-new-password"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  placeholder="Confirme a nova senha"
+                  data-testid="input-confirm-password"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6 pt-6 border-t">
+              <Button 
+                onClick={handleChangePassword}
+                disabled={changePasswordMutation.isPending}
+                data-testid="button-change-password"
+              >
+                {changePasswordMutation.isPending ? "Alterando..." : "Alterar Senha"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
