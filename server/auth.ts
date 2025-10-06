@@ -202,6 +202,43 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Change password endpoint
+  app.post("/api/change-password", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Não autenticado" });
+    }
+
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Senha atual e nova senha são obrigatórias" });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "A nova senha deve ter pelo menos 6 caracteres" });
+      }
+
+      const user = await storage.getUser((req.user as any).id);
+      if (!user) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+
+      const isValidPassword = await comparePasswords(currentPassword, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Senha atual incorreta" });
+      }
+
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(user.id, { password: hashedPassword });
+
+      res.json({ message: "Senha alterada com sucesso" });
+    } catch (error) {
+      console.error("Erro ao alterar senha:", error);
+      res.status(500).json({ error: "Erro ao alterar senha" });
+    }
+  });
+
   // Get current user
   app.get("/api/user", async (req, res) => {
     if (!req.user) {
