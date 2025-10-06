@@ -254,7 +254,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getClients(): Promise<Client[]> {
-    return await db.select().from(clients).where(eq(clients.isActive, true)).orderBy(asc(clients.companyName));
+    // Retorna apenas clientes que têm campanhas cadastradas
+    const clientsWithCampaigns = await db
+      .selectDistinct({ 
+        id: clients.id,
+        companyName: clients.companyName,
+        tradeName: clients.tradeName,
+        cnpj: clients.cnpj,
+        email: clients.email,
+        economicGroupId: clients.economicGroupId,
+        isActive: clients.isActive,
+        createdAt: clients.createdAt,
+      })
+      .from(clients)
+      .innerJoin(campaigns, eq(campaigns.clientId, clients.id))
+      .where(eq(clients.isActive, true))
+      .orderBy(asc(clients.companyName));
+    
+    return clientsWithCampaigns;
   }
 
   async getClientsByEconomicGroup(groupId: number): Promise<Client[]> {
