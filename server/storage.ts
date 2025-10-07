@@ -802,6 +802,7 @@ export class DatabaseStorage implements IStorage {
   // Admin operations
   async getAllUsers(): Promise<User[]> {
     return await db.query.users.findMany({
+      where: eq(users.isActive, true),
       with: {
         costCenter: true,
         department: true,
@@ -824,22 +825,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    // Check if user has time entries
-    const timeEntryCount = await db
-      .select({ count: sql`count(*)` })
-      .from(timeEntries)
-      .where(eq(timeEntries.userId, id));
-    
-    if (Number(timeEntryCount[0].count) > 0) {
-      // Soft delete by setting isActive to false
-      await db
-        .update(users)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(users.id, id));
-    } else {
-      // Hard delete if no time entries
-      await db.delete(users).where(eq(users.id, id));
-    }
+    // Always soft delete to preserve data integrity and avoid foreign key constraint violations
+    await db
+      .update(users)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(users.id, id));
   }
 
   async deleteEconomicGroup(id: number): Promise<void> {
