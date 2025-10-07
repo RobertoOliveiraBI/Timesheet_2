@@ -34,6 +34,7 @@ import {
 import { z } from "zod";
 import { eq, and, asc, desc, gte, lte, inArray, sql } from "drizzle-orm";
 import { format } from "date-fns";
+import bcrypt from "bcryptjs";
 
 // Middleware to check authentication
 function requireAuth(req: any, res: any, next: any) {
@@ -803,7 +804,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Hash the password before creating the user
       if (userData.password) {
-        const bcrypt = require('bcryptjs');
         userData.password = await bcrypt.hash(userData.password, 10);
       }
       
@@ -830,7 +830,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Hash password if being updated
       if (updates.password) {
-        const bcrypt = require('bcryptjs');
         updates.password = await bcrypt.hash(updates.password, 10);
       }
       
@@ -879,7 +878,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Hash password if being updated
       if (updateData.password) {
-        const bcrypt = require('bcryptjs');
         updateData.password = await bcrypt.hash(updateData.password, 10);
       }
 
@@ -917,7 +915,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Hash password if being updated
       if (userData.password) {
-        const bcrypt = require('bcryptjs');
         userData.password = await bcrypt.hash(userData.password, 10);
       }
       
