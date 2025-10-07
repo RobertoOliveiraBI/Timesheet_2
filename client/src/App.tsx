@@ -10,6 +10,7 @@ import Landing from "@/pages/Landing";
 import LoginPage from "@/pages/LoginPage";
 import Dashboard from "@/pages/Dashboard";
 import ProfilePage from "@/pages/ProfilePage";
+import SupportPage from "@/pages/SupportPage";
 import NotFound from "@/pages/not-found";
 
 
@@ -43,6 +44,7 @@ function Router() {
           <Route path="/campaign-costs" component={Dashboard} />
           <Route path="/csv-import" component={Dashboard} />
           <Route path="/profile" component={ProfilePage} />
+          <Route path="/support" component={SupportPage} />
         </>
       )}
       <Route component={NotFound} />

@@ -1,0 +1,106 @@
+MANUAL DO USUÁRIO – TRACTIONFY TIMESHEET
+Sistema de Gestão de Horas
+
+1. Acesso ao Sistema
+
+O Tractionfy Timesheet é um sistema online (SaaS), acessado diretamente pelo navegador, sem necessidade de instalação.
+
+Informe suas credenciais:
+
+Usuário: [email do colaborador]
+
+Senha: [senha inicial enviada por e-mail]
+
+Em caso de esquecimento de senha, entre em contato com o administrador.
+
+2. Tela Inicial
+
+Após o login, o sistema exibirá um painel inicial com atalhos principais:
+
+Lançar Horas: onde são registradas as horas trabalhadas.
+
+Relatórios: onde é possível visualizar o total de horas, status e produtividade.
+
+Meu Perfil: para atualizar informações pessoais.
+
+Sair: encerra a sessão.
+
+No canto inferior direito, há um botão de Ajuda, que dá acesso ao chat de suporte.
+
+3. Lançar Horas
+
+No menu lateral esquerdo, clique em Lançar Horas.
+Esta tela possui duas seções principais:
+
+a) Timesheet Semanal
+
+Aqui o colaborador registra as horas do período.
+
+Selecione o Cliente.
+
+Escolha a Campanha ou projeto.
+
+Indique a Tarefa executada (ex: briefing, conteúdo, reunião).
+
+Lance o número de horas trabalhadas em cada dia da semana.
+
+Clique em Salvar Rascunho para manter as informações sem enviar.
+
+Quando todas as horas da semana estiverem lançadas, clique em Enviar para Validação.
+
+O status das horas mudará para “Em validação”, aguardando aprovação do gestor.
+
+b) Histórico Mensal
+
+Exibe todas as horas lançadas no mês.
+Você pode filtrar por cliente, campanha, dia ou status (rascunho, em validação, aprovado).
+Também é possível editar ou excluir um lançamento clicando nos ícones de ação à direita.
+
+4. Relatórios
+
+No menu lateral, selecione Relatórios.
+Esta área permite acompanhar seu desempenho e produtividade.
+
+Use os filtros superiores para selecionar período, cliente ou campanha.
+
+Veja os indicadores principais:
+
+Horas totais
+
+Horas faturáveis
+
+Horas não faturáveis
+
+Clientes atendidos
+
+Role a página para visualizar o Relatório Detalhado, com todas as horas lançadas e seus respectivos status.
+
+Você pode exportar os dados clicando em Baixar CSV.
+
+5. Status das Horas
+
+Cada lançamento pode assumir um dos seguintes status:
+
+Rascunho: horas ainda não enviadas para validação.
+
+Em Validação: aguardando aprovação do gestor.
+
+Aprovado: horas confirmadas e contabilizadas.
+
+Reprovado (se aplicável): o gestor pode devolver o lançamento com observações.
+
+6. Boas Práticas
+
+Lançar as horas diariamente evita esquecimentos e mantém os relatórios precisos.
+
+Sempre categorize corretamente cliente, campanha e tarefa para facilitar as análises de custo e produtividade.
+
+Revise suas entradas antes de enviar para validação.
+
+Utilize o chat de suporte para qualquer dúvida ou dificuldade técnica.
+
+7. Suporte e Manual
+
+Caso precise de ajuda:
+
+Acesse o chat clicando no ícone “Ajuda” no canto inferior direito do sistema.
