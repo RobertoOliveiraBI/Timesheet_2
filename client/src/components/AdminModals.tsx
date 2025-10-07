@@ -151,7 +151,6 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
               id="firstName"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              required
             />
           </div>
           <div>
@@ -160,7 +159,6 @@ export function UserModal({ user, onClose }: { user?: any; onClose: () => void }
               id="lastName"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              required
             />
           </div>
         </div>
