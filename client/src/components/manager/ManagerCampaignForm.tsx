@@ -29,10 +29,6 @@ const campaignFormSchema = z.object({
   name: z.string().min(1, "Nome da campanha é obrigatório"),
   description: z.string().optional(),
   clientId: z.number({ required_error: "Cliente é obrigatório" }),
-  costCenterId: z.number().optional().nullable(),
-  contractValue: z.string().optional().nullable(),
-  contractStartDate: z.string().optional().nullable(),
-  contractEndDate: z.string().optional().nullable(),
 });
 
 type CampaignFormValues = z.infer<typeof campaignFormSchema>;
@@ -49,20 +45,12 @@ export function ManagerCampaignForm({ onSuccess }: ManagerCampaignFormProps) {
     queryKey: ['/api/clientes'],
   });
 
-  const { data: costCenters = [] } = useQuery<any[]>({
-    queryKey: ['/api/cost-centers'],
-  });
-
   const form = useForm<CampaignFormValues>({
     resolver: zodResolver(campaignFormSchema),
     defaultValues: {
       name: "",
       description: "",
       clientId: undefined,
-      costCenterId: null,
-      contractValue: null,
-      contractStartDate: null,
-      contractEndDate: null,
     },
   });
 
@@ -163,92 +151,6 @@ export function ManagerCampaignForm({ onSuccess }: ManagerCampaignFormProps) {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="costCenterId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Centro de Custo</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                      value={field.value?.toString() || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger data-testid="select-costCenterId">
-                          <SelectValue placeholder="Selecione o centro de custo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {costCenters.map((cc: any) => (
-                          <SelectItem key={cc.id} value={cc.id.toString()}>
-                            {cc.name} - {cc.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contractValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor Mensal do Contrato (R$)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        value={field.value || ""}
-                        data-testid="input-contractValue"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contractStartDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data de Início</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={field.value || ""}
-                        data-testid="input-contractStartDate"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="contractEndDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data de Fim</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={field.value || ""}
-                        data-testid="input-contractEndDate"
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
