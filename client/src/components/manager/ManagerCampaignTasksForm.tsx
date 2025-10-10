@@ -23,9 +23,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 
 const taskSchema = z.object({
+  clientId: z.string().min(1, "Selecione um cliente"),
   campaignId: z.string().min(1, "Selecione uma campanha"),
   taskTypeId: z.string().min(1, "Selecione um tipo de tarefa"),
   description: z.string().min(1, "Digite uma descrição"),
@@ -35,10 +36,16 @@ type TaskFormData = z.infer<typeof taskSchema>;
 
 export function ManagerCampaignTasksForm() {
   const { toast } = useToast();
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
 
+  const { data: clients, isLoading: loadingClients } = useQuery({
+    queryKey: ["/api/clientes"],
+  });
+
   const { data: campaigns, isLoading: loadingCampaigns } = useQuery({
-    queryKey: ["/api/campaigns"],
+    queryKey: ["/api/clientes", selectedClientId, "campanhas"],
+    enabled: !!selectedClientId,
   });
 
   const { data: taskTypes, isLoading: loadingTaskTypes } = useQuery({
@@ -46,13 +53,14 @@ export function ManagerCampaignTasksForm() {
   });
 
   const { data: campaignTasks, isLoading: loadingTasks } = useQuery({
-    queryKey: ["/api/campaign-tasks", selectedCampaignId],
+    queryKey: ["/api/campanhas", selectedCampaignId, "tarefas"],
     enabled: !!selectedCampaignId,
   });
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
+      clientId: "",
       campaignId: "",
       taskTypeId: "",
       description: "",
@@ -79,8 +87,9 @@ export function ManagerCampaignTasksForm() {
         title: "Tarefa criada com sucesso!",
         description: "A nova tarefa foi adicionada à campanha.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/campaign-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campanhas", selectedCampaignId, "tarefas"] });
       form.reset({
+        clientId: selectedClientId,
         campaignId: selectedCampaignId,
         taskTypeId: "",
         description: "",
@@ -107,7 +116,7 @@ export function ManagerCampaignTasksForm() {
       toast({
         title: "Tarefa removida com sucesso!",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/campaign-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/campanhas", selectedCampaignId, "tarefas"] });
     },
     onError: (error: any) => {
       toast({
@@ -122,14 +131,19 @@ export function ManagerCampaignTasksForm() {
     createTaskMutation.mutate(data);
   };
 
+  const handleClientChange = (value: string) => {
+    setSelectedClientId(value);
+    setSelectedCampaignId("");
+    form.setValue("clientId", value);
+    form.setValue("campaignId", "");
+    form.setValue("taskTypeId", "");
+    form.setValue("description", "");
+  };
+
   const handleCampaignChange = (value: string) => {
     setSelectedCampaignId(value);
     form.setValue("campaignId", value);
   };
-
-  const filteredCampaignTasks = Array.isArray(campaignTasks) ? campaignTasks.filter(
-    (task: any) => task.campaignId === parseInt(selectedCampaignId)
-  ) : [];
 
   return (
     <div className="space-y-6">
@@ -140,24 +154,24 @@ export function ManagerCampaignTasksForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
-              name="campaignId"
+              name="clientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Campanha</FormLabel>
+                  <FormLabel>Cliente</FormLabel>
                   <Select
-                    onValueChange={handleCampaignChange}
+                    onValueChange={handleClientChange}
                     value={field.value}
-                    disabled={loadingCampaigns}
+                    disabled={loadingClients}
                   >
                     <FormControl>
-                      <SelectTrigger data-testid="select-campaign">
-                        <SelectValue placeholder="Selecione uma campanha" />
+                      <SelectTrigger data-testid="select-client">
+                        <SelectValue placeholder="Selecione um cliente" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
-                        <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                          {campaign.name}{campaign.clientName ? ` - ${campaign.clientName}` : ''}
+                      {Array.isArray(clients) && clients.map((client: any) => (
+                        <SelectItem key={client.id} value={client.id.toString()}>
+                          {client.companyName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -166,6 +180,37 @@ export function ManagerCampaignTasksForm() {
                 </FormItem>
               )}
             />
+
+            {selectedClientId && (
+              <FormField
+                control={form.control}
+                name="campaignId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campanha</FormLabel>
+                    <Select
+                      onValueChange={handleCampaignChange}
+                      value={field.value}
+                      disabled={loadingCampaigns}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-campaign">
+                          <SelectValue placeholder="Selecione uma campanha" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
+                          <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                            {campaign.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {selectedCampaignId && (
               <>
@@ -250,9 +295,9 @@ export function ManagerCampaignTasksForm() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
             </div>
-          ) : filteredCampaignTasks && filteredCampaignTasks.length > 0 ? (
+          ) : Array.isArray(campaignTasks) && campaignTasks.length > 0 ? (
             <div className="space-y-2">
-              {filteredCampaignTasks.map((task: any) => (
+              {campaignTasks.map((task: any) => (
                 <div
                   key={task.id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
