@@ -157,7 +157,7 @@ export function ManagerCampaignTasksForm() {
                     <SelectContent>
                       {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
                         <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                          {campaign.name} - {campaign.clientName}
+                          {campaign.name}{campaign.clientName ? ` - ${campaign.clientName}` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
