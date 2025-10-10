@@ -1000,6 +1000,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Valida os dados
       const validatedData = insertUserSchema.parse(userData);
       
+      // SEGURANÇA: Força role e isManager para prevenir escalação de privilégios
+      // Esta rota só pode criar COLABORADORES
+      validatedData.role = 'COLABORADOR';
+      validatedData.isManager = false;
+      validatedData.isActive = true;
+      
       // Hash da senha
       if (validatedData.password) {
         validatedData.password = await bcrypt.hash(validatedData.password, 10);
