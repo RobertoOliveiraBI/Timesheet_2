@@ -12,6 +12,7 @@ import { ApprovalManagement } from "@/components/ApprovalManagement";
 import { ReportsSection } from "@/components/ReportsSection";
 import CampaignCostsModule from "@/components/CampaignCostsModule";
 import { CsvImportPage } from "@/pages/CsvImportPage";
+import { ManagerSection } from "@/components/ManagerSection";
 import { ReviewAlertModal } from "@/components/ReviewAlertModal";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -108,6 +109,7 @@ export default function Dashboard() {
 
   const getCurrentSection = () => {
     if (location === "/approvals") return "approvals";
+    if (location === "/manager") return "manager";
     if (location === "/admin") return "admin";
     if (location === "/reports") return "reports";
     if (location === "/campaign-costs") return "campaign-costs";
@@ -122,6 +124,7 @@ export default function Dashboard() {
       timesheet: { title: "Lançar Horas", subtitle: "Registre suas horas trabalhadas" },
       reports: { title: "Relatórios", subtitle: "Analise a produtividade e rentabilidade" },
       approvals: { title: "Área do Gestor", subtitle: "Aprove ou rejeite lançamentos de horas" },
+      manager: { title: "Gestão de Equipe", subtitle: "Cadastre colaboradores e campanhas" },
       admin: { title: "Administração", subtitle: "Gerencie usuários e configurações do sistema" },
       "campaign-costs": { title: "Custos de Campanha", subtitle: "Gerencie custos e despesas das campanhas" },
       "csv-import": { title: "Importação CSV", subtitle: "Importe dados administrativos em lote via CSV" },
@@ -138,6 +141,7 @@ export default function Dashboard() {
       timesheet: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"],
       reports: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"],
       approvals: ["MASTER", "ADMIN", "GESTOR"],
+      manager: ["MASTER", "ADMIN", "GESTOR"],
       admin: ["MASTER", "ADMIN"],
       "campaign-costs": ["MASTER", "ADMIN", "GESTOR"],
       "csv-import": ["MASTER", "ADMIN"],
@@ -165,6 +169,8 @@ export default function Dashboard() {
     switch (section) {
       case "approvals":
         return <ApprovalManagement />;
+      case "manager":
+        return <ManagerSection />;
       case "admin":
         return <AdminSection />;
       case "reports":

@@ -40,6 +40,7 @@ function Router() {
           <Route path="/timesheet" component={Dashboard} />
           <Route path="/reports" component={Dashboard} />
           <Route path="/approvals" component={Dashboard} />
+          <Route path="/manager" component={Dashboard} />
           <Route path="/admin" component={Dashboard} />
           <Route path="/campaign-costs" component={Dashboard} />
           <Route path="/csv-import" component={Dashboard} />

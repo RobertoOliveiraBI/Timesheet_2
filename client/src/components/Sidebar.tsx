@@ -9,7 +9,8 @@ import {
   LogOut,
   DollarSign,
   Upload,
-  HelpCircle
+  HelpCircle,
+  UserPlus
 } from "lucide-react";
 import tractionfyLogo from "@assets/Tractionfy-purple-icon (1)_1754084442077.png";
 import { useLocation } from "wouter";
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Lançar Horas", href: "/timesheet", icon: Clock, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
   { name: "Relatórios", href: "/reports", icon: BarChart3, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
   { name: "Área do Gestor", href: "/approvals", icon: CheckCircle, roles: ["MASTER", "ADMIN", "GESTOR"] },
+  { name: "Gestão de Equipe", href: "/manager", icon: UserPlus, roles: ["MASTER", "ADMIN", "GESTOR"] },
   { name: "Custos de Campanha", href: "/campaign-costs", icon: DollarSign, roles: ["MASTER", "ADMIN", "GESTOR"] },
   { name: "Importação CSV", href: "/csv-import", icon: Upload, roles: ["MASTER", "ADMIN"] },
   { name: "Administração", href: "/admin", icon: Settings, roles: ["MASTER", "ADMIN"] },
