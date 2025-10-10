@@ -1589,38 +1589,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Endpoints específicos para Timesheet - hierarquia Cliente → Campanha → Tarefa
   
-  // Buscar campanhas por cliente
+  // Buscar campanhas por cliente - Todos os usuários têm acesso a todas as campanhas
   app.get("/api/clientes/:clientId/campanhas", requireAuth, async (req: any, res) => {
     try {
       const clientId = parseInt(req.params.clientId);
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(req.user.id);
+      
+      console.log(`[CAMPANHAS POR CLIENTE] User: ${user?.email} (${user?.role}) buscando campanhas do cliente ${clientId}`);
       
       if (!user) {
         return res.status(403).json({ message: "Usuário não encontrado" });
       }
       
-      let campaigns;
-      if (['MASTER', 'ADMIN'].includes(user.role)) {
-        // Admins veem todas as campanhas do cliente
-        campaigns = await db.select({
-          id: campaignsTable.id,
-          name: campaignsTable.name,
-          description: campaignsTable.description,
-          clientId: campaignsTable.clientId,
-          isActive: campaignsTable.isActive
-        })
-        .from(campaignsTable)
-        .where(and(
-          eq(campaignsTable.clientId, clientId),
-          eq(campaignsTable.isActive, true)
-        ))
-        .orderBy(asc(campaignsTable.name));
-      } else {
-        // Colaboradores só veem campanhas às quais têm acesso
-        campaigns = await storage.getCampaignsByUser(userId);
-        campaigns = campaigns.filter(campaign => campaign.clientId === clientId);
-      }
+      // Todos os usuários autenticados veem todas as campanhas ativas do cliente
+      const campaigns = await db.select({
+        id: campaignsTable.id,
+        name: campaignsTable.name,
+        description: campaignsTable.description,
+        clientId: campaignsTable.clientId,
+        isActive: campaignsTable.isActive
+      })
+      .from(campaignsTable)
+      .where(and(
+        eq(campaignsTable.clientId, clientId),
+        eq(campaignsTable.isActive, true)
+      ))
+      .orderBy(asc(campaignsTable.name));
+      
+      console.log(`[CAMPANHAS POR CLIENTE] Encontradas ${campaigns.length} campanhas para cliente ${clientId}`);
       
       res.json(campaigns);
     } catch (error) {
