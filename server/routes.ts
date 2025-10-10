@@ -980,6 +980,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manager Area routes - Área exclusiva para gestores
+  app.post('/api/manager/collaborators', requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Apenas GESTOR, ADMIN e MASTER podem acessar
+      if (!currentUser || !['MASTER', 'ADMIN', 'GESTOR'].includes(currentUser.role)) {
+        return res.status(403).json({ message: "Acesso negado. Apenas gestores podem cadastrar colaboradores." });
+      }
+
+      const userData = req.body;
+      
+      // Se for GESTOR (não MASTER/ADMIN), força o managerId para o próprio gestor
+      if (currentUser.role === 'GESTOR') {
+        userData.managerId = currentUser.id;
+      }
+      
+      // Valida os dados
+      const validatedData = insertUserSchema.parse(userData);
+      
+      // Hash da senha
+      if (validatedData.password) {
+        validatedData.password = await bcrypt.hash(validatedData.password, 10);
+      }
+      
+      const newUser = await storage.createUser(validatedData);
+      
+      // Retorna usuário sem senha
+      const { password: _, ...userWithoutPassword } = newUser;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error creating collaborator:", error);
+      res.status(400).json({ 
+        message: "Erro ao criar colaborador",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
+  });
+
+  app.post('/api/manager/campaigns', requireAuth, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.id);
+      
+      // Apenas GESTOR, ADMIN e MASTER podem acessar
+      if (!currentUser || !['MASTER', 'ADMIN', 'GESTOR'].includes(currentUser.role)) {
+        return res.status(403).json({ message: "Acesso negado. Apenas gestores podem cadastrar campanhas." });
+      }
+
+      const campaignData = req.body;
+      
+      // Valida os dados da campanha
+      const validatedData = insertCampaignSchema.parse(campaignData);
+      
+      // Cria a campanha
+      const newCampaign = await storage.createCampaign(validatedData);
+      
+      // Busca todos os tipos de tarefa ativos
+      const taskTypes = await storage.getTaskTypes();
+      const activeTaskTypes = taskTypes.filter(tt => tt.isActive);
+      
+      // Cria tarefas padrão para a campanha (uma para cada tipo de tarefa)
+      const defaultTasks = await Promise.all(
+        activeTaskTypes.map(taskType => 
+          storage.createCampaignTask({
+            campaignId: newCampaign.id,
+            taskTypeId: taskType.id,
+            description: taskType.name, // Usa o nome do tipo de tarefa como descrição
+            isActive: true
+          })
+        )
+      );
+      
+      res.status(201).json({
+        campaign: newCampaign,
+        defaultTasksCreated: defaultTasks.length,
+        message: `Campanha criada com sucesso! ${defaultTasks.length} tarefas padrão foram adicionadas automaticamente.`
+      });
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      res.status(400).json({ 
+        message: "Erro ao criar campanha",
+        error: error instanceof Error ? error.message : "Erro desconhecido"
+      });
+    }
+  });
+
   // Grupos Econômicos
   app.get('/api/grupos', requireAuth, async (req: any, res) => {
     try {
