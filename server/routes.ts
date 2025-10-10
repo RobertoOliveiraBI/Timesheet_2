@@ -197,7 +197,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = insertCampaignSchema.parse(req.body);
       const campaign = await storage.createCampaign(data);
-      res.status(201).json(campaign);
+      
+      // Busca todos os tipos de tarefa ativos
+      const taskTypes = await storage.getTaskTypes();
+      const activeTaskTypes = taskTypes.filter(tt => tt.isActive);
+      
+      // Cria tarefas padrão para a campanha (uma para cada tipo de tarefa)
+      const defaultTasks = await Promise.all(
+        activeTaskTypes.map(taskType => 
+          storage.createCampaignTask({
+            campaignId: campaign.id,
+            taskTypeId: taskType.id,
+            description: taskType.name, // Usa o nome do tipo de tarefa como descrição
+            isActive: true
+          })
+        )
+      );
+      
+      res.status(201).json({
+        campaign,
+        defaultTasksCreated: defaultTasks.length,
+        message: `Campanha criada com sucesso! ${defaultTasks.length} tarefas padrão foram adicionadas automaticamente.`
+      });
     } catch (error) {
       console.error("Error creating campaign:", error);
       res.status(400).json({ message: "Failed to create campaign" });
@@ -1413,7 +1434,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const campaignData = insertCampaignSchema.parse(req.body);
       const newCampaign = await storage.createCampaign(campaignData);
-      res.status(201).json(newCampaign);
+      
+      // Busca todos os tipos de tarefa ativos
+      const taskTypes = await storage.getTaskTypes();
+      const activeTaskTypes = taskTypes.filter(tt => tt.isActive);
+      
+      // Cria tarefas padrão para a campanha (uma para cada tipo de tarefa)
+      const defaultTasks = await Promise.all(
+        activeTaskTypes.map(taskType => 
+          storage.createCampaignTask({
+            campaignId: newCampaign.id,
+            taskTypeId: taskType.id,
+            description: taskType.name, // Usa o nome do tipo de tarefa como descrição
+            isActive: true
+          })
+        )
+      );
+      
+      res.status(201).json({
+        campaign: newCampaign,
+        defaultTasksCreated: defaultTasks.length,
+        message: `Campanha criada com sucesso! ${defaultTasks.length} tarefas padrão foram adicionadas automaticamente.`
+      });
     } catch (error) {
       console.error("Error creating campaign:", error);
       res.status(400).json({ message: "Erro ao criar campanha" });

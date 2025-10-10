@@ -866,10 +866,11 @@ export function CampaignModal({ campaign, onClose }: { campaign?: any; onClose: 
       const method = campaign ? "PATCH" : "POST";
       return await apiRequest(method, url, cleanData);
     },
-    onSuccess: () => {
+    onSuccess: async (response: Response) => {
+      const data = await response.json();
       toast({ 
         title: campaign ? "Campanha atualizada!" : "Campanha criada!",
-        description: "Operação realizada com sucesso."
+        description: data.message || "Operação realizada com sucesso."
       });
       queryClient.invalidateQueries({ queryKey: ["/api/campaigns"] });
       onClose();
