@@ -48,6 +48,7 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 - **Reporting Suite**: Comprehensive analytics with filtering and export functionality.
 - **Admin Panel**: System configuration and user management tools.
 - **Data Cleanup Interface**: Secure data removal with password confirmation for test entries.
+- **Manager Area - Task Management**: Gestores can add custom tasks to campaigns beyond the automatically generated default tasks. Interface allows selecting campaign, task type, and custom description for specific project needs.
 
 #### System Design Choices
 - **Status Workflow**: Implemented a comprehensive status workflow system for time entries: RASCUNHO → SALVO → VALIDACAO → APROVADO → REJEITADO.
