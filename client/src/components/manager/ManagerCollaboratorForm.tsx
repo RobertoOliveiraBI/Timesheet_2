@@ -89,7 +89,7 @@ export function ManagerCollaboratorForm({ currentUserId, onSuccess }: ManagerCol
         isManager: false,
         isActive: true,
       };
-      return apiRequest("/api/manager/collaborators", "POST", payload);
+      return apiRequest("POST", "/api/manager/collaborators", payload);
     },
     onSuccess: () => {
       toast({

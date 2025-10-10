@@ -68,7 +68,7 @@ export function ManagerCampaignForm({ onSuccess }: ManagerCampaignFormProps) {
 
   const createCampaignMutation = useMutation({
     mutationFn: async (data: CampaignFormValues) => {
-      return apiRequest("/api/manager/campaigns", "POST", data);
+      return apiRequest("POST", "/api/manager/campaigns", data);
     },
     onSuccess: (response: any) => {
       toast({
