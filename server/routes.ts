@@ -32,7 +32,7 @@ import {
   systemConfig,
 } from "@shared/schema";
 import { z } from "zod";
-import { eq, and, asc, desc, gte, lte, inArray, sql } from "drizzle-orm";
+import { eq, and, asc, desc, gte, lte, inArray, sql, ne } from "drizzle-orm";
 import { format } from "date-fns";
 import bcrypt from "bcryptjs";
 
@@ -125,6 +125,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = insertClientSchema.parse(req.body);
+      
+      // Verificar duplicidade de CNPJ
+      if (data.cnpj) {
+        const existingByCnpj = await db
+          .select()
+          .from(clientsTable)
+          .where(and(
+            eq(clientsTable.cnpj, data.cnpj),
+            eq(clientsTable.isActive, true)
+          ))
+          .limit(1);
+        
+        if (existingByCnpj.length > 0) {
+          return res.status(409).json({ 
+            message: `Já existe um cliente cadastrado com o CNPJ ${data.cnpj}` 
+          });
+        }
+      }
+      
+      // Verificar duplicidade de Razão Social
+      const existingByCompanyName = await db
+        .select()
+        .from(clientsTable)
+        .where(and(
+          eq(clientsTable.companyName, data.companyName),
+          eq(clientsTable.isActive, true)
+        ))
+        .limit(1);
+      
+      if (existingByCompanyName.length > 0) {
+        return res.status(409).json({ 
+          message: `Já existe um cliente cadastrado com a razão social "${data.companyName}"` 
+        });
+      }
+
       const client = await storage.createClient(data);
       res.status(201).json(client);
     } catch (error) {
@@ -1039,6 +1074,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const updates = req.body;
       
+      // Verificar duplicidade de CNPJ (se estiver sendo atualizado)
+      if (updates.cnpj) {
+        const existingByCnpj = await db
+          .select()
+          .from(clientsTable)
+          .where(and(
+            eq(clientsTable.cnpj, updates.cnpj),
+            eq(clientsTable.isActive, true),
+            ne(clientsTable.id, id)
+          ))
+          .limit(1);
+        
+        if (existingByCnpj.length > 0) {
+          return res.status(409).json({ 
+            message: `Já existe outro cliente cadastrado com o CNPJ ${updates.cnpj}` 
+          });
+        }
+      }
+      
+      // Verificar duplicidade de Razão Social (se estiver sendo atualizada)
+      if (updates.companyName) {
+        const existingByCompanyName = await db
+          .select()
+          .from(clientsTable)
+          .where(and(
+            eq(clientsTable.companyName, updates.companyName),
+            eq(clientsTable.isActive, true),
+            ne(clientsTable.id, id)
+          ))
+          .limit(1);
+        
+        if (existingByCompanyName.length > 0) {
+          return res.status(409).json({ 
+            message: `Já existe outro cliente cadastrado com a razão social "${updates.companyName}"` 
+          });
+        }
+      }
+      
       const client = await storage.updateClient(id, updates);
       res.json(client);
     } catch (error) {
@@ -1056,6 +1129,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const clientId = parseInt(req.params.id);
       const clientData = req.body;
+      
+      // Verificar duplicidade de CNPJ (se estiver sendo atualizado)
+      if (clientData.cnpj) {
+        const existingByCnpj = await db
+          .select()
+          .from(clientsTable)
+          .where(and(
+            eq(clientsTable.cnpj, clientData.cnpj),
+            eq(clientsTable.isActive, true),
+            ne(clientsTable.id, clientId)
+          ))
+          .limit(1);
+        
+        if (existingByCnpj.length > 0) {
+          return res.status(409).json({ 
+            message: `Já existe outro cliente cadastrado com o CNPJ ${clientData.cnpj}` 
+          });
+        }
+      }
+      
+      // Verificar duplicidade de Razão Social (se estiver sendo atualizada)
+      if (clientData.companyName) {
+        const existingByCompanyName = await db
+          .select()
+          .from(clientsTable)
+          .where(and(
+            eq(clientsTable.companyName, clientData.companyName),
+            eq(clientsTable.isActive, true),
+            ne(clientsTable.id, clientId)
+          ))
+          .limit(1);
+        
+        if (existingByCompanyName.length > 0) {
+          return res.status(409).json({ 
+            message: `Já existe outro cliente cadastrado com a razão social "${clientData.companyName}"` 
+          });
+        }
+      }
+      
       const updatedClient = await storage.updateClient(clientId, clientData);
       res.json(updatedClient);
     } catch (error) {
