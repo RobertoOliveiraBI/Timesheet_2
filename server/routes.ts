@@ -168,19 +168,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campaigns routes
+  // Campaigns routes - Todos os usuários têm acesso a todas as campanhas
   app.get('/api/campaigns', requireAuth, async (req: any, res) => {
     try {
-      const userId = req.user.id;
-      const user = await storage.getUser(userId);
-      
-      let campaigns;
-      if (user && ['MASTER', 'ADMIN'].includes(user.role)) {
-        campaigns = await storage.getCampaigns();
-      } else {
-        campaigns = await storage.getCampaignsByUser(userId);
-      }
-      
+      // Todos os usuários autenticados veem todas as campanhas ativas
+      const campaigns = await storage.getCampaigns();
       res.json(campaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
@@ -1320,52 +1312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Campanhas com controle de acesso por usuário
-  app.get('/api/campaigns', requireAuth, async (req: any, res) => {
-    try {
-      console.log('API /api/campaigns chamada - user:', req.user?.id);
-      
-      const user = await storage.getUser(req.user.id);
-      if (!user) {
-        return res.status(403).json({ message: "Usuário não encontrado" });
-      }
-      
-      console.log('User role:', user.role);
-      
-      let campaigns;
-      if (['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
-        // Admins, masters e gestores veem todas as campanhas ativas
-        campaigns = await db.select().from(campaignsTable).where(eq(campaignsTable.isActive, true));
-      } else {
-        // Colaboradores veem apenas campanhas às quais têm acesso
-        campaigns = await db.select({
-          id: campaignsTable.id,
-          name: campaignsTable.name,
-          description: campaignsTable.description,
-          contractStartDate: campaignsTable.contractStartDate,
-          contractEndDate: campaignsTable.contractEndDate,
-          contractValue: campaignsTable.contractValue,
-          clientId: campaignsTable.clientId,
-          isActive: campaignsTable.isActive,
-          createdAt: campaignsTable.createdAt,
-        })
-        .from(campaignsTable)
-        .innerJoin(campaignUsersTable, eq(campaignUsersTable.campaignId, campaignsTable.id))
-        .where(and(
-          eq(campaignsTable.isActive, true),
-          eq(campaignUsersTable.userId, user.id)
-        ));
-      }
-      
-      console.log('Campanhas encontradas:', campaigns.length);
-      res.json(campaigns);
-    } catch (error) {
-      console.error("Error fetching campaigns:", error);
-      res.status(500).json({ message: "Erro ao buscar campanhas", error: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
-
-  // Alias para /api/campaigns em português
+  // Alias para /api/campaigns em português - Todos os usuários têm acesso a todas as campanhas
   app.get('/api/campanhas', requireAuth, async (req: any, res) => {
     try {
       console.log('API /api/campanhas chamada - user:', req.user?.id);
@@ -1378,44 +1325,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('User role:', user.role, 'Client filter:', client_id);
       
-      let campaigns;
-      if (['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
-        // Admins, masters e gestores veem todas as campanhas ativas
-        let whereConditions = [eq(campaignsTable.isActive, true)];
-        
-        // Se há filtro por cliente, aplicar
-        if (client_id) {
-          whereConditions.push(eq(campaignsTable.clientId, parseInt(client_id)));
-        }
-        
-        campaigns = await db.select().from(campaignsTable).where(and(...whereConditions));
-      } else {
-        // Colaboradores veem apenas campanhas às quais têm acesso
-        let whereConditions = [
-          eq(campaignsTable.isActive, true),
-          eq(campaignUsersTable.userId, user.id)
-        ];
-        
-        // Se há filtro por cliente, aplicar
-        if (client_id) {
-          whereConditions.push(eq(campaignsTable.clientId, parseInt(client_id)));
-        }
-        
-        campaigns = await db.select({
-          id: campaignsTable.id,
-          name: campaignsTable.name,
-          description: campaignsTable.description,
-          contractStartDate: campaignsTable.contractStartDate,
-          contractEndDate: campaignsTable.contractEndDate,
-          contractValue: campaignsTable.contractValue,
-          clientId: campaignsTable.clientId,
-          isActive: campaignsTable.isActive,
-          createdAt: campaignsTable.createdAt,
-        })
-        .from(campaignsTable)
-        .innerJoin(campaignUsersTable, eq(campaignUsersTable.campaignId, campaignsTable.id))
-        .where(and(...whereConditions));
+      // Todos os usuários autenticados veem todas as campanhas ativas
+      let whereConditions = [eq(campaignsTable.isActive, true)];
+      
+      // Se há filtro por cliente, aplicar
+      if (client_id) {
+        whereConditions.push(eq(campaignsTable.clientId, parseInt(client_id)));
       }
+      
+      const campaigns = await db.select().from(campaignsTable).where(and(...whereConditions));
       
       console.log('Campanhas encontradas:', campaigns.length);
       res.json(campaigns);

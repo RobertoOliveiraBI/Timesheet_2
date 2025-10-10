@@ -62,6 +62,8 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 - **Smart Group and Client Deletion (2025-08-18)**: Enhanced deletion logic that preserves referential integrity. Economic groups with dependent clients are automatically moved to "Não Informado" group before deletion. Clients with logged time entries are deactivated instead of deleted, while clients without time entries are fully removed.
 - **Monthly Backup System (2025-08-27)**: Updated backup file naming from daily format (`table-YYYY-MM-DD.csv`) to monthly format (`table-YYYY-MM.csv`). This prevents daily file accumulation and reduces storage usage by overwriting monthly files instead of creating new ones. Backup tracking configuration updated from `last_backup_date` to `last_backup_month`.
 - **Data Cleanup System with Password Confirmation (2025-08-28)**: Added secure data cleanup functionality for removing test entries. Requires password confirmation ("123mudar") and is restricted to MASTER and ADMIN roles. Provides safe way to clear test data while maintaining data integrity.
+- **Universal Campaign Access (2025-10-10)**: All authenticated users (MASTER, ADMIN, GESTOR, COLABORADOR) now have access to all active campaigns without restrictions. This replaces the previous access control system that limited collaborator visibility based on campaign_users assignments.
+- **Automatic Default Task Creation (2025-10-10)**: When creating campaigns via any route (manager area, admin area), the system automatically generates default tasks based on all active task types. Each task type creates one corresponding campaign task with the task type name as description.
 
 ## External Dependencies
 
