@@ -8,7 +8,8 @@ import {
   BarChart3, 
   CheckCircle,
   BookOpen,
-  MessageCircle
+  MessageCircle,
+  PlayCircle
 } from "lucide-react";
 
 export default function SupportPage() {
@@ -31,6 +32,43 @@ export default function SupportPage() {
             <p className="text-slate-600">
               Sistema de Gestão de Horas - Guia completo para utilização da plataforma
             </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-video-tutorial" className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <PlayCircle className="h-6 w-6 text-primary" />
+              <CardTitle className="text-xl">📹 Vídeo Tutorial: Como Lançar Horas</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-slate-700">
+              Assista ao vídeo abaixo e aprenda passo a passo como registrar suas horas no sistema de forma rápida e prática.
+            </p>
+            
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <div 
+                className="relative w-full overflow-hidden rounded-lg shadow-lg" 
+                style={{ paddingBottom: '56.25%', height: 0 }}
+                data-testid="video-container-tutorial"
+              >
+                <iframe 
+                  src="https://www.loom.com/embed/ba6fe3c1a9374aabb2b34ca8d411c9bb?sid=859f8910-74bf-45bf-a4e8-80a085e7ab0d" 
+                  frameBorder="0" 
+                  allowFullScreen
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+                  title="Tutorial: Como Lançar Horas no Tractionfy Timesheet"
+                />
+              </div>
+            </div>
+
+            <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+              <p className="text-sm text-slate-700">
+                💡 <strong>Dica:</strong> Recomendamos assistir ao vídeo em tela cheia para melhor visualização. 
+                Você pode pausar e voltar quantas vezes precisar!
+              </p>
+            </div>
           </CardContent>
         </Card>
 
