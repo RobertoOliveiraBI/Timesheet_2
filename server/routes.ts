@@ -1028,48 +1028,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clientes - Todos os usuários autenticados podem acessar
-  app.get('/api/clientes', requireAuth, async (req: any, res) => {
-    try {
-      console.log('API /api/clientes chamada - user:', req.user?.id);
-      
-      const user = await storage.getUser(req.user.id);
-      if (!user) {
-        return res.status(403).json({ message: "Usuário não encontrado" });
-      }
-      
-      console.log('User role:', user.role);
-      
-      // Todos os usuários autenticados podem ver clientes (necessário para timesheet)
-      const clients = await db.select({
-        id: clientsTable.id,
-        companyName: clientsTable.companyName,
-        economicGroupId: clientsTable.economicGroupId
-      }).from(clientsTable).where(eq(clientsTable.isActive, true));
-      
-      console.log('Clientes encontrados:', clients.length);
-      res.json(clients);
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      res.status(500).json({ message: "Erro ao buscar clientes", error: error instanceof Error ? error.message : "Unknown error" });
-    }
-  });
-
-  app.post('/api/clientes', requireAuth, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.id);
-      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
-        return res.status(403).json({ message: "Acesso negado" });
-      }
-
-      const clientData = insertClientSchema.parse(req.body);
-      const newClient = await storage.createClient(clientData);
-      res.status(201).json(newClient);
-    } catch (error) {
-      console.error("Error creating client:", error);
-      res.status(400).json({ message: "Erro ao criar cliente" });
-    }
-  });
 
   app.patch('/api/clients/:id', requireAuth, async (req: any, res) => {
     try {
