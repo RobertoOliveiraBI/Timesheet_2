@@ -834,11 +834,21 @@ export function AdminSection() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Campanhas</CardTitle>
+              <CardTitle className="text-lg">Campanhas ({filteredCampaigns.length} de {campaigns.length})</CardTitle>
               <Button variant="outline" size="sm" onClick={() => openModal("campaign")}>
                 <Plus className="w-4 h-4 mr-1" />
                 Novo
               </Button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar campanhas..."
+                value={searchTerms.campaigns}
+                onChange={(e) => setSearchTerms({...searchTerms, campaigns: e.target.value})}
+                className="pl-10"
+                data-testid="input-search-campaigns"
+              />
             </div>
           </CardHeader>
           <CardContent>
