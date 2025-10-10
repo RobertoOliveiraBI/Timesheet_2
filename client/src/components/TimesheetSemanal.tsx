@@ -488,6 +488,7 @@ export function TimesheetSemanal() {
       // Manter as linhas na tela para permitir edições
       refetchEntradas();
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
     },
     onError: (error: any) => {
       toast({

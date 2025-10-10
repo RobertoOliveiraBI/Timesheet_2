@@ -145,6 +145,7 @@ export function NovaEntradaHoras() {
       
       // Invalidar cache das entradas de tempo
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
     },
     onError: (error: any) => {
       toast({
@@ -180,6 +181,7 @@ export function NovaEntradaHoras() {
       });
       
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
     },
     onError: (error: any) => {
       toast({

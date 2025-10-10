@@ -304,6 +304,7 @@ export function ApprovalManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/validation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
       setSelectedEntry(null);
       setReviewComment("");
     },
@@ -331,6 +332,7 @@ export function ApprovalManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/validation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
       setSelectedEntry(null);
       setReviewComment("");
     },
@@ -361,6 +363,7 @@ export function ApprovalManagement() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/validation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
     },
     onError: () => {
       toast({
@@ -382,6 +385,7 @@ export function ApprovalManagement() {
         description: "Lançamento editado com sucesso!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/approved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
       setEditingEntry(null);
       setEditData({});
     },
@@ -419,6 +423,7 @@ export function ApprovalManagement() {
         description: "Lançamento retornado para 'Salvo' com sucesso!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/approved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
       setSelectedEntry(null);
       setReviewComment("");
     },
@@ -442,6 +447,7 @@ export function ApprovalManagement() {
         description: "Lançamento excluído com sucesso!",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/time-entries/approved"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/daily"] });
     },
     onError: () => {
       toast({
