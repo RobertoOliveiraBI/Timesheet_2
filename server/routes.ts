@@ -516,8 +516,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { comment } = req.body;
 
       const user = await storage.getUser(userId);
-      if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      // If GESTOR, verify the entry belongs to their team
+      if (user.role === 'GESTOR') {
+        const entry = await db.query.timeEntries.findFirst({
+          where: eq(timeEntries.id, entryId),
+          with: { user: true }
+        });
+        
+        if (!entry || entry.user.managerId !== user.id) {
+          return res.status(403).json({ message: "You can only approve entries from your team" });
+        }
       }
 
       const timeEntry = await storage.approveTimeEntry(entryId, userId, comment);
@@ -535,8 +547,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { comment } = req.body;
 
       const user = await storage.getUser(userId);
-      if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      // If GESTOR, verify the entry belongs to their team
+      if (user.role === 'GESTOR') {
+        const entry = await db.query.timeEntries.findFirst({
+          where: eq(timeEntries.id, entryId),
+          with: { user: true }
+        });
+        
+        if (!entry || entry.user.managerId !== user.id) {
+          return res.status(403).json({ message: "You can only reject entries from your team" });
+        }
       }
 
       const timeEntry = await storage.rejectTimeEntry(entryId, userId, comment);
@@ -557,7 +581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Buscar entradas em VALIDACAO que o gestor pode gerenciar
       let entries;
-      if (user.role === 'GESTOR' && user.isManager) {
+      if (user.role === 'GESTOR') {
         // Gestor vê apenas entradas de sua equipe
         entries = await db.query.timeEntries.findMany({
           where: and(
@@ -616,7 +640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let count;
-      if (user.role === 'GESTOR' && user.isManager) {
+      if (user.role === 'GESTOR') {
         // Gestor conta apenas entradas de sua equipe
         const entries = await db.query.timeEntries.findMany({
           where: eq(timeEntries.status, "VALIDACAO"),
@@ -687,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Para GESTOR, filtrar apenas membros da equipe
-      if (user.role === 'GESTOR' && user.isManager) {
+      if (user.role === 'GESTOR') {
         entries = entries.filter(entry => entry.user.managerId === user.id);
       }
 
@@ -720,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Para GESTOR, verificar se é da sua equipe
-      if (user.role === 'GESTOR' && user.isManager) {
+      if (user.role === 'GESTOR') {
         const entryUser = await storage.getUser(entry.userId);
         if (!entryUser || entryUser.managerId !== user.id) {
           return res.status(403).json({ message: "Você só pode excluir lançamentos da sua equipe" });
@@ -757,7 +781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Para GESTOR, verificar se é da sua equipe
-      if (user.role === 'GESTOR' && user.isManager) {
+      if (user.role === 'GESTOR') {
         const entryUser = await storage.getUser(entry.userId);
         if (!entryUser || entryUser.managerId !== user.id) {
           return res.status(403).json({ message: "Você só pode alterar lançamentos da sua equipe" });
@@ -792,11 +816,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const { fromDate, toDate } = req.query;
       
-      if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      const stats = user.isManager 
+      const stats = user.role === 'GESTOR'
         ? await storage.getTeamTimeStats(parseInt(userId), fromDate as string, toDate as string)
         : await storage.getTeamTimeStats(0, fromDate as string, toDate as string); // All team stats for admins
       
