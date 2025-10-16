@@ -815,7 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Acesso negado" });
       }
 
-      const { month, year, clientId, campaignId, userId, taskTypeId } = req.query;
+      const { months, year, clientIds, campaignIds, userIds, taskTypeId, costCenterId, managerId } = req.query;
 
       // Excluir usuários de teste (IDs 1, 2, 3)
       const excludeUserIds = [1, 2, 3];
@@ -825,13 +825,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sql`${timeEntries.userId} NOT IN (${sql.join(excludeUserIds.map(id => sql`${id}`), sql`, `)})`,
       ];
 
-      // Filtro de mês e ano
-      if (month && year) {
-        const startDate = `${year}-${month.padStart(2, '0')}-01`;
-        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-        const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
-        conditions.push(gte(timeEntries.date, startDate));
-        conditions.push(lte(timeEntries.date, endDate));
+      // Filtro de meses (múltiplos) e ano
+      if (months && year) {
+        const monthsArray = months.split(',').map((m: string) => m.trim());
+        const dateConditions = monthsArray.map((month: string) => {
+          const startDate = `${year}-${month.padStart(2, '0')}-01`;
+          const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+          const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
+          return and(gte(timeEntries.date, startDate), lte(timeEntries.date, endDate));
+        });
+        
+        if (dateConditions.length === 1) {
+          conditions.push(dateConditions[0]);
+        } else if (dateConditions.length > 1) {
+          conditions.push(sql`(${sql.join(dateConditions.map(dc => sql`(${dc})`), sql` OR `)})`);
+        }
       } else if (year) {
         const startDate = `${year}-01-01`;
         const endDate = `${year}-12-31`;
@@ -839,9 +847,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         conditions.push(lte(timeEntries.date, endDate));
       }
 
-      // Filtro de usuário
-      if (userId && userId !== 'all') {
-        conditions.push(eq(timeEntries.userId, parseInt(userId)));
+      // Filtro de usuários (múltiplos)
+      if (userIds && userIds !== 'all') {
+        const userIdsArray = userIds.split(',').map((id: string) => parseInt(id.trim()));
+        conditions.push(inArray(timeEntries.userId, userIdsArray));
+      }
+
+      // Filtro por gestor - buscar todos os colaboradores do gestor
+      if (managerId && managerId !== 'all') {
+        const teamMembers = await db.query.users.findMany({
+          where: eq(sql`manager_id`, parseInt(managerId)),
+        });
+        const teamMemberIds = teamMembers.map(m => m.id);
+        if (teamMemberIds.length > 0) {
+          conditions.push(inArray(timeEntries.userId, teamMemberIds));
+        }
+      }
+
+      // Filtro por centro de custo - através do usuário
+      if (costCenterId && costCenterId !== 'all') {
+        const usersInCostCenter = await db.query.users.findMany({
+          where: eq(sql`cost_center_id`, parseInt(costCenterId)),
+        });
+        const userIdsInCostCenter = usersInCostCenter.map(u => u.id);
+        if (userIdsInCostCenter.length > 0) {
+          conditions.push(inArray(timeEntries.userId, userIdsInCostCenter));
+        }
       }
 
       // Buscar todas as entradas com filtros aplicados
@@ -865,12 +896,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Aplicar filtros adicionais no frontend (client, campaign, taskType)
       let filteredEntries = entries;
 
-      if (clientId && clientId !== 'all') {
-        filteredEntries = filteredEntries.filter(e => e.campaign?.client?.id === parseInt(clientId));
+      // Filtro de clientes (múltiplos)
+      if (clientIds && clientIds !== 'all') {
+        const clientIdsArray = clientIds.split(',').map((id: string) => parseInt(id.trim()));
+        filteredEntries = filteredEntries.filter(e => 
+          e.campaign?.client?.id && clientIdsArray.includes(e.campaign.client.id)
+        );
       }
 
-      if (campaignId && campaignId !== 'all') {
-        filteredEntries = filteredEntries.filter(e => e.campaign?.id === parseInt(campaignId));
+      // Filtro de campanhas (múltiplas)
+      if (campaignIds && campaignIds !== 'all') {
+        const campaignIdsArray = campaignIds.split(',').map((id: string) => parseInt(id.trim()));
+        filteredEntries = filteredEntries.filter(e => 
+          e.campaignId && campaignIdsArray.includes(e.campaignId)
+        );
       }
 
       if (taskTypeId && taskTypeId !== 'all') {
@@ -1053,6 +1092,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Erro ao buscar usuários" });
+    }
+  });
+
+  // Endpoint para buscar apenas gestores
+  app.get('/api/managers', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+      
+      const allUsers = await storage.getAllUsers();
+      const managers = allUsers.filter(u => u.isManager);
+      res.json(managers);
+    } catch (error) {
+      console.error("Error fetching managers:", error);
+      res.status(500).json({ message: "Erro ao buscar gestores" });
     }
   });
 

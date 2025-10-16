@@ -65,6 +65,7 @@ The system includes data models for Users, Economic Groups, Clients, Campaigns, 
 - **Data Cleanup System with Password Confirmation (2025-08-28)**: Added secure data cleanup functionality for removing test entries. Requires password confirmation ("123mudar") and is restricted to MASTER and ADMIN roles. Provides safe way to clear test data while maintaining data integrity.
 - **Universal Campaign Access (2025-10-10)**: All authenticated users (MASTER, ADMIN, GESTOR, COLABORADOR) now have access to all active campaigns without restrictions. This replaces the previous access control system that limited collaborator visibility based on campaign_users assignments.
 - **Automatic Default Task Creation (2025-10-10)**: When creating campaigns via any route (manager area, admin area), the system automatically generates default tasks based on all active task types. Each task type creates one corresponding campaign task with the task type name as description.
+- **Enhanced Metrics Dashboard (2025-10-16)**: Comprehensive metrics tracking dashboard for ADMIN and MASTER users with advanced filtering capabilities. Features include multi-select filters for months, clients, campaigns, and collaborators; additional filters by cost center and manager (showing all team members when filtered by manager); horizontal bar charts with hour labels; and enhanced scatter plots with top 10 contributor labels and axis titles. Automatically excludes test user data (IDs 1, 2, 3) from all metrics.
 
 ## External Dependencies
 

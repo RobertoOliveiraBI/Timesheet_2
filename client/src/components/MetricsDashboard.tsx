@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { 
   Users, 
@@ -10,7 +12,8 @@ import {
   FileText,
   Clock,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from "lucide-react";
 import { 
   LineChart, 
@@ -27,24 +30,42 @@ import {
   CartesianGrid, 
   Tooltip, 
   Legend, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  LabelList
 } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { queryClient } from "@/lib/queryClient";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
+const months = [
+  { value: "1", label: "Janeiro" },
+  { value: "2", label: "Fevereiro" },
+  { value: "3", label: "Março" },
+  { value: "4", label: "Abril" },
+  { value: "5", label: "Maio" },
+  { value: "6", label: "Junho" },
+  { value: "7", label: "Julho" },
+  { value: "8", label: "Agosto" },
+  { value: "9", label: "Setembro" },
+  { value: "10", label: "Outubro" },
+  { value: "11", label: "Novembro" },
+  { value: "12", label: "Dezembro" },
+];
+
 export function MetricsDashboard() {
   const currentYear = new Date().getFullYear();
   const currentMonth = (new Date().getMonth() + 1).toString();
 
   const [filters, setFilters] = useState({
-    month: currentMonth,
+    months: [currentMonth],
     year: currentYear.toString(),
-    clientId: 'all',
-    campaignId: 'all',
-    userId: 'all',
+    clientIds: [] as string[],
+    campaignIds: [] as string[],
+    userIds: [] as string[],
     taskTypeId: 'all',
+    costCenterId: 'all',
+    managerId: 'all',
   });
 
   // Buscar clientes
@@ -52,17 +73,12 @@ export function MetricsDashboard() {
     queryKey: ["/api/clientes"],
   });
 
-  // Buscar campanhas baseado no cliente selecionado
+  // Buscar campanhas
   const { data: campanhas = [] } = useQuery({
-    queryKey: ["/api/campanhas", filters.clientId],
+    queryKey: ["/api/campanhas"],
     queryFn: async () => {
-      if (filters.clientId === "all") {
-        const response = await fetch("/api/campanhas", { credentials: "include" });
-        return response.ok ? await response.json() : [];
-      } else {
-        const response = await fetch(`/api/clientes/${filters.clientId}/campanhas`, { credentials: "include" });
-        return response.ok ? await response.json() : [];
-      }
+      const response = await fetch("/api/campanhas", { credentials: "include" });
+      return response.ok ? await response.json() : [];
     },
   });
 
@@ -71,6 +87,26 @@ export function MetricsDashboard() {
     queryKey: ["/api/users"],
     queryFn: async () => {
       const response = await fetch("/api/users", { credentials: "include" });
+      if (!response.ok) return [];
+      return await response.json();
+    },
+  });
+
+  // Buscar gestores
+  const { data: managers = [] } = useQuery({
+    queryKey: ["/api/managers"],
+    queryFn: async () => {
+      const response = await fetch("/api/managers", { credentials: "include" });
+      if (!response.ok) return [];
+      return await response.json();
+    },
+  });
+
+  // Buscar centros de custo
+  const { data: costCenters = [] } = useQuery({
+    queryKey: ["/api/cost-centers"],
+    queryFn: async () => {
+      const response = await fetch("/api/cost-centers", { credentials: "include" });
       if (!response.ok) return [];
       return await response.json();
     },
@@ -85,21 +121,25 @@ export function MetricsDashboard() {
   const { data: metricsData, isLoading, refetch } = useQuery({
     queryKey: [
       "/api/metrics/dashboard", 
-      filters.month, 
+      filters.months.join(','), 
       filters.year, 
-      filters.clientId, 
-      filters.campaignId, 
-      filters.userId,
-      filters.taskTypeId
+      filters.clientIds.join(','), 
+      filters.campaignIds.join(','), 
+      filters.userIds.join(','),
+      filters.taskTypeId,
+      filters.costCenterId,
+      filters.managerId
     ],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters.month) params.append('month', filters.month);
+      if (filters.months.length > 0) params.append('months', filters.months.join(','));
       if (filters.year) params.append('year', filters.year);
-      if (filters.clientId !== 'all') params.append('clientId', filters.clientId);
-      if (filters.campaignId !== 'all') params.append('campaignId', filters.campaignId);
-      if (filters.userId !== 'all') params.append('userId', filters.userId);
+      if (filters.clientIds.length > 0) params.append('clientIds', filters.clientIds.join(','));
+      if (filters.campaignIds.length > 0) params.append('campaignIds', filters.campaignIds.join(','));
+      if (filters.userIds.length > 0) params.append('userIds', filters.userIds.join(','));
       if (filters.taskTypeId !== 'all') params.append('taskTypeId', filters.taskTypeId);
+      if (filters.costCenterId !== 'all') params.append('costCenterId', filters.costCenterId);
+      if (filters.managerId !== 'all') params.append('managerId', filters.managerId);
 
       const response = await fetch(`/api/metrics/dashboard?${params.toString()}`, {
         credentials: "include"
@@ -120,6 +160,42 @@ export function MetricsDashboard() {
     return `${h}:${m.toString().padStart(2, '0')} h`;
   };
 
+  const toggleMonth = (month: string) => {
+    setFilters(prev => ({
+      ...prev,
+      months: prev.months.includes(month)
+        ? prev.months.filter(m => m !== month)
+        : [...prev.months, month]
+    }));
+  };
+
+  const toggleClient = (clientId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      clientIds: prev.clientIds.includes(clientId)
+        ? prev.clientIds.filter(id => id !== clientId)
+        : [...prev.clientIds, clientId]
+    }));
+  };
+
+  const toggleCampaign = (campaignId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      campaignIds: prev.campaignIds.includes(campaignId)
+        ? prev.campaignIds.filter(id => id !== campaignId)
+        : [...prev.campaignIds, campaignId]
+    }));
+  };
+
+  const toggleUser = (userId: string) => {
+    setFilters(prev => ({
+      ...prev,
+      userIds: prev.userIds.includes(userId)
+        ? prev.userIds.filter(id => id !== userId)
+        : [...prev.userIds, userId]
+    }));
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -134,6 +210,11 @@ export function MetricsDashboard() {
   const summary = metricsData?.summary || {};
   const charts = metricsData?.charts || {};
   const tableData = metricsData?.table || [];
+
+  // Preparar dados do gráfico de dispersão com labels
+  const scatterDataWithLabels = (charts.scatterChart || [])
+    .sort((a: any, b: any) => b.horas - a.horas)
+    .slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -154,7 +235,7 @@ export function MetricsDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Ano</label>
               <Select 
@@ -175,19 +256,159 @@ export function MetricsDashboard() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Mês</label>
+              <label className="text-sm font-medium mb-2 block">Meses</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between" data-testid="select-months">
+                    {filters.months.length === 0 
+                      ? "Selecione os meses" 
+                      : `${filters.months.length} selecionado(s)`
+                    }
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-2">
+                  <div className="space-y-2">
+                    {months.map(month => (
+                      <div key={month.value} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`month-${month.value}`}
+                          checked={filters.months.includes(month.value)}
+                          onCheckedChange={() => toggleMonth(month.value)}
+                          data-testid={`checkbox-month-${month.value}`}
+                        />
+                        <label
+                          htmlFor={`month-${month.value}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {month.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Clientes</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between" data-testid="select-clients">
+                    {filters.clientIds.length === 0 
+                      ? "Todos os clientes" 
+                      : `${filters.clientIds.length} selecionado(s)`
+                    }
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-2 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-2">
+                    {clientes.map((client: any) => (
+                      <div key={client.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`client-${client.id}`}
+                          checked={filters.clientIds.includes(client.id.toString())}
+                          onCheckedChange={() => toggleClient(client.id.toString())}
+                          data-testid={`checkbox-client-${client.id}`}
+                        />
+                        <label
+                          htmlFor={`client-${client.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {client.tradeName || client.companyName}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Campanhas</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between" data-testid="select-campaigns">
+                    {filters.campaignIds.length === 0 
+                      ? "Todas as campanhas" 
+                      : `${filters.campaignIds.length} selecionada(s)`
+                    }
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-2 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-2">
+                    {campanhas.map((campaign: any) => (
+                      <div key={campaign.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`campaign-${campaign.id}`}
+                          checked={filters.campaignIds.includes(campaign.id.toString())}
+                          onCheckedChange={() => toggleCampaign(campaign.id.toString())}
+                          data-testid={`checkbox-campaign-${campaign.id}`}
+                        />
+                        <label
+                          htmlFor={`campaign-${campaign.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {campaign.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Colaboradores</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between" data-testid="select-users">
+                    {filters.userIds.length === 0 
+                      ? "Todos os colaboradores" 
+                      : `${filters.userIds.length} selecionado(s)`
+                    }
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-2 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-2">
+                    {usuarios.map((user: any) => (
+                      <div key={user.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`user-${user.id}`}
+                          checked={filters.userIds.includes(user.id.toString())}
+                          onCheckedChange={() => toggleUser(user.id.toString())}
+                          data-testid={`checkbox-user-${user.id}`}
+                        />
+                        <label
+                          htmlFor={`user-${user.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        >
+                          {user.firstName} {user.lastName}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Centro de Custo</label>
               <Select 
-                value={filters.month} 
-                onValueChange={(value) => setFilters({ ...filters, month: value })}
+                value={filters.costCenterId} 
+                onValueChange={(value) => setFilters({ ...filters, costCenterId: value })}
               >
-                <SelectTrigger data-testid="select-month">
-                  <SelectValue placeholder="Todos os meses" />
+                <SelectTrigger data-testid="select-cost-center">
+                  <SelectValue placeholder="Todos os centros" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                    <SelectItem key={month} value={month.toString()}>
-                      {new Date(2024, month - 1).toLocaleDateString('pt-BR', { month: 'long' })}
+                  {costCenters.map((center: any) => (
+                    <SelectItem key={center.id} value={center.id.toString()}>
+                      {center.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -195,59 +416,19 @@ export function MetricsDashboard() {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-2 block">Cliente</label>
+              <label className="text-sm font-medium mb-2 block">Gestor</label>
               <Select 
-                value={filters.clientId} 
-                onValueChange={(value) => setFilters({ ...filters, clientId: value, campaignId: 'all' })}
+                value={filters.managerId} 
+                onValueChange={(value) => setFilters({ ...filters, managerId: value })}
               >
-                <SelectTrigger data-testid="select-client">
-                  <SelectValue placeholder="Todos os clientes" />
+                <SelectTrigger data-testid="select-manager">
+                  <SelectValue placeholder="Todos os gestores" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {clientes.map((client: any) => (
-                    <SelectItem key={client.id} value={client.id.toString()}>
-                      {client.tradeName || client.companyName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Campanha</label>
-              <Select 
-                value={filters.campaignId} 
-                onValueChange={(value) => setFilters({ ...filters, campaignId: value })}
-              >
-                <SelectTrigger data-testid="select-campaign">
-                  <SelectValue placeholder="Todas as campanhas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  {campanhas.map((campaign: any) => (
-                    <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                      {campaign.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Colaborador</label>
-              <Select 
-                value={filters.userId} 
-                onValueChange={(value) => setFilters({ ...filters, userId: value })}
-              >
-                <SelectTrigger data-testid="select-user">
-                  <SelectValue placeholder="Todos os colaboradores" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {usuarios.map((user: any) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstName} {user.lastName}
+                  {managers.map((manager: any) => (
+                    <SelectItem key={manager.id} value={manager.id.toString()}>
+                      {manager.firstName} {manager.lastName}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -462,37 +643,51 @@ export function MetricsDashboard() {
           </CardContent>
         </Card>
 
-        {/* Gráfico de Barras - Horas por Colaborador */}
+        {/* Gráfico de Barras Horizontal - Horas por Colaborador */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Horas por Colaborador</CardTitle>
+            <CardTitle className="text-lg">Horas por Colaborador (Top 10)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={charts.barChart || []}>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={charts.barChart || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={120} />
                 <Tooltip />
-                <Bar dataKey="hours" fill="#3b82f6" name="Horas" />
+                <Bar dataKey="hours" fill="#3b82f6" name="Horas">
+                  <LabelList dataKey="hours" position="right" formatter={(value: number) => `${value.toFixed(1)}h`} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Gráfico de Dispersão */}
+        {/* Gráfico de Dispersão com labels */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Dispersão: Lançamentos vs Horas</CardTitle>
+            <CardTitle className="text-lg">Dispersão: Lançamentos vs Horas (Top 10)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <ScatterChart>
+            <ResponsiveContainer width="100%" height={400}>
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 60, left: 60 }}>
                 <CartesianGrid />
-                <XAxis type="number" dataKey="lancamentos" name="Lançamentos" />
-                <YAxis type="number" dataKey="horas" name="Horas" />
+                <XAxis 
+                  type="number" 
+                  dataKey="lancamentos" 
+                  name="Lançamentos"
+                  label={{ value: 'Número de Lançamentos', position: 'bottom', offset: 40 }}
+                />
+                <YAxis 
+                  type="number" 
+                  dataKey="horas" 
+                  name="Horas"
+                  label={{ value: 'Total de Horas', angle: -90, position: 'left', offset: 40 }}
+                />
                 <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Colaboradores" data={charts.scatterChart || []} fill="#8b5cf6" />
+                <Scatter name="Top 10 Colaboradores" data={scatterDataWithLabels} fill="#8b5cf6">
+                  <LabelList dataKey="name" position="top" offset={10} style={{ fontSize: '10px' }} />
+                </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
           </CardContent>
