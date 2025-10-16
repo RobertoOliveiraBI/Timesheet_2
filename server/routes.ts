@@ -345,10 +345,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (user && user.role === 'GESTOR') {
         // Managers can see their team's entries
         entries = await storage.getTimeEntries(undefined, status, fromDate, toDate);
-        // Filter to only show subordinates' entries
-        const subordinates = await storage.getUser(userId);
-        // This would need a more complex query in a real implementation
-        entries = entries.filter(entry => entry.user.managerId === userId || entry.userId === userId);
+        // Filter to only show subordinates' entries and their own
+        entries = entries.filter(entry => 
+          (entry.user && entry.user.managerId === userId) || entry.userId === userId
+        );
       } else {
         // Regular users can only see their own entries
         entries = await storage.getTimeEntriesByUser(userId, fromDate, toDate);
@@ -398,16 +398,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entryId = parseInt(req.params.id);
       const data = req.body;
 
-      // Check if entry belongs to user or user is manager/admin
-      const entry = await storage.getTimeEntries();
-      const timeEntry = entry.find(e => e.id === entryId);
+      // Get the time entry with user relation
+      const timeEntry = await db.query.timeEntries.findFirst({
+        where: eq(timeEntries.id, entryId),
+        with: { user: true }
+      });
       
       if (!timeEntry) {
         return res.status(404).json({ message: "Time entry not found" });
       }
 
       const user = await storage.getUser(userId);
-      if (timeEntry.userId !== userId && !user?.isManager && !['MASTER', 'ADMIN'].includes(user?.role || '')) {
+      
+      // Check permissions
+      const isOwnEntry = timeEntry.userId === userId;
+      const isGestorOfUser = user?.role === 'GESTOR' && timeEntry.user.managerId === userId;
+      const isAdmin = ['MASTER', 'ADMIN'].includes(user?.role || '');
+      
+      if (!isOwnEntry && !isGestorOfUser && !isAdmin) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -862,7 +870,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (dateConditions.length === 1) {
           conditions.push(dateConditions[0]);
         } else if (dateConditions.length > 1) {
-          conditions.push(sql`(${sql.join(dateConditions.map(dc => sql`(${dc})`), sql` OR `)})`);
+          conditions.push(sql`(${sql.join(dateConditions.map((dc: any) => sql`(${dc})`), sql` OR `)})`);
         }
       } else if (year) {
         const startDate = `${year}-01-01`;
@@ -1972,20 +1980,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const entryId = parseInt(req.params.id);
       const userId = req.user.id;
 
-      // Verificar se a entrada existe e pertence ao usuário
-      const entries = await storage.getTimeEntries(userId);
-      const entry = entries.find(e => e.id === entryId);
+      // Get the time entry with user relation
+      const entry = await db.query.timeEntries.findFirst({
+        where: eq(timeEntries.id, entryId),
+        with: { user: true }
+      });
       
       if (!entry) {
         return res.status(404).json({ message: "Entrada não encontrada" });
       }
 
-      // Verificar se o usuário pode excluir esta entrada
-      if (entry.userId !== userId) {
-        const user = await storage.getUser(userId);
-        if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
-          return res.status(403).json({ message: "Acesso negado" });
-        }
+      const user = await storage.getUser(userId);
+      
+      // Check permissions
+      const isOwnEntry = entry.userId === userId;
+      const isGestorOfUser = user?.role === 'GESTOR' && entry.user.managerId === userId;
+      const isAdmin = ['MASTER', 'ADMIN'].includes(user?.role || '');
+      
+      if (!isOwnEntry && !isGestorOfUser && !isAdmin) {
+        return res.status(403).json({ message: "Acesso negado" });
       }
 
       // Verificar se a entrada está validada (status APROVADO)
