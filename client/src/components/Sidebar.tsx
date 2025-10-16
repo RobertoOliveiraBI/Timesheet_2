@@ -10,7 +10,8 @@ import {
   DollarSign,
   Upload,
   HelpCircle,
-  UserPlus
+  UserPlus,
+  TrendingUp
 } from "lucide-react";
 import tractionfyLogo from "@assets/Tractionfy-purple-icon (1)_1754084442077.png";
 import { useLocation } from "wouter";
@@ -20,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 const navigation = [
   { name: "Lançar Horas", href: "/timesheet", icon: Clock, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
   { name: "Relatórios", href: "/reports", icon: BarChart3, roles: ["MASTER", "ADMIN", "GESTOR", "COLABORADOR"] },
+  { name: "Dashboard de Métricas", href: "/metrics", icon: TrendingUp, roles: ["MASTER", "ADMIN"] },
   { name: "Área do Gestor", href: "/approvals", icon: CheckCircle, roles: ["MASTER", "ADMIN", "GESTOR"] },
   { name: "Gestão de Equipe", href: "/manager", icon: UserPlus, roles: ["MASTER", "ADMIN", "GESTOR"] },
   { name: "Custos de Campanha", href: "/campaign-costs", icon: DollarSign, roles: ["MASTER", "ADMIN", "GESTOR"] },

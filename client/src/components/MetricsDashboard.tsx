@@ -48,7 +48,7 @@ export function MetricsDashboard() {
   });
 
   // Buscar clientes
-  const { data: clientes = [] } = useQuery({
+  const { data: clientes = [] } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
   });
 
@@ -77,7 +77,7 @@ export function MetricsDashboard() {
   });
 
   // Buscar tipos de tarefa
-  const { data: taskTypes = [] } = useQuery({
+  const { data: taskTypes = [] } = useQuery<any[]>({
     queryKey: ["/api/task-types"],
   });
 
