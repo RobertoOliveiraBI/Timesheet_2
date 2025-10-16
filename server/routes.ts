@@ -444,7 +444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(userId);
       const { date } = req.query; // Get date filter from query params
       
-      if (!user || !user.isManager && !['MASTER', 'ADMIN'].includes(user.role)) {
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
@@ -461,7 +461,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let pendingEntries;
-      if (user.role === 'GESTOR' && user.isManager) {
+      if (user.role === 'GESTOR') {
         // Gestor sees only their team entries
         const entries = await db.query.timeEntries.findMany({
           where: whereCondition,
