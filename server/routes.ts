@@ -807,6 +807,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard de Métricas - Apenas para ADMIN e MASTER
+  app.get('/api/metrics/dashboard', requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !['MASTER', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ message: "Acesso negado" });
+      }
+
+      const { month, year, clientId, campaignId, userId, taskTypeId } = req.query;
+
+      // Excluir usuários de teste (IDs 1, 2, 3)
+      const excludeUserIds = [1, 2, 3];
+
+      // Construir condições de filtro
+      const conditions: any[] = [
+        sql`${timeEntries.userId} NOT IN (${sql.join(excludeUserIds.map(id => sql`${id}`), sql`, `)})`,
+      ];
+
+      // Filtro de mês e ano
+      if (month && year) {
+        const startDate = `${year}-${month.padStart(2, '0')}-01`;
+        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+        const endDate = `${year}-${month.padStart(2, '0')}-${lastDay}`;
+        conditions.push(gte(timeEntries.date, startDate));
+        conditions.push(lte(timeEntries.date, endDate));
+      } else if (year) {
+        const startDate = `${year}-01-01`;
+        const endDate = `${year}-12-31`;
+        conditions.push(gte(timeEntries.date, startDate));
+        conditions.push(lte(timeEntries.date, endDate));
+      }
+
+      // Filtro de usuário
+      if (userId && userId !== 'all') {
+        conditions.push(eq(timeEntries.userId, parseInt(userId)));
+      }
+
+      // Buscar todas as entradas com filtros aplicados
+      const entries = await db.query.timeEntries.findMany({
+        where: and(...conditions),
+        with: {
+          user: true,
+          campaign: {
+            with: {
+              client: true,
+            },
+          },
+          campaignTask: {
+            with: {
+              taskType: true,
+            },
+          },
+        },
+      });
+
+      // Aplicar filtros adicionais no frontend (client, campaign, taskType)
+      let filteredEntries = entries;
+
+      if (clientId && clientId !== 'all') {
+        filteredEntries = filteredEntries.filter(e => e.campaign?.client?.id === parseInt(clientId));
+      }
+
+      if (campaignId && campaignId !== 'all') {
+        filteredEntries = filteredEntries.filter(e => e.campaign?.id === parseInt(campaignId));
+      }
+
+      if (taskTypeId && taskTypeId !== 'all') {
+        filteredEntries = filteredEntries.filter(e => e.campaignTask?.taskType?.id === parseInt(taskTypeId));
+      }
+
+      // Calcular métricas principais
+      const uniqueCollaborators = new Set(filteredEntries.map(e => e.userId)).size;
+      const uniqueClients = new Set(filteredEntries.map(e => e.campaign?.client?.id).filter(Boolean)).size;
+      const uniqueCampaigns = new Set(filteredEntries.map(e => e.campaignId)).size;
+      const totalEntries = filteredEntries.length;
+
+      const totalHours = filteredEntries.reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0);
+      const openHours = filteredEntries
+        .filter(e => e.status === 'RASCUNHO' || e.status === 'SALVO')
+        .reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0);
+      const validationHours = filteredEntries
+        .filter(e => e.status === 'VALIDACAO')
+        .reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0);
+      const approvedHours = filteredEntries
+        .filter(e => e.status === 'APROVADO')
+        .reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0);
+
+      // Dados para gráfico de linha (últimos 30 dias)
+      const last30Days = Array.from({ length: 30 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (29 - i));
+        return format(date, 'dd/MM');
+      });
+
+      const lineChartData = last30Days.map(dateLabel => {
+        const [day, month] = dateLabel.split('/');
+        const dateStr = `${new Date().getFullYear()}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        
+        const dayEntries = filteredEntries.filter(e => e.date === dateStr);
+        const hours = dayEntries.reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0);
+        
+        return {
+          date: dateLabel,
+          hours: parseFloat(hours.toFixed(2)),
+          validacao: parseFloat(dayEntries.filter(e => e.status === 'VALIDACAO').reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0).toFixed(2)),
+          rascunho: parseFloat(dayEntries.filter(e => e.status === 'RASCUNHO' || e.status === 'SALVO').reduce((sum, e) => sum + parseFloat(e.hours || '0'), 0).toFixed(2)),
+        };
+      });
+
+      // Dados para gráfico de pizza (tipos de tarefa)
+      const taskTypeGroups = filteredEntries.reduce((acc, e) => {
+        const taskTypeName = e.campaignTask?.taskType?.name || 'Outros';
+        if (!acc[taskTypeName]) {
+          acc[taskTypeName] = 0;
+        }
+        acc[taskTypeName]++;
+        return acc;
+      }, {} as Record<string, number>);
+
+      const pieChartData = Object.entries(taskTypeGroups).map(([name, count]) => ({
+        name,
+        value: count,
+        percentage: Math.round((count / totalEntries) * 100),
+      }));
+
+      // Dados para gráfico de barras (horas por colaborador - top 10)
+      const collaboratorGroups = filteredEntries.reduce((acc, e) => {
+        const userName = `${e.user?.firstName || ''} ${e.user?.lastName || ''}`.trim() || 'Desconhecido';
+        if (!acc[userName]) {
+          acc[userName] = 0;
+        }
+        acc[userName] += parseFloat(e.hours || '0');
+        return acc;
+      }, {} as Record<string, number>);
+
+      const barChartData = Object.entries(collaboratorGroups)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 10)
+        .map(([name, hours]) => ({
+          name,
+          hours: parseFloat(hours.toFixed(2)),
+        }));
+
+      // Dados para gráfico de dispersão (lançamentos vs horas por colaborador)
+      const scatterData = Object.entries(collaboratorGroups).map(([name, hours]) => {
+        const userEntries = filteredEntries.filter(e => 
+          `${e.user?.firstName || ''} ${e.user?.lastName || ''}`.trim() === name
+        );
+        return {
+          name,
+          lancamentos: userEntries.length,
+          horas: parseFloat(hours.toFixed(2)),
+        };
+      });
+
+      // Tabela detalhada por cliente e campanha
+      const clientCampaignData = filteredEntries.reduce((acc, e) => {
+        const clientName = e.campaign?.client?.tradeName || e.campaign?.client?.companyName || 'Cliente Desconhecido';
+        const campaignName = e.campaign?.name || 'Campanha Desconhecida';
+        const key = `${clientName}|||${campaignName}`;
+        
+        if (!acc[key]) {
+          acc[key] = {
+            cliente: clientName,
+            campanha: campaignName,
+            horasAbertas: 0,
+            horasValidacao: 0,
+            totalHoras: 0,
+          };
+        }
+        
+        const hours = parseFloat(e.hours || '0');
+        acc[key].totalHoras += hours;
+        
+        if (e.status === 'RASCUNHO' || e.status === 'SALVO') {
+          acc[key].horasAbertas += hours;
+        } else if (e.status === 'VALIDACAO') {
+          acc[key].horasValidacao += hours;
+        }
+        
+        return acc;
+      }, {} as Record<string, any>);
+
+      const tableData = Object.values(clientCampaignData).map((row: any) => ({
+        ...row,
+        horasAbertas: parseFloat(row.horasAbertas.toFixed(2)),
+        horasValidacao: parseFloat(row.horasValidacao.toFixed(2)),
+        totalHoras: parseFloat(row.totalHoras.toFixed(2)),
+      }));
+
+      res.json({
+        summary: {
+          colaboradores: uniqueCollaborators,
+          clientes: uniqueClients,
+          campanhas: uniqueCampaigns,
+          lancamentos: totalEntries,
+          totalHoras: parseFloat(totalHours.toFixed(2)),
+          horasAbertas: parseFloat(openHours.toFixed(2)),
+          horasValidacao: parseFloat(validationHours.toFixed(2)),
+          horasAprovadas: parseFloat(approvedHours.toFixed(2)),
+        },
+        charts: {
+          lineChart: lineChartData,
+          pieChart: pieChartData,
+          barChart: barChartData,
+          scatterChart: scatterData,
+        },
+        table: tableData,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard metrics:", error);
+      res.status(500).json({ message: "Erro ao buscar métricas do dashboard" });
+    }
+  });
+
   // Admin routes - Sistema de administração completo
   
   // Usuários
