@@ -417,6 +417,34 @@ export class DatabaseStorage implements IStorage {
 
   // Time Entries
   async createTimeEntry(timeEntry: InsertTimeEntry): Promise<TimeEntry> {
+    // Verificar se já existe um lançamento com a mesma combinação
+    // (userId + date + campaignId + campaignTaskId)
+    const existingEntry = await db.query.timeEntries.findFirst({
+      where: and(
+        eq(timeEntries.userId, timeEntry.userId),
+        eq(timeEntries.date, timeEntry.date),
+        eq(timeEntries.campaignId, timeEntry.campaignId),
+        eq(timeEntries.campaignTaskId, timeEntry.campaignTaskId)
+      ),
+    });
+
+    // Se já existe, atualizar ao invés de criar novo
+    if (existingEntry) {
+      const [updatedEntry] = await db
+        .update(timeEntries)
+        .set({
+          hours: timeEntry.hours,
+          description: timeEntry.description,
+          resultCenter: timeEntry.resultCenter,
+          status: timeEntry.status || existingEntry.status,
+          updatedAt: new Date(),
+        })
+        .where(eq(timeEntries.id, existingEntry.id))
+        .returning();
+      return updatedEntry;
+    }
+
+    // Se não existe, criar novo
     const [newTimeEntry] = await db.insert(timeEntries).values(timeEntry).returning();
     return newTimeEntry;
   }
