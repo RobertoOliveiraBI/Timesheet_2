@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Eye, Edit, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Edit, Trash2, RefreshCw } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -61,8 +61,12 @@ const opcoesDuracao = [
   "6", "6.25", "6.5", "6.75", "7", "7.25", "7.5", "7.75", "8"
 ];
 
-export function VisualizacaoSemanal() {
-  const [semanaVisualizada, setSemanaVisualizada] = useState(new Date());
+interface VisualizacaoSemanalProps {
+  semanaAtual: Date;
+  onSemanaChange: (direcao: 'anterior' | 'proxima') => void;
+}
+
+export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: VisualizacaoSemanalProps) {
   const [entradaEditando, setEntradaEditando] = useState<EntradaHora | null>(null);
   const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
   const [horasEditando, setHorasEditando] = useState("");
@@ -72,8 +76,11 @@ export function VisualizacaoSemanal() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Garantir que semanaAtual seja uma data válida
+  const dataValida = semanaAtual instanceof Date && !isNaN(semanaAtual.getTime()) ? semanaAtual : new Date();
+
   // Calcular dias da semana (segunda a domingo)
-  const inicioSemana = startOfWeek(semanaVisualizada, { weekStartsOn: 1 });
+  const inicioSemana = startOfWeek(dataValida, { weekStartsOn: 1 });
   const diasSemana = Array.from({ length: 7 }, (_, i) => addDays(inicioSemana, i));
 
   // Buscar entradas da semana
@@ -160,15 +167,6 @@ export function VisualizacaoSemanal() {
   // Calcular total geral
   const calcularTotalGeral = () => {
     return linhasAgrupadas.reduce((total, linha) => total + linha.totalHoras, 0);
-  };
-
-  // Navegação entre semanas
-  const navegarSemana = (direcao: 'anterior' | 'proxima') => {
-    if (direcao === 'anterior') {
-      setSemanaVisualizada(subWeeks(semanaVisualizada, 1));
-    } else {
-      setSemanaVisualizada(addWeeks(semanaVisualizada, 1));
-    }
   };
 
   // Formatação de data para exibição
@@ -285,8 +283,8 @@ export function VisualizacaoSemanal() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navegarSemana('anterior')}
-                data-testid="button-semana-anterior"
+                onClick={() => onSemanaChange('anterior')}
+                data-testid="button-semana-anterior-vis"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -296,10 +294,19 @@ export function VisualizacaoSemanal() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navegarSemana('proxima')}
-                data-testid="button-semana-proxima"
+                onClick={() => onSemanaChange('proxima')}
+                data-testid="button-semana-proxima-vis"
               >
                 <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => refetchEntradas()}
+                title="Atualizar visualização"
+                data-testid="button-atualizar-vis"
+              >
+                <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
           </div>

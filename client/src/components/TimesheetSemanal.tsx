@@ -911,7 +911,7 @@ export function TimesheetSemanal() {
 
     {/* Visualização Semanal */}
     <div className="mt-6">
-      <VisualizacaoSemanal />
+      <VisualizacaoSemanal semanaAtual={semanaAtual} onSemanaChange={navegarSemana} />
     </div>
 
     {/* Histórico Mensal */}
