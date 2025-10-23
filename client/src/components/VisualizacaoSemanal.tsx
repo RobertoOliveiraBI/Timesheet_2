@@ -106,14 +106,18 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
     const grupos: Record<string, LinhaVisualizada> = {};
 
     entradasSemana.forEach(entrada => {
-      if (!entrada.campaignTaskId || !entrada.clientId || !entrada.campaignId) return;
+      const clientId = entrada.campaign?.client?.id;
+      
+      if (!entrada.campaignTaskId || !clientId || !entrada.campaignId) {
+        return;
+      }
 
-      const chave = `${entrada.clientId}-${entrada.campaignId}-${entrada.campaignTaskId}`;
+      const chave = `${clientId}-${entrada.campaignId}-${entrada.campaignTaskId}`;
 
       if (!grupos[chave]) {
         grupos[chave] = {
           chave,
-          clienteId: entrada.clientId,
+          clienteId: clientId,
           clienteNome: entrada.campaign?.client?.tradeName || entrada.campaign?.client?.companyName || 'Cliente não informado',
           campanhaId: entrada.campaignId,
           campanhaNome: entrada.campaign?.name || 'Campanha não informada',
@@ -132,7 +136,7 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
         };
       }
 
-      const dataEntrada = new Date(entrada.date);
+      const dataEntrada = new Date(entrada.date + 'T00:00:00');
       const diaSemana = dataEntrada.getDay();
       const mapaDias = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
       const diaKey = mapaDias[diaSemana] as keyof typeof grupos[string]['entradas'];
