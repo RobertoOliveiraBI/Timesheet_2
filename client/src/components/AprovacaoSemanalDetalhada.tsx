@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Check, RotateCcw, Trash2, RefreshCw, CheckCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, RotateCcw, Trash2, RefreshCw, CheckCheck, MessageCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CommentModal } from "@/components/CommentModal";
 
 interface EntradaHora {
   id: number;
@@ -73,6 +74,8 @@ export function AprovacaoSemanalDetalhada() {
   const [colaboradorSelecionado, setColaboradorSelecionado] = useState<string>("");
   const [acaoParaConfirmar, setAcaoParaConfirmar] = useState<AcaoLote | null>(null);
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
+  const [entradaParaComentario, setEntradaParaComentario] = useState<EntradaHora | null>(null);
+  const [modalComentarioAberto, setModalComentarioAberto] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -583,6 +586,19 @@ export function AprovacaoSemanalDetalhada() {
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-0.5">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        setEntradaParaComentario(entrada);
+                                        setModalComentarioAberto(true);
+                                      }}
+                                      className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                      title="Comentários"
+                                      data-testid={`button-comentario-${entrada.id}`}
+                                    >
+                                      <MessageCircle className="w-3 h-3" />
+                                    </Button>
                                     {entrada.status === 'VALIDACAO' && (
                                       <Button
                                         variant="ghost"
@@ -669,6 +685,26 @@ export function AprovacaoSemanalDetalhada() {
           )}
         </CardContent>
       </Card>
+
+      {entradaParaComentario && currentUser && (
+        <CommentModal
+          isOpen={modalComentarioAberto}
+          onClose={() => {
+            setModalComentarioAberto(false);
+            setEntradaParaComentario(null);
+            refetchEntradas();
+          }}
+          timeEntry={{
+            ...entradaParaComentario,
+            user: {
+              name: `${entradaParaComentario.user?.firstName || ''} ${entradaParaComentario.user?.lastName || ''}`.trim(),
+              role: currentUser.role || 'COLABORADOR',
+            }
+          } as any}
+          currentUserId={currentUser.id}
+          currentUserRole={currentUser.role}
+        />
+      )}
 
       <AlertDialog open={modalConfirmacaoAberto} onOpenChange={setModalConfirmacaoAberto}>
         <AlertDialogContent>
