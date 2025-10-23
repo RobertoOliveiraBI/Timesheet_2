@@ -4,11 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users, CalendarIcon } from "lucide-react";
+import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users, CalendarIcon, Calendar as CalendarWeekIcon } from "lucide-react";
 import { StatsCard } from "./StatsCard";
+import { AprovacaoSemanal } from "./AprovacaoSemanal";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -101,9 +103,20 @@ export function ApprovalSection() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Date Filter */}
-      <Card>
+    <Tabs defaultValue="lista" className="w-full">
+      <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsTrigger value="lista" data-testid="tab-lista">
+          Lista
+        </TabsTrigger>
+        <TabsTrigger value="semanal" data-testid="tab-semanal">
+          <CalendarWeekIcon className="w-4 h-4 mr-2" />
+          Visualização Semanal
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="lista" className="space-y-8">
+        {/* Date Filter */}
+        <Card>
         <CardHeader>
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
@@ -300,6 +313,11 @@ export function ApprovalSection() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </TabsContent>
+
+      <TabsContent value="semanal">
+        <AprovacaoSemanal />
+      </TabsContent>
+    </Tabs>
   );
 }
