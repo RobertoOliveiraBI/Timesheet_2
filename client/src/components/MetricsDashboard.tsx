@@ -592,36 +592,36 @@ export function MetricsDashboard() {
         </Card>
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de Linha - Horas Lançadas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Horas Lançadas (Últimos 30 dias)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={charts.lineChart || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="hours" stroke="#3b82f6" name="Horas" strokeWidth={2} />
-                <Line type="monotone" dataKey="validacao" stroke="#f59e0b" name="Em Validação" strokeWidth={2} />
-                <Line type="monotone" dataKey="rascunho" stroke="#6b7280" name="Rascunho" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Gráfico de Linha - Largura Total */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Horas Lançadas (Últimos 30 dias)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={charts.lineChart || []}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="hours" stroke="#3b82f6" name="Horas" strokeWidth={2} />
+              <Line type="monotone" dataKey="validacao" stroke="#f59e0b" name="Em Validação" strokeWidth={2} />
+              <Line type="monotone" dataKey="rascunho" stroke="#6b7280" name="Rascunho" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
+      {/* Gráficos - Primeira Linha */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de Pizza - Tipos de Tarefa */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Soma de Horas por Tipo</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={charts.pieChart || []}
@@ -629,7 +629,7 @@ export function MetricsDashboard() {
                   cy="50%"
                   labelLine={false}
                   label={(entry) => `${entry.name}: ${entry.percentage}%`}
-                  outerRadius={80}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -646,15 +646,15 @@ export function MetricsDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">
-                    <TableHead className="font-semibold">Tipo de Tarefa</TableHead>
-                    <TableHead className="text-right font-semibold">Horas</TableHead>
-                    <TableHead className="text-right font-semibold">Percentual</TableHead>
+                    <TableHead className="font-semibold text-xs">Tipo de Tarefa</TableHead>
+                    <TableHead className="text-right font-semibold text-xs">Horas</TableHead>
+                    <TableHead className="text-right font-semibold text-xs">%</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {(charts.pieChart || []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center text-slate-500 py-4">
+                      <TableCell colSpan={3} className="text-center text-slate-500 py-4 text-sm">
                         Nenhum dado disponível
                       </TableCell>
                     </TableRow>
@@ -663,17 +663,17 @@ export function MetricsDashboard() {
                       .sort((a: any, b: any) => b.value - a.value)
                       .map((item: any, index: number) => (
                         <TableRow key={item.name} className="hover:bg-slate-50">
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium text-xs py-2">
                             <div className="flex items-center gap-2">
                               <div 
-                                className="w-3 h-3 rounded-full" 
+                                className="w-3 h-3 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
                               />
-                              {item.name}
+                              <span className="truncate">{item.name}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">{item.value.toFixed(2)}h</TableCell>
-                          <TableCell className="text-right">{item.percentage}%</TableCell>
+                          <TableCell className="text-right text-xs py-2">{item.value.toFixed(2)}h</TableCell>
+                          <TableCell className="text-right text-xs py-2">{item.percentage}%</TableCell>
                         </TableRow>
                       ))
                   )}
@@ -689,7 +689,7 @@ export function MetricsDashboard() {
             <CardTitle className="text-lg">Horas por Colaborador (Top 10)</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={500}>
               <BarChart data={charts.barChart || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
@@ -702,37 +702,37 @@ export function MetricsDashboard() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        {/* Gráfico de Dispersão com labels */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Dispersão: Lançamentos vs Horas (Top 10)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={400}>
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 60, left: 60 }}>
-                <CartesianGrid />
-                <XAxis 
-                  type="number" 
-                  dataKey="lancamentos" 
-                  name="Lançamentos"
-                  label={{ value: 'Número de Lançamentos', position: 'bottom', offset: 40 }}
-                />
-                <YAxis 
-                  type="number" 
-                  dataKey="horas" 
-                  name="Horas"
-                  label={{ value: 'Total de Horas', angle: -90, position: 'left', offset: 40 }}
-                />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Top 10 Colaboradores" data={scatterDataWithLabels} fill="#8b5cf6">
-                  <LabelList dataKey="name" position="top" offset={10} style={{ fontSize: '10px' }} />
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Gráfico de Dispersão - Largura Total */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Dispersão: Lançamentos vs Horas (Top 10)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <ScatterChart margin={{ top: 20, right: 20, bottom: 60, left: 60 }}>
+              <CartesianGrid />
+              <XAxis 
+                type="number" 
+                dataKey="lancamentos" 
+                name="Lançamentos"
+                label={{ value: 'Número de Lançamentos', position: 'bottom', offset: 40 }}
+              />
+              <YAxis 
+                type="number" 
+                dataKey="horas" 
+                name="Horas"
+                label={{ value: 'Total de Horas', angle: -90, position: 'left', offset: 40 }}
+              />
+              <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+              <Scatter name="Top 10 Colaboradores" data={scatterDataWithLabels} fill="#8b5cf6">
+                <LabelList dataKey="name" position="top" offset={10} style={{ fontSize: '10px' }} />
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Tabela Detalhada */}
       <Card>
