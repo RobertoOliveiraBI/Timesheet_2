@@ -6,9 +6,8 @@ import { Header } from "@/components/Header";
 import { StatsCard } from "@/components/StatsCard";
 import { TimesheetSemanal } from "@/components/TimesheetSemanal";
 import { RecentEntries } from "@/components/RecentEntries";
-import { ApprovalSection } from "@/components/ApprovalSection";
 import { AdminSection } from "@/components/AdminSectionNew";
-import { ApprovalManagement } from "@/components/ApprovalManagement";
+import { AprovacaoSemanalDetalhada } from "@/components/AprovacaoSemanalDetalhada";
 import { ReportsSection } from "@/components/ReportsSection";
 import CampaignCostsModule from "@/components/CampaignCostsModule";
 import { CsvImportPage } from "@/pages/CsvImportPage";
@@ -172,7 +171,7 @@ export default function Dashboard() {
     
     switch (section) {
       case "approvals":
-        return <ApprovalManagement />;
+        return <AprovacaoSemanalDetalhada />;
       case "manager":
         return <ManagerSection />;
       case "admin":
