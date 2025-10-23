@@ -579,6 +579,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/time-entries/:id/return-to-draft', requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const entryId = parseInt(req.params.id);
+      const { comment } = req.body;
+
+      const user = await storage.getUser(userId);
+      if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+
+      // If GESTOR, verify the entry belongs to their team
+      if (user.role === 'GESTOR') {
+        const entry = await db.query.timeEntries.findFirst({
+          where: eq(timeEntries.id, entryId),
+          with: { user: true }
+        });
+        
+        if (!entry || entry.user.managerId !== user.id) {
+          return res.status(403).json({ message: "You can only return entries from your team to draft" });
+        }
+      }
+
+      const timeEntry = await storage.rejectTimeEntry(entryId, userId, comment || "Retornado para rascunho pelo gestor");
+      res.json(timeEntry);
+    } catch (error) {
+      console.error("Error returning time entry to draft:", error);
+      res.status(400).json({ message: "Failed to return time entry to draft" });
+    }
+  });
+
   // Validation route for managers
   app.get('/api/time-entries/validation', requireAuth, async (req: any, res) => {
     try {
