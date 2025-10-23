@@ -61,7 +61,7 @@ export function ReportsSection() {
   });
 
   // Buscar clientes
-  const { data: clientes = [] } = useQuery({
+  const { data: clientes = [] } = useQuery<any[]>({
     queryKey: ["/api/clientes"],
   });
 
@@ -95,7 +95,7 @@ export function ReportsSection() {
   });
 
   // Buscar entradas filtradas com paginação
-  const { data: paginatedData = { entries: [], total: 0, totalPages: 0 } } = useQuery({
+  const { data: paginatedData = { entries: [], total: 0, totalPages: 0, stats: { totalHours: 0, billableHours: 0, nonBillableHours: 0, clientesAtendidos: 0, utilization: 0 } } } = useQuery({
     queryKey: ["/api/time-entries", filters.month, filters.clientId, filters.campaignId, filters.status, filters.userId, filters.dateFrom, filters.dateTo, pagination.page, pagination.pageSize],
     queryFn: async () => {
       let startDate, endDate;
@@ -113,7 +113,7 @@ export function ReportsSection() {
       let url = `/api/time-entries?fromDate=${startDate}&toDate=${endDate}`;
       
       const response = await fetch(url, { credentials: "include" });
-      if (!response.ok) return { entries: [], total: 0, totalPages: 0 };
+      if (!response.ok) return { entries: [], total: 0, totalPages: 0, stats: { totalHours: 0, billableHours: 0, nonBillableHours: 0, clientesAtendidos: 0, utilization: 0 } };
       
       let entries = await response.json();
       
@@ -145,6 +145,26 @@ export function ReportsSection() {
         );
       }
       
+      // Calcular estatísticas sobre TODAS as entradas filtradas (antes da paginação)
+      const totalHours = entries.reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
+      const billableHours = entries
+        .filter((entry: any) => entry.campaignTask?.taskType?.isBillable)
+        .reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
+      const nonBillableHours = totalHours - billableHours;
+      const clientesAtendidos = new Set(
+        entries
+          .map((entry: any) => entry.campaign?.client?.id)
+          .filter(Boolean)
+      ).size;
+      
+      const stats = {
+        totalHours,
+        billableHours,
+        nonBillableHours,
+        clientesAtendidos,
+        utilization: totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0
+      };
+      
       // Implementar paginação
       const total = entries.length;
       const totalPages = Math.ceil(total / pagination.pageSize);
@@ -155,34 +175,14 @@ export function ReportsSection() {
       return {
         entries: paginatedEntries,
         total,
-        totalPages
+        totalPages,
+        stats
       };
     },
   });
 
   const timeEntries = paginatedData.entries;
-
-  // Calcular estatísticas
-  const stats = useMemo(() => {
-    const totalHours = timeEntries.reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
-    const billableHours = timeEntries
-      .filter((entry: any) => entry.campaignTask?.taskType?.isBillable)
-      .reduce((sum: number, entry: any) => sum + parseFloat(entry.hours || 0), 0);
-    const nonBillableHours = totalHours - billableHours;
-    const clientesAtendidos = new Set(
-      timeEntries
-        .map((entry: any) => entry.campaign?.client?.id)
-        .filter(Boolean)
-    ).size;
-    
-    return {
-      totalHours,
-      billableHours,
-      nonBillableHours,
-      clientesAtendidos,
-      utilization: totalHours > 0 ? Math.round((billableHours / totalHours) * 100) : 0
-    };
-  }, [timeEntries]);
+  const stats = paginatedData.stats;
 
   const formatHours = (hours: number) => {
     return hours.toFixed(2);
