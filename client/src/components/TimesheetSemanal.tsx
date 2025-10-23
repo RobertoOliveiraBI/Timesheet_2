@@ -693,7 +693,7 @@ export function TimesheetSemanal() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Timesheet Semanal
+            Quadro de Lançamento de Horas
           </CardTitle>
           
           <div className="flex items-center gap-4">
