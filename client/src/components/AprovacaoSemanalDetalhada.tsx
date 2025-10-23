@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Check, RotateCcw, Trash2, RefreshCw, Edit } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, RotateCcw, Trash2, RefreshCw, CheckCheck } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -63,10 +63,15 @@ interface LinhaTabela {
   totalHoras: number;
 }
 
+type AcaoLote = 
+  | { tipo: 'entrada'; entrada: EntradaHora; acao: 'aprovar' | 'rascunho' | 'excluir' }
+  | { tipo: 'linha'; linha: LinhaTabela }
+  | { tipo: 'semana' };
+
 export function AprovacaoSemanalDetalhada() {
   const [semanaAtual, setSemanaAtual] = useState(new Date());
   const [colaboradorSelecionado, setColaboradorSelecionado] = useState<string>("");
-  const [entradaParaAcao, setEntradaParaAcao] = useState<{ entrada: EntradaHora; acao: 'aprovar' | 'rascunho' | 'excluir' } | null>(null);
+  const [acaoParaConfirmar, setAcaoParaConfirmar] = useState<AcaoLote | null>(null);
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
 
   const { toast } = useToast();
@@ -106,7 +111,6 @@ export function AprovacaoSemanalDetalhada() {
       if (currentUser.role === 'GESTOR') {
         return todosUsuarios.filter((u: Colaborador) => 
           u.id !== currentUser.id && 
-          // Assumindo que há uma relação managerId nos usuários
           (u as any).managerId === currentUser.id
         );
       }
@@ -228,6 +232,27 @@ export function AprovacaoSemanalDetalhada() {
     }
   };
 
+  // Obter IDs de entradas para aprovar em lote
+  const getEntradasParaAprovarLinha = (linha: LinhaTabela): number[] => {
+    const ids: number[] = [];
+    Object.values(linha.entradas).forEach(entrada => {
+      if (entrada && entrada.status === 'VALIDACAO') {
+        ids.push(entrada.id);
+      }
+    });
+    return ids;
+  };
+
+  const getEntradasParaAprovarSemana = (): number[] => {
+    const ids: number[] = [];
+    entradasSemana.forEach(entrada => {
+      if (entrada.status === 'VALIDACAO') {
+        ids.push(entrada.id);
+      }
+    });
+    return ids;
+  };
+
   const aprovarEntrada = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("POST", `/api/time-entries/${id}/approve`, {});
@@ -245,6 +270,31 @@ export function AprovacaoSemanalDetalhada() {
       toast({
         title: "Erro",
         description: "Falha ao aprovar lançamento",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const aprovarLote = useMutation({
+    mutationFn: async (ids: number[]) => {
+      // Aprovar cada entrada sequencialmente
+      for (const id of ids) {
+        await apiRequest("POST", `/api/time-entries/${id}/approve`, {});
+      }
+    },
+    onSuccess: (_, ids) => {
+      toast({
+        title: "Sucesso",
+        description: `${ids.length} lançamento(s) aprovado(s)!`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/approvals/pending-week-detailed"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/approvals/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-entries/validation-count"] });
+    },
+    onError: () => {
+      toast({
+        title: "Erro",
+        description: "Falha ao aprovar lançamentos em lote",
         variant: "destructive",
       });
     },
@@ -295,53 +345,118 @@ export function AprovacaoSemanalDetalhada() {
   });
 
   const handleAcaoEntrada = (entrada: EntradaHora, acao: 'aprovar' | 'rascunho' | 'excluir') => {
-    setEntradaParaAcao({ entrada, acao });
+    setAcaoParaConfirmar({ tipo: 'entrada', entrada, acao });
+    setModalConfirmacaoAberto(true);
+  };
+
+  const handleAprovarLinha = (linha: LinhaTabela) => {
+    const ids = getEntradasParaAprovarLinha(linha);
+    if (ids.length === 0) {
+      toast({
+        title: "Aviso",
+        description: "Nenhum lançamento pendente de aprovação nesta linha",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAcaoParaConfirmar({ tipo: 'linha', linha });
+    setModalConfirmacaoAberto(true);
+  };
+
+  const handleAprovarSemana = () => {
+    const ids = getEntradasParaAprovarSemana();
+    if (ids.length === 0) {
+      toast({
+        title: "Aviso",
+        description: "Nenhum lançamento pendente de aprovação nesta semana",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAcaoParaConfirmar({ tipo: 'semana' });
     setModalConfirmacaoAberto(true);
   };
 
   const confirmarAcao = () => {
-    if (!entradaParaAcao) return;
+    if (!acaoParaConfirmar) return;
 
-    if (entradaParaAcao.acao === 'aprovar') {
-      aprovarEntrada.mutate(entradaParaAcao.entrada.id);
-    } else if (entradaParaAcao.acao === 'rascunho') {
-      retornarRascunho.mutate(entradaParaAcao.entrada.id);
-    } else if (entradaParaAcao.acao === 'excluir') {
-      excluirEntrada.mutate(entradaParaAcao.entrada.id);
+    if (acaoParaConfirmar.tipo === 'entrada') {
+      const { entrada, acao } = acaoParaConfirmar;
+      if (acao === 'aprovar') {
+        aprovarEntrada.mutate(entrada.id);
+      } else if (acao === 'rascunho') {
+        retornarRascunho.mutate(entrada.id);
+      } else if (acao === 'excluir') {
+        excluirEntrada.mutate(entrada.id);
+      }
+    } else if (acaoParaConfirmar.tipo === 'linha') {
+      const ids = getEntradasParaAprovarLinha(acaoParaConfirmar.linha);
+      aprovarLote.mutate(ids);
+    } else if (acaoParaConfirmar.tipo === 'semana') {
+      const ids = getEntradasParaAprovarSemana();
+      aprovarLote.mutate(ids);
     }
 
     setModalConfirmacaoAberto(false);
-    setEntradaParaAcao(null);
+    setAcaoParaConfirmar(null);
   };
 
   const getTituloConfirmacao = () => {
-    if (!entradaParaAcao) return '';
-    switch (entradaParaAcao.acao) {
-      case 'aprovar':
-        return 'Aprovar Lançamento';
-      case 'rascunho':
-        return 'Retornar para Rascunho';
-      case 'excluir':
-        return 'Excluir Lançamento';
-      default:
-        return '';
+    if (!acaoParaConfirmar) return '';
+    
+    if (acaoParaConfirmar.tipo === 'entrada') {
+      const { acao } = acaoParaConfirmar;
+      switch (acao) {
+        case 'aprovar':
+          return 'Aprovar Lançamento';
+        case 'rascunho':
+          return 'Retornar para Rascunho';
+        case 'excluir':
+          return 'Excluir Lançamento';
+        default:
+          return '';
+      }
+    } else if (acaoParaConfirmar.tipo === 'linha') {
+      return 'Aprovar Linha Completa';
+    } else if (acaoParaConfirmar.tipo === 'semana') {
+      return 'Aprovar Semana Completa';
     }
+    return '';
   };
 
   const getDescricaoConfirmacao = () => {
-    if (!entradaParaAcao) return '';
-    const horas = entradaParaAcao.entrada.hours;
+    if (!acaoParaConfirmar) return '';
     
-    switch (entradaParaAcao.acao) {
-      case 'aprovar':
-        return `Deseja aprovar este lançamento de ${formatarHoras(parseFloat(horas))} horas?`;
-      case 'rascunho':
-        return `Deseja retornar este lançamento para rascunho? O colaborador poderá editá-lo novamente.`;
-      case 'excluir':
-        return `Deseja excluir este lançamento de ${formatarHoras(parseFloat(horas))} horas? Esta ação não pode ser desfeita.`;
-      default:
-        return '';
+    if (acaoParaConfirmar.tipo === 'entrada') {
+      const { entrada, acao } = acaoParaConfirmar;
+      const horas = entrada.hours;
+      
+      switch (acao) {
+        case 'aprovar':
+          return `Deseja aprovar este lançamento de ${formatarHoras(parseFloat(horas))} horas?`;
+        case 'rascunho':
+          return `Deseja retornar este lançamento para rascunho? O colaborador poderá editá-lo novamente.`;
+        case 'excluir':
+          return `Deseja excluir este lançamento de ${formatarHoras(parseFloat(horas))} horas? Esta ação não pode ser desfeita.`;
+        default:
+          return '';
+      }
+    } else if (acaoParaConfirmar.tipo === 'linha') {
+      const ids = getEntradasParaAprovarLinha(acaoParaConfirmar.linha);
+      const totalHoras = ids.reduce((sum, id) => {
+        const entrada = entradasSemana.find(e => e.id === id);
+        return sum + parseFloat(entrada?.hours || "0");
+      }, 0);
+      return `Deseja aprovar todos os ${ids.length} lançamento(s) desta linha (total de ${formatarHoras(totalHoras)} horas)?`;
+    } else if (acaoParaConfirmar.tipo === 'semana') {
+      const ids = getEntradasParaAprovarSemana();
+      const totalHoras = ids.reduce((sum, id) => {
+        const entrada = entradasSemana.find(e => e.id === id);
+        return sum + parseFloat(entrada?.hours || "0");
+      }, 0);
+      return `Deseja aprovar todos os ${ids.length} lançamento(s) pendentes desta semana (total de ${formatarHoras(totalHoras)} horas)?`;
     }
+    return '';
   };
 
   return (
@@ -396,6 +511,17 @@ export function AprovacaoSemanalDetalhada() {
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Atualizar
               </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleAprovarSemana}
+                disabled={getEntradasParaAprovarSemana().length === 0}
+                data-testid="button-aprovar-semana"
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <CheckCheck className="w-4 h-4 mr-1" />
+                Aprovar Semana
+              </Button>
             </div>
           </div>
           {linhasTabela.length >= 100 && (
@@ -433,78 +559,94 @@ export function AprovacaoSemanalDetalhada() {
                   </tr>
                 </thead>
                 <tbody>
-                  {linhasTabela.map((linha) => (
-                    <tr key={linha.chave} className="border-b border-slate-100 hover:bg-slate-50" data-testid={`linha-${linha.chave}`}>
-                      <td className="px-3 py-2 text-xs text-slate-900">{linha.colaboradorNome}</td>
-                      <td className="px-3 py-2 text-xs text-slate-900">{linha.clienteNome}</td>
-                      <td className="px-3 py-2 text-xs text-slate-900">{linha.campanhaNome}</td>
-                      <td className="px-3 py-2 text-xs text-slate-900">{linha.tarefaNome}</td>
-                      {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((dia) => {
-                        const diaKey = dia as keyof typeof linha.entradas;
-                        const entrada = linha.entradas[diaKey];
-                        const status = entrada ? getStatusBadge(entrada.status) : null;
-                        
-                        return (
-                          <td key={dia} className="px-3 py-2 text-center" data-testid={`celula-${linha.chave}-${dia}`}>
-                            {entrada ? (
-                              <div className="flex flex-col items-center gap-1">
-                                <div className="flex items-center gap-1">
-                                  <span className="font-medium text-slate-900">{formatarHoras(parseFloat(entrada.hours))}</span>
-                                  <span className={`inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded ${status?.cor}`} title={status?.texto}>
-                                    {status?.letra}
-                                  </span>
+                  {linhasTabela.map((linha) => {
+                    const idsParaAprovar = getEntradasParaAprovarLinha(linha);
+                    return (
+                      <tr key={linha.chave} className="border-b border-slate-100 hover:bg-slate-50" data-testid={`linha-${linha.chave}`}>
+                        <td className="px-3 py-2 text-xs text-slate-900">{linha.colaboradorNome}</td>
+                        <td className="px-3 py-2 text-xs text-slate-900">{linha.clienteNome}</td>
+                        <td className="px-3 py-2 text-xs text-slate-900">{linha.campanhaNome}</td>
+                        <td className="px-3 py-2 text-xs text-slate-900">{linha.tarefaNome}</td>
+                        {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((dia) => {
+                          const diaKey = dia as keyof typeof linha.entradas;
+                          const entrada = linha.entradas[diaKey];
+                          const status = entrada ? getStatusBadge(entrada.status) : null;
+                          
+                          return (
+                            <td key={dia} className="px-3 py-2 text-center" data-testid={`celula-${linha.chave}-${dia}`}>
+                              {entrada ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="font-medium text-slate-900">{formatarHoras(parseFloat(entrada.hours))}</span>
+                                    <span className={`inline-flex items-center justify-center w-5 h-5 text-xs font-bold rounded ${status?.cor}`} title={status?.texto}>
+                                      {status?.letra}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-0.5">
+                                    {entrada.status === 'VALIDACAO' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleAcaoEntrada(entrada, 'aprovar')}
+                                        className="h-6 w-6 p-0 text-green-600 hover:text-green-800 hover:bg-green-50"
+                                        title="Aprovar"
+                                        data-testid={`button-aprovar-${entrada.id}`}
+                                      >
+                                        <Check className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                    {entrada.status === 'APROVADO' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleAcaoEntrada(entrada, 'rascunho')}
+                                        className="h-6 w-6 p-0 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
+                                        title="Retornar para rascunho"
+                                        data-testid={`button-rascunho-${entrada.id}`}
+                                      >
+                                        <RotateCcw className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                    {entrada.status !== 'APROVADO' && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleAcaoEntrada(entrada, 'excluir')}
+                                        className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
+                                        title="Excluir"
+                                        data-testid={`button-excluir-${entrada.id}`}
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-0.5">
-                                  {entrada.status === 'VALIDACAO' && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleAcaoEntrada(entrada, 'aprovar')}
-                                      className="h-6 w-6 p-0 text-green-600 hover:text-green-800 hover:bg-green-50"
-                                      title="Aprovar"
-                                      data-testid={`button-aprovar-${entrada.id}`}
-                                    >
-                                      <Check className="w-3 h-3" />
-                                    </Button>
-                                  )}
-                                  {entrada.status === 'APROVADO' && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleAcaoEntrada(entrada, 'rascunho')}
-                                      className="h-6 w-6 p-0 text-amber-600 hover:text-amber-800 hover:bg-amber-50"
-                                      title="Retornar para rascunho"
-                                      data-testid={`button-rascunho-${entrada.id}`}
-                                    >
-                                      <RotateCcw className="w-3 h-3" />
-                                    </Button>
-                                  )}
-                                  {entrada.status !== 'APROVADO' && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleAcaoEntrada(entrada, 'excluir')}
-                                      className="h-6 w-6 p-0 text-red-600 hover:text-red-800 hover:bg-red-50"
-                                      title="Excluir"
-                                      data-testid={`button-excluir-${entrada.id}`}
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="px-3 py-2 text-center text-xs font-semibold text-slate-900" data-testid={`total-${linha.chave}`}>
-                        {formatarHoras(linha.totalHoras)}
-                      </td>
-                      <td className="px-3 py-2 text-center text-xs text-slate-500">-</td>
-                    </tr>
-                  ))}
+                              ) : (
+                                <span className="text-slate-400">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="px-3 py-2 text-center text-xs font-semibold text-slate-900" data-testid={`total-${linha.chave}`}>
+                          {formatarHoras(linha.totalHoras)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAprovarLinha(linha)}
+                            disabled={idsParaAprovar.length === 0}
+                            className="h-7 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                            title={`Aprovar ${idsParaAprovar.length} lançamento(s)`}
+                            data-testid={`button-aprovar-linha-${linha.chave}`}
+                          >
+                            <CheckCheck className="w-3 h-3 mr-1" />
+                            Aprovar ({idsParaAprovar.length})
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   <tr className="bg-slate-100 font-semibold">
                     <td colSpan={4} className="px-3 py-2 text-xs text-slate-900">Total Geral</td>
                     {['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'].map((dia) => {
