@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Check, X, MessageCircle, HourglassIcon, CheckCircle, Users, CalendarIcon, Calendar as CalendarWeekIcon } from "lucide-react";
 import { StatsCard } from "./StatsCard";
-import { AprovacaoSemanal } from "./AprovacaoSemanal";
+import { AprovacaoSemanalDetalhada } from "./AprovacaoSemanalDetalhada";
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -316,7 +316,7 @@ export function ApprovalSection() {
       </TabsContent>
 
       <TabsContent value="semanal">
-        <AprovacaoSemanal />
+        <AprovacaoSemanalDetalhada />
       </TabsContent>
     </Tabs>
   );

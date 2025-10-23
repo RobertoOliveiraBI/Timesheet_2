@@ -450,23 +450,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
-      const { date } = req.query; // Get date filter from query params
+      const { date, fromDate, toDate, userId: filterUserId } = req.query;
       
       if (!user || !['MASTER', 'ADMIN', 'GESTOR'].includes(user.role)) {
         return res.status(403).json({ message: "Insufficient permissions" });
       }
 
-      let whereCondition;
+      // Build where conditions
+      const conditions = [];
+      
+      // Date filtering
       if (date) {
-        // Filter by specific date
-        whereCondition = and(
-          eq(timeEntries.status, "VALIDACAO"),
-          eq(timeEntries.date, date as string)
-        );
-      } else {
-        // No date filter, show all pending
-        whereCondition = eq(timeEntries.status, "VALIDACAO");
+        conditions.push(eq(timeEntries.date, date as string));
+      } else if (fromDate && toDate) {
+        conditions.push(gte(timeEntries.date, fromDate as string));
+        conditions.push(lte(timeEntries.date, toDate as string));
       }
+      
+      // User filtering
+      if (filterUserId) {
+        conditions.push(eq(timeEntries.userId, parseInt(filterUserId as string)));
+      }
+
+      const whereCondition = conditions.length > 0 ? and(...conditions) : undefined;
 
       let pendingEntries;
       if (user.role === 'GESTOR') {
