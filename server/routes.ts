@@ -1024,20 +1024,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
 
-      // Dados para gráfico de pizza (tipos de tarefa)
+      // Dados para gráfico de pizza (tipos de tarefa) - Soma de horas
       const taskTypeGroups = filteredEntries.reduce((acc, e) => {
         const taskTypeName = e.campaignTask?.taskType?.name || 'Outros';
         if (!acc[taskTypeName]) {
           acc[taskTypeName] = 0;
         }
-        acc[taskTypeName]++;
+        acc[taskTypeName] += parseFloat(e.hours || '0');
         return acc;
       }, {} as Record<string, number>);
 
-      const pieChartData = Object.entries(taskTypeGroups).map(([name, count]) => ({
+      const totalHorasPorTipo = Object.values(taskTypeGroups).reduce((sum, hours) => sum + hours, 0);
+
+      const pieChartData = Object.entries(taskTypeGroups).map(([name, hours]) => ({
         name,
-        value: count,
-        percentage: Math.round((count / totalEntries) * 100),
+        value: parseFloat(hours.toFixed(2)),
+        percentage: totalHorasPorTipo > 0 ? Math.round((hours / totalHorasPorTipo) * 100) : 0,
       }));
 
       // Dados para gráfico de barras (horas por colaborador - top 10)

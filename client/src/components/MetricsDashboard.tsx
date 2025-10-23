@@ -618,9 +618,9 @@ export function MetricsDashboard() {
         {/* Gráfico de Pizza - Tipos de Tarefa */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Quantidade de Lançamentos por Tipo</CardTitle>
+            <CardTitle className="text-lg">Soma de Horas por Tipo</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -637,9 +637,49 @@ export function MetricsDashboard() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value: number) => `${value.toFixed(2)}h`} />
               </PieChart>
             </ResponsiveContainer>
+            
+            {/* Mini tabela de detalhamento */}
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="font-semibold">Tipo de Tarefa</TableHead>
+                    <TableHead className="text-right font-semibold">Horas</TableHead>
+                    <TableHead className="text-right font-semibold">Percentual</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(charts.pieChart || []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-slate-500 py-4">
+                        Nenhum dado disponível
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    (charts.pieChart || [])
+                      .sort((a: any, b: any) => b.value - a.value)
+                      .map((item: any, index: number) => (
+                        <TableRow key={item.name} className="hover:bg-slate-50">
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <div 
+                                className="w-3 h-3 rounded-full" 
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              />
+                              {item.name}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">{item.value.toFixed(2)}h</TableCell>
+                          <TableCell className="text-right">{item.percentage}%</TableCell>
+                        </TableRow>
+                      ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
