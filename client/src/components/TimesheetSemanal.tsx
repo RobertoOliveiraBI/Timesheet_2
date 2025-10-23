@@ -17,6 +17,7 @@ import { getStatusConfig, needsReview } from "@/lib/statusUtils";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "./StatusBadge";
 import { CommentModal } from "./CommentModal";
+import { VisualizacaoSemanal } from "./VisualizacaoSemanal";
 
 interface Cliente {
   id: number;
@@ -907,6 +908,11 @@ export function TimesheetSemanal() {
         </div>
       </CardContent>
     </Card>
+
+    {/* Visualização Semanal */}
+    <div className="mt-6">
+      <VisualizacaoSemanal />
+    </div>
 
     {/* Histórico Mensal */}
     {mostrarHistorico && (
