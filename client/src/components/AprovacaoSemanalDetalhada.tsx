@@ -76,6 +76,7 @@ export function AprovacaoSemanalDetalhada() {
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
   const [entradaParaComentario, setEntradaParaComentario] = useState<EntradaHora | null>(null);
   const [modalComentarioAberto, setModalComentarioAberto] = useState(false);
+  const [entradasComComentarios, setEntradasComComentarios] = useState<Set<number>>(new Set());
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -124,6 +125,22 @@ export function AprovacaoSemanalDetalhada() {
     enabled: !!currentUser,
   });
 
+  // Função para verificar se uma entrada tem comentários
+  const verificarComentarios = async (entradaId: number) => {
+    try {
+      const response = await fetch(`/api/time-entries/${entradaId}/comments`, {
+        credentials: "include"
+      });
+      if (response.ok) {
+        const comentarios = await response.json();
+        return comentarios.length > 0;
+      }
+    } catch (error) {
+      console.error('Erro ao verificar comentários:', error);
+    }
+    return false;
+  };
+
   // Selecionar automaticamente o primeiro colaborador quando a lista carregar
   useEffect(() => {
     if (colaboradores.length > 0 && !colaboradorSelecionado) {
@@ -153,6 +170,29 @@ export function AprovacaoSemanalDetalhada() {
     enabled: !!colaboradorSelecionado,
     staleTime: 30 * 1000,
   });
+
+  // Verificar comentários das entradas da semana
+  useEffect(() => {
+    const verificarComentariosDasSemana = async () => {
+      if (!entradasSemana || entradasSemana.length === 0) {
+        setEntradasComComentarios(new Set());
+        return;
+      }
+      
+      const novasEntradasComComentarios = new Set<number>();
+      
+      for (const entrada of entradasSemana) {
+        const temComentarios = await verificarComentarios(entrada.id);
+        if (temComentarios) {
+          novasEntradasComComentarios.add(entrada.id);
+        }
+      }
+      
+      setEntradasComComentarios(novasEntradasComComentarios);
+    };
+
+    verificarComentariosDasSemana();
+  }, [entradasSemana]);
 
   // Agrupar entradas em linhas da tabela
   const linhasTabela: LinhaTabela[] = (() => {
@@ -593,11 +633,15 @@ export function AprovacaoSemanalDetalhada() {
                                         setEntradaParaComentario(entrada);
                                         setModalComentarioAberto(true);
                                       }}
-                                      className="h-6 w-6 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                                      title="Comentários"
+                                      className={`h-6 w-6 p-0 ${
+                                        entradasComComentarios.has(entrada.id)
+                                          ? "bg-blue-600 text-white hover:bg-blue-700" 
+                                          : "text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                                      }`}
+                                      title={entradasComComentarios.has(entrada.id) ? "Comentários (tem comentários)" : "Comentários"}
                                       data-testid={`button-comentario-${entrada.id}`}
                                     >
-                                      <MessageCircle className="w-3 h-3" />
+                                      <MessageCircle className={`w-3 h-3 ${entradasComComentarios.has(entrada.id) ? "fill-current" : ""}`} />
                                     </Button>
                                     {entrada.status === 'VALIDACAO' && (
                                       <Button
@@ -689,8 +733,19 @@ export function AprovacaoSemanalDetalhada() {
       {entradaParaComentario && currentUser && (
         <CommentModal
           isOpen={modalComentarioAberto}
-          onClose={() => {
+          onClose={async () => {
             setModalComentarioAberto(false);
+            // Verificar se a entrada agora tem comentários
+            if (entradaParaComentario) {
+              const temComentarios = await verificarComentarios(entradaParaComentario.id);
+              const novoSet = new Set(entradasComComentarios);
+              if (temComentarios) {
+                novoSet.add(entradaParaComentario.id);
+              } else {
+                novoSet.delete(entradaParaComentario.id);
+              }
+              setEntradasComComentarios(novoSet);
+            }
             setEntradaParaComentario(null);
             refetchEntradas();
           }}
