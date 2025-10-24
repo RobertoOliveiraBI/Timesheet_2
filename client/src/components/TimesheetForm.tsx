@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Send } from "lucide-react";
 
 const hourOptions = [
   { value: "0.25", label: "0:15" },
@@ -73,36 +72,6 @@ export function TimesheetForm() {
     },
   });
 
-  const submitTimeEntry = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/time-entries", {
-        ...data,
-        status: "PENDING",
-      });
-      return response;
-    },
-    onSuccess: () => {
-      toast({
-        title: "Sucesso",
-        description: "Lançamento enviado para aprovação!",
-      });
-      setFormData({
-        date: new Date().toISOString().split('T')[0],
-        campaignId: "",
-        taskTypeId: "",
-        hours: "",
-        description: "",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: "Falha ao enviar para aprovação",
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleSaveDraft = () => {
     if (!formData.campaignId || !formData.taskTypeId || !formData.hours) {
@@ -123,23 +92,6 @@ export function TimesheetForm() {
     });
   };
 
-  const handleSubmitForApproval = () => {
-    if (!formData.campaignId || !formData.taskTypeId || !formData.hours) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    submitTimeEntry.mutate({
-      ...formData,
-      campaignId: parseInt(formData.campaignId),
-      taskTypeId: parseInt(formData.taskTypeId),
-      hours: parseFloat(formData.hours),
-    });
-  };
 
   const selectedCampaign = Array.isArray(campaigns) ? campaigns.find((c: any) => c.id === parseInt(formData.campaignId)) : null;
 
@@ -251,14 +203,6 @@ export function TimesheetForm() {
               disabled={createTimeEntry.isPending}
             >
               Salvar como Rascunho
-            </Button>
-            <Button 
-              onClick={handleSubmitForApproval}
-              disabled={submitTimeEntry.isPending}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Enviar para Aprovação
             </Button>
           </div>
         </div>
