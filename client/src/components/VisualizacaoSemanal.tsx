@@ -450,34 +450,61 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
                             >
                               {entradasDoDia.length > 0 ? (
                                 <div className="space-y-1">
-                                  {entradasDoDia.map((entrada) => (
-                                    <div 
-                                      key={entrada.id} 
-                                      className="flex items-center justify-center gap-1 bg-blue-50 rounded px-2 py-1"
-                                    >
-                                      <span className="font-medium text-sm">{parseFloat(entrada.hours).toFixed(2)}h</span>
-                                      <div className="flex gap-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 w-5 p-0 hover:bg-blue-100"
-                                          onClick={() => abrirModalEdicao(entrada)}
-                                          data-testid={`button-editar-${entrada.id}`}
-                                        >
-                                          <Edit className="h-3 w-3 text-blue-600" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 w-5 p-0 text-red-600 hover:bg-red-100"
-                                          onClick={() => abrirModalExclusao(entrada)}
-                                          data-testid={`button-excluir-${entrada.id}`}
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </Button>
+                                  {entradasDoDia.map((entrada) => {
+                                    const getStatusColor = (status: string) => {
+                                      switch (status) {
+                                        case "RASCUNHO": return "bg-gray-400";
+                                        case "SALVO": return "bg-blue-400";
+                                        case "VALIDACAO": return "bg-yellow-400";
+                                        case "APROVADO": return "bg-green-500";
+                                        default: return "bg-gray-300";
+                                      }
+                                    };
+                                    
+                                    const getStatusLabel = (status: string) => {
+                                      switch (status) {
+                                        case "RASCUNHO": return "Rascunho";
+                                        case "SALVO": return "Salvo";
+                                        case "VALIDACAO": return "Em Validação";
+                                        case "APROVADO": return "Aprovado";
+                                        default: return status;
+                                      }
+                                    };
+                                    
+                                    return (
+                                      <div 
+                                        key={entrada.id} 
+                                        className="flex items-center justify-center gap-1 bg-blue-50 rounded px-2 py-1"
+                                      >
+                                        <div 
+                                          className={`w-2 h-2 rounded-full ${getStatusColor(entrada.status)}`}
+                                          title={getStatusLabel(entrada.status)}
+                                          data-testid={`status-indicator-${entrada.id}`}
+                                        />
+                                        <span className="font-medium text-sm">{parseFloat(entrada.hours).toFixed(2)}h</span>
+                                        <div className="flex gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 p-0 hover:bg-blue-100"
+                                            onClick={() => abrirModalEdicao(entrada)}
+                                            data-testid={`button-editar-${entrada.id}`}
+                                          >
+                                            <Edit className="h-3 w-3 text-blue-600" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 p-0 text-red-600 hover:bg-red-100"
+                                            onClick={() => abrirModalExclusao(entrada)}
+                                            data-testid={`button-excluir-${entrada.id}`}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               ) : (
                                 <span className="text-gray-400">-</span>
