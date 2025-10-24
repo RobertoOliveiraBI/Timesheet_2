@@ -489,8 +489,10 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
                                             className="h-5 w-5 p-0 hover:bg-blue-100"
                                             onClick={() => abrirModalEdicao(entrada)}
                                             data-testid={`button-editar-${entrada.id}`}
+                                            disabled={entrada.status === "VALIDACAO" || entrada.status === "APROVADO"}
+                                            title={entrada.status === "VALIDACAO" ? "Não é possível editar lançamentos em validação" : entrada.status === "APROVADO" ? "Não é possível editar lançamentos aprovados" : "Editar"}
                                           >
-                                            <Edit className="h-3 w-3 text-blue-600" />
+                                            <Edit className={`h-3 w-3 ${entrada.status === "VALIDACAO" || entrada.status === "APROVADO" ? "text-gray-400" : "text-blue-600"}`} />
                                           </Button>
                                           <Button
                                             variant="ghost"
@@ -498,8 +500,10 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
                                             className="h-5 w-5 p-0 text-red-600 hover:bg-red-100"
                                             onClick={() => abrirModalExclusao(entrada)}
                                             data-testid={`button-excluir-${entrada.id}`}
+                                            disabled={entrada.status === "VALIDACAO" || entrada.status === "APROVADO"}
+                                            title={entrada.status === "VALIDACAO" ? "Não é possível excluir lançamentos em validação" : entrada.status === "APROVADO" ? "Não é possível excluir lançamentos aprovados" : "Excluir"}
                                           >
-                                            <Trash2 className="h-3 w-3" />
+                                            <Trash2 className={`h-3 w-3 ${entrada.status === "VALIDACAO" || entrada.status === "APROVADO" ? "text-gray-400" : ""}`} />
                                           </Button>
                                         </div>
                                       </div>
@@ -517,26 +521,39 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
                         </td>
                         <td className="border border-gray-300 p-2 text-center">
                           <div className="flex items-center justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-green-100"
-                              onClick={() => abrirModalEnviarLinha(linha)}
-                              title="Enviar linha para aprovação"
-                              data-testid={`button-enviar-linha-${linha.chave}`}
-                            >
-                              <Send className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-red-100"
-                              onClick={() => abrirModalExcluirLinha(linha)}
-                              title="Excluir linha inteira"
-                              data-testid={`button-excluir-linha-${linha.chave}`}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
+                            {(() => {
+                              const todasEntradas = Object.values(linha.entradas).flat();
+                              const todasEmValidacao = todasEntradas.length > 0 && todasEntradas.every(e => e.status === "VALIDACAO");
+                              const todasAprovadas = todasEntradas.length > 0 && todasEntradas.every(e => e.status === "APROVADO");
+                              const algumaBloqueada = todasEntradas.some(e => e.status === "VALIDACAO" || e.status === "APROVADO");
+                              
+                              return (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={`h-7 w-7 p-0 ${todasEmValidacao ? "hover:bg-yellow-100" : "hover:bg-green-100"}`}
+                                    onClick={() => abrirModalEnviarLinha(linha)}
+                                    title={todasEmValidacao ? "Linha já está em validação" : todasAprovadas ? "Linha já está aprovada" : "Enviar linha para aprovação"}
+                                    data-testid={`button-enviar-linha-${linha.chave}`}
+                                    disabled={todasEmValidacao || todasAprovadas}
+                                  >
+                                    <Send className={`h-4 w-4 ${todasEmValidacao ? "text-yellow-600" : todasAprovadas ? "text-gray-400" : "text-green-600"}`} />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 hover:bg-red-100"
+                                    onClick={() => abrirModalExcluirLinha(linha)}
+                                    title={algumaBloqueada ? "Não é possível excluir linha com lançamentos em validação ou aprovados" : "Excluir linha inteira"}
+                                    data-testid={`button-excluir-linha-${linha.chave}`}
+                                    disabled={algumaBloqueada}
+                                  >
+                                    <Trash2 className={`h-4 w-4 ${algumaBloqueada ? "text-gray-400" : "text-red-600"}`} />
+                                  </Button>
+                                </>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
