@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Eye, Edit, Trash2, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Edit, Trash2, RefreshCw, Send } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -72,6 +72,10 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
   const [horasEditando, setHorasEditando] = useState("");
   const [entradaParaExcluir, setEntradaParaExcluir] = useState<EntradaHora | null>(null);
   const [modalExclusaoAberto, setModalExclusaoAberto] = useState(false);
+  const [linhaParaEnviar, setLinhaParaEnviar] = useState<LinhaVisualizada | null>(null);
+  const [modalEnviarLinhaAberto, setModalEnviarLinhaAberto] = useState(false);
+  const [linhaParaExcluir, setLinhaParaExcluir] = useState<LinhaVisualizada | null>(null);
+  const [modalExcluirLinhaAberto, setModalExcluirLinhaAberto] = useState(false);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -274,6 +278,90 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
     }
   };
 
+  // Mutation para enviar linha inteira para aprovação
+  const enviarLinhaParaAprovacao = useMutation({
+    mutationFn: async (linha: LinhaVisualizada) => {
+      const todasEntradas = Object.values(linha.entradas).flat();
+      
+      for (const entrada of todasEntradas) {
+        await apiRequest("PATCH", `/api/time-entries/${entrada.id}`, {
+          status: "VALIDACAO"
+        });
+      }
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Sucesso!",
+        description: "Linha enviada para aprovação com sucesso",
+      });
+      
+      setModalEnviarLinhaAberto(false);
+      setLinhaParaEnviar(null);
+      
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/timesheet/visualizacao-semana"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/timesheet/semana"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchEntradas()
+      ]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao enviar linha para aprovação",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation para excluir linha inteira
+  const excluirLinhaInteira = useMutation({
+    mutationFn: async (linha: LinhaVisualizada) => {
+      const todasEntradas = Object.values(linha.entradas).flat();
+      
+      for (const entrada of todasEntradas) {
+        await apiRequest("DELETE", `/api/time-entries/${entrada.id}`);
+      }
+    },
+    onSuccess: async () => {
+      toast({
+        title: "Sucesso!",
+        description: "Linha excluída com sucesso",
+      });
+      
+      setModalExcluirLinhaAberto(false);
+      setLinhaParaExcluir(null);
+      
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/timesheet/visualizacao-semana"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/timesheet/semana"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/time-entries/mensal"] }),
+        refetchEntradas()
+      ]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message || "Erro ao excluir linha",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Abrir modal de envio de linha
+  const abrirModalEnviarLinha = (linha: LinhaVisualizada) => {
+    setLinhaParaEnviar(linha);
+    setModalEnviarLinhaAberto(true);
+  };
+
+  // Abrir modal de exclusão de linha
+  const abrirModalExcluirLinha = (linha: LinhaVisualizada) => {
+    setLinhaParaExcluir(linha);
+    setModalExcluirLinhaAberto(true);
+  };
+
   return (
     <>
       <Card>
@@ -401,7 +489,28 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
                           {linha.totalHoras.toFixed(2)}h
                         </td>
                         <td className="border border-gray-300 p-2 text-center">
-                          <span className="text-xs text-gray-500">-</span>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-green-100"
+                              onClick={() => abrirModalEnviarLinha(linha)}
+                              title="Enviar linha para aprovação"
+                              data-testid={`button-enviar-linha-${linha.chave}`}
+                            >
+                              <Send className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-red-100"
+                              onClick={() => abrirModalExcluirLinha(linha)}
+                              title="Excluir linha inteira"
+                              data-testid={`button-excluir-linha-${linha.chave}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -506,6 +615,50 @@ export function VisualizacaoSemanal({ semanaAtual, onSemanaChange }: Visualizaca
               data-testid="button-confirmar-exclusao"
             >
               {excluirEntrada.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de confirmação de envio de linha para aprovação */}
+      <AlertDialog open={modalEnviarLinhaAberto} onOpenChange={setModalEnviarLinhaAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar linha para aprovação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja enviar todas as entradas desta linha ({linhaParaEnviar?.clienteNome} - {linhaParaEnviar?.campanhaNome} - {linhaParaEnviar?.tarefaNome}) para aprovação?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancelar-enviar-linha">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => linhaParaEnviar && enviarLinhaParaAprovacao.mutate(linhaParaEnviar)}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid="button-confirmar-enviar-linha"
+            >
+              {enviarLinhaParaAprovacao.isPending ? "Enviando..." : "Enviar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de confirmação de exclusão de linha inteira */}
+      <AlertDialog open={modalExcluirLinhaAberto} onOpenChange={setModalExcluirLinhaAberto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão de linha</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir TODAS as entradas desta linha ({linhaParaExcluir?.clienteNome} - {linhaParaExcluir?.campanhaNome} - {linhaParaExcluir?.tarefaNome})? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancelar-excluir-linha">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => linhaParaExcluir && excluirLinhaInteira.mutate(linhaParaExcluir)}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirmar-excluir-linha"
+            >
+              {excluirLinhaInteira.isPending ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
